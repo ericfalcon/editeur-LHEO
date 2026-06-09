@@ -3365,8 +3365,8 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
 function uid(){return 'f'+Date.now()+Math.floor(Math.random()*9999);}
 function persist(){localStorage.setItem(DB,JSON.stringify(cat));}
 function $(i){return document.getElementById(i);}
-function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''; }
-function escX(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):''; }
+function esc(s){return s?String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'&quot;'):''; }
+function escX(s){return s?String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>'):''; }
 function toast(msg,err){
   var n=$('J_notif');n.textContent=msg;
   n.className='notif '+(err?'n-err':'n-ok');n.style.display='block';
@@ -4258,6 +4258,184 @@ function removeBloc(i){
   L.doSave(L.curId,true);
   var ff=L.cat.find(function(x){return x.id===L.curId;});if(!ff)return;
   ff.blocsCompetences.splice(i,1);L.persist();L.openEditor(L.curId);}
+
+window.addEventListener('load', function() {
+
+// =========================
+// TYPE FORMATION
+// =========================
+function getTypeFormation(f){
+  return f.typeFormation || "rncp";
+}
+
+// =========================
+// VALIDATION METIER
+// =========================
+function validateEDOF(f){
+
+  let e = [];
+  const type = getTypeFormation(f);
+
+  if(!f.intitule) e.push("Intitulé manquant");
+  if(!f.objectif) e.push("Objectif manquant");
+  if(!f.contenu) e.push("Contenu manquant");
+
+  if(!/^\d{14}$/.test(f.siret))
+    e.push("SIRET invalide");
+
+  // ===== RNCP =====
+  if(type === "rncp"){
+    if(!f.rncp)
+      e.push("RNCP obligatoire");
+
+    if(!f.blocsCompetences || !f.blocsCompetences.length)
+      e.push("Blocs RNCP requis");
+  }
+
+  // ===== RS =====
+  if(type === "rs"){
+    if(!f.codeRS)
+      e.push("Code RS manquant");
+  }
+
+  // ===== PRIX =====
+  if(f.prixHT && f.prixTTC && f.tva){
+    let calc = f.prixHT * (1 + f.tva/100);
+    if(Math.abs(calc - f.prixTTC) > 1)
+      e.push("TVA incohérente");
+  }
+
+  return e;
+}
+
+// =========================
+// EXPORT CATALOGUE GLOBAL
+// =========================
+function exportCatalogue(){
+
+  var L = window._lheo;
+
+  if(!L.cat || !L.cat.length){
+    alert("Aucune fiche");
+    return;
+  }
+
+  let errorsGlobal = [];
+
+  L.cat.forEach(f => {
+    const e = validateEDOF(f);
+    if(e.length){
+      errorsGlobal.push("FICHE: " + f.intitule + " → " + e.join(", "));
+    }
+  });
+
+  if(errorsGlobal.length){
+    alert(errorsGlobal.join("\n"));
+    return;
+  }
+
+  const xml = buildCatalogueXML(L.cat);
+
+  const blob = new Blob([xml], {type:"text/xml"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "catalogue-edof.xml";
+  a.click();
+}
+
+// =========================
+// BUILD XML
+// =========================
+function buildCatalogueXML(cat){
+
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,"");
+
+  let xml = `<?xml version="1.0" encoding="ISO-8859-1"?>\n`;
+  xml += `<lheo xmlns="https://www.of.moncompteformation.gouv.fr">\n<offres>\n`;
+
+  cat.forEach(f => {
+
+    const type = getTypeFormation(f);
+
+    xml += `<formation numero="${f.numero}" datemaj="${today}" datecrea="${today}">\n`;
+
+    xml += `<intitule-formation>${escapeXML(f.intitule)}</intitule-formation>\n`;
+
+    xml += `<objectif-formation><![CDATA[${f.objectif || ""}]]></objectif-formation>\n`;
+    xml += `<contenu-formation><![CDATA[${f.contenu || ""}]]></contenu-formation>\n`;
+
+    xml += `<parcours-de-formation>2</parcours-de-formation>\n`;
+
+    // ===== CERTIFICATION =====
+    if(type === "rncp"){
+      xml += `<certification><code-RNCP>${f.rncp}</code-RNCP></certification>\n`;
+    }
+
+    if(type === "rs"){
+      xml += `<certification><code-RS>${f.codeRS}</code-RS></certification>\n`;
+    }
+
+    if(type === "vae"){
+      xml += `<type-formation>VAE</type-formation>\n`;
+    }
+
+    // ===== ORGANISME =====
+    xml += `<organisme-formation-responsable>
+      <SIRET-organisme-formation>
+        <SIRET>${f.siret}</SIRET>
+      </SIRET-organisme-formation>
+    </organisme-formation-responsable>\n`;
+
+    xml += `<action numero="ACT-1" datemaj="${today}" datecrea="${today}">\n`;
+
+    xml += `<session numero="SES-1" datemaj="${today}" datecrea="${today}">
+      <periode>
+        <debut>${f.dateDebut || today}</debut>
+        <fin>${f.dateFin || today}</fin>
+      </periode>
+    </session>\n`;
+
+    xml += `<extras info="action">
+      <extras info="frais-pedagogiques">
+        <extra info="taux-tva">${f.tva || 0}</extra>
+        <extra info="frais-ht">${f.prixHT || 0}</extra>
+        <extra info="frais-ttc">${f.prixTTC || 0}</extra>
+      </extras>
+    </extras>\n`;
+
+    xml += `</action>\n`;
+
+    // ===== BLOCS RNCP =====
+    if(type === "rncp"){
+      xml += `<extras info="formation">
+        <extra info="blocs-competences">\n`;
+
+      (f.blocsCompetences || []).forEach(b => {
+        xml += `<extra info="code-bloc">${b}</extra>\n`;
+      });
+
+      xml += `</extra>
+        <extra info="blocs-modifiables">0</extra>
+      </extras>\n`;
+    }
+
+    xml += `</formation>\n`;
+
+  });
+
+  xml += `</offres></lheo>`;
+
+  return xml;
+}
+
+// =========================
+// BOUTON EXPORT
+// =========================
+document.getElementById("J_expAll").addEventListener("click", function(){
+  exportCatalogue();
+});
+
+});
 </script>
 </body>
 </html>
