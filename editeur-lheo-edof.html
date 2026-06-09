@@ -4346,6 +4346,7 @@ function exportCatalogue(){
 // =========================
 // BUILD XML
 // =========================
+
 function buildCatalogueXML(cat){
 
   const today = new Date().toISOString().slice(0,10).replace(/-/g,"");
@@ -4353,7 +4354,7 @@ function buildCatalogueXML(cat){
   let xml = `<?xml version="1.0" encoding="ISO-8859-1"?>\n`;
   xml += `<lheo xmlns="https://www.of.moncompteformation.gouv.fr">\n<offres>\n`;
 
-  cat.forEach(f => {
+  cat.forEach(function(f){
 
     const type = getTypeFormation(f);
 
@@ -4366,7 +4367,7 @@ function buildCatalogueXML(cat){
 
     xml += `<parcours-de-formation>2</parcours-de-formation>\n`;
 
-    // ===== CERTIFICATION =====
+    // CERTIFICATION
     if(type === "rncp"){
       xml += `<certification><code-RNCP>${f.rncp}</code-RNCP></certification>\n`;
     }
@@ -4379,7 +4380,7 @@ function buildCatalogueXML(cat){
       xml += `<type-formation>VAE</type-formation>\n`;
     }
 
-    // ===== ORGANISME =====
+    // ORGANISME
     xml += `<organisme-formation-responsable>
       <SIRET-organisme-formation>
         <SIRET>${f.siret}</SIRET>
@@ -4405,12 +4406,12 @@ function buildCatalogueXML(cat){
 
     xml += `</action>\n`;
 
-    // ===== BLOCS RNCP =====
+    // BLOCS RNCP
     if(type === "rncp"){
       xml += `<extras info="formation">
         <extra info="blocs-competences">\n`;
 
-      (f.blocsCompetences || []).forEach(b => {
+      (f.blocsCompetences || []).forEach(function(b){
         xml += `<extra info="code-bloc">${b}</extra>\n`;
       });
 
@@ -4427,6 +4428,7 @@ function buildCatalogueXML(cat){
 
   return xml;
 }
+
 
 // =========================
 // BOUTON EXPORT
