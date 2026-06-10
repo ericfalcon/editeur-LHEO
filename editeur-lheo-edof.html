@@ -3463,7 +3463,12 @@ function drawList(){
 }
 
 function showWelcome(){
-  var corsOk=(location.protocol==='http:');
+  // CORS OK si: http://localhost (proxy local) OU https:// (GitHub Pages, serveur web)
+  // Mode fichier local = file:// seulement
+  var isFileLocal = (location.protocol==='file:');
+  var isLocalProxy = (location.protocol==='http:' && (location.hostname==='localhost'||location.hostname==='127.0.0.1'));
+  var isHttps = (location.protocol==='https:');
+  var corsOk = isLocalProxy || isHttps;
   $('J_main').innerHTML='<div class="welcome"><div style="font-size:50px">&#128203;</div>'+
     '<h2>Editeur LHEO 2.3 / EDOF</h2>'+
     '<p>Format XML LHEO 2.3.3 - Compatible Mon Compte Formation (EDOF).<br>'+
@@ -3474,7 +3479,7 @@ function showWelcome(){
     (cat.length?'<p style="font-size:10px;margin-top:6px;color:var(--g5)">('+cat.length+' fiche(s) en memoire)</p>':'')+
     (!corsOk?
       '<div style="margin-top:16px;padding:12px;background:var(--warn-bg,#fff8e1);border:1px solid #f9a825;border-radius:6px;font-size:12px;text-align:left">'+
-      '<strong>&#9888; Mode fichier local detecto</strong><br>'+
+      '<strong>&#9888; Mode fichier local détecté</strong><br>'+
       'L\'import France Competences necessite un mini serveur local.<br>'+
       '<button class="btn btn-sm" style="margin-top:8px" id="J_gen_py">&#128190; Generer lancer-editeur.bat + .py</button>'+
       '<span style="margin-left:8px;color:var(--g4)">Double-cliquez sur le <b>.bat</b> puis ouvrez <b>http://localhost:8765</b></span>'+
