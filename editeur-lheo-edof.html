@@ -79,6 +79,19 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
 #file-in{display:none}
 .bdg{display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle}
 .b-r{background:#fee2e2;color:#991b1b}.b-o{background:var(--g1);color:var(--g5)}
+
+/* Validation visuelle */
+.field-err input,.field-err select,.field-err textarea{border-color:var(--err)!important;background:#fff8f8!important;}
+.field-err label::after{content:' ← Obligatoire';color:var(--err);font-size:10px;font-weight:600;}
+.val-banner{background:#fff0f0;border:1px solid var(--err);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;}
+.val-banner ul{margin:6px 0 0 18px;}
+.val-banner li{margin-bottom:3px;color:var(--err);}
+.val-banner strong{color:var(--err);}
+.siret-ok{font-size:10px;color:var(--ok);margin-top:2px;}
+.siret-err{font-size:10px;color:var(--err);margin-top:2px;}
+.rs-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:11px;font-weight:500;border-radius:5px;cursor:pointer;border:1px solid var(--pri);background:var(--prl);color:var(--pri);margin-top:4px;}
+.rs-btn:hover{background:var(--pri);color:#fff;}
+.rs-status{font-size:11px;color:var(--g5);margin-top:3px;}
 </style>
 </head>
 <body>
@@ -3357,8 +3370,13 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
   persist:function(){persist();},
   openEditor:function(id){openEditor(id);},
   doSave:function(id,s){doSave(id,s);},
-  toast:function(m,e){toast(m,e);}
+  toast:function(m,e){toast(m,e);},
+  uid:function(){return uid();}
 };
+// Exposer aussi les fonctions appelées via onclick= dans le HTML généré
+window.fetchRS=function(){fetchRS();};
+window.dupFiche=function(id){dupFiche(id);};
+window.fetchBlocs=function(){fetchBlocs();};
 
 /* ==============================================================
    UTILITAIRES
@@ -3500,7 +3518,9 @@ function renderEditor(f){
     '<div class="ed-head"><h2>Fiche formation</h2>'+
     '<div style="display:flex;gap:5px">'+
     '<button class="btn" id="E_prev">XML</button>'+
-    '<button class="btn btn-ok" id="E_exp">Exporter</button></div></div>'+
+    '<button class="btn btn-ok" id="E_exp">Exporter</button>'+
+    '<button class="btn" onclick="dupFiche(\''+f.id+'\')">⧉ Dupliquer</button>'+
+    '</div></div>'+
     sec('Identification <span class="bdg b-r">Obligatoire</span>',true,buildIdent(f))+
     sec('Certification et codes <span class="bdg b-r">Obligatoire CPF</span>',true,buildCertif(f))+
     sec('Description pedagogique <span class="bdg b-r">Obligatoire</span>',true,buildDesc(f))+
@@ -3514,6 +3534,16 @@ function renderEditor(f){
   bindSF('nsf',NSF,3,f.nsf||[]);
   bindSF('rome',ROME,5,f.rome||[]);
 
+  // Vérification SIRET en temps réel
+  (function(){
+    var siretEl=$('E_siret');
+    var statusEl=$('E_siret_status');
+    if(siretEl&&statusEl){
+      // Vérifier à l'affichage si déjà renseigné
+      if(siretEl.value) checkSiretField(siretEl.value,statusEl);
+      siretEl.addEventListener('input',function(){checkSiretField(siretEl.value,statusEl);});
+    }
+  })();
   ccBind('E_obj','cc_obj',3000);ccBind('E_cont','cc_cont',3000);
   ccBind('E_res','cc_res',3000);ccBind('E_rythme','cc_ry',3000);
   ccBind('E_resumec','cc_resumec',255);
@@ -3604,7 +3634,9 @@ function buildIdent(f){
     '</div>'+
     fi('Intitule de la formation','E_intitule','text',f.intitule,255,'Titre de la formation',true,true)+
     fi('N° interne OF (numero)','E_num','text',f.numIntOf,30,'Ex : FORM-001',true)+
-    fi('SIRET organisme','E_siret','text',f.siret,14,'14 chiffres',true)+
+    '<div class="fitem"><label>SIRET organisme <span class="req">*</span></label>'+
+    '<input type="text" id="E_siret" maxlength="14" value="'+esc(f.siret||'')+'" placeholder="14 chiffres">'+
+    '<div id="E_siret_status"></div></div>'+
     (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'4':isVae?'6':'3')+'">')+
     fsel('Type de parcours','E_parcours',sOpts(PARCOURS,f.parcours))+
     (!isBilan&&!isPermis?
@@ -3629,7 +3661,10 @@ function buildCertif(f){
     // RNCP et RS : uniquement pour "Formation préparant à une certification"
     (showRncp?
       fi('Code RNCP','E_rncp','text',f.rncp,'','RNCP35482')+
-      fi('Code RS (repertoire specifique)','E_rs','text',f.rs,'','RS5287')
+      fi('Code RS (repertoire specifique)','E_rs','text',f.rs,'','RS5287')+
+      '<button class="rs-btn" onclick="fetchRS()">⬇ Import RS auto</button>'+
+      '<div id="E_rs_status" class="rs-status"></div>'+
+      ''
     :
       '<input type="hidden" id="E_rncp" value="'+esc(f.rncp||'')+'">'+
       '<input type="hidden" id="E_rs" value="'+esc(f.rs||'')+'">'+
@@ -3947,7 +3982,230 @@ function collect(fid){
     if(!f.actions[ai]||!f.actions[ai].sessions[si])return;
     f.actions[ai].sessions[si][el.dataset.fs]=el.value;});}
 
-function doSave(fid,silent){collect(fid);persist();drawList();if(!silent)toast('Fiche enregistree');}
+
+/* ==============================================================
+   VALIDATION VISUELLE
+   ============================================================== */
+
+// Règles de validation : [id_champ, label_lisible, condition_erreur]
+function validateFiche(f){
+  var errs=[];
+
+  // Niveau formation
+  if(!f.intitule||f.intitule.trim().length<3) errs.push({field:'E_intitule',msg:'Intitulé manquant (min 3 car.)'});
+  if(!f.numIntOf||f.numIntOf.trim().length<1) errs.push({field:'E_num',msg:'N° interne OF manquant'});
+  if(!f.siret||f.siret.replace(/\s/g,'').length!==14) errs.push({field:'E_siret',msg:'SIRET invalide (14 chiffres requis)'});
+  if(!luhnSiret(f.siret)) errs.push({field:'E_siret',msg:'SIRET invalide (clé Luhn incorrecte)'});
+  if(!f.objectif||f.objectif.trim().length<10) errs.push({field:'E_obj',msg:'Objectif pédagogique manquant (min 10 car.)'});
+  if(!f.contenu||f.contenu.trim().length<10) errs.push({field:'E_cont',msg:'Contenu manquant (min 10 car.)'});
+  if(!f.resultats||f.resultats.trim().length<10) errs.push({field:'E_res',msg:'Résultats attendus manquants'});
+  if(!f.resumeContenu||f.resumeContenu.trim().length<5) errs.push({field:'E_resumec',msg:'Points forts manquants (max 255 car.)'});
+  if(!f.formacode||!f.formacode.length) errs.push({field:'sf_t_fc',msg:'Au moins 1 code FORMACODE requis'});
+  if(!f.nsf||!f.nsf.length) errs.push({field:'sf_t_nsf',msg:'Au moins 1 code NSF requis'});
+  // Certification
+  if(!f.rncp&&!f.rs&&!f.cpf) errs.push({field:'E_rncp',msg:'Code certification manquant (RNCP, RS ou code CPF)'});
+  if(f.cpf==='CPF200'&&!f.categorisationOffre) errs.push({field:'E_catoffre',msg:'Catégorisation obligatoire pour CPF200 (VAE)'});
+  // Organisme
+  if(!f.raisonSociale||f.raisonSociale.trim().length<2) errs.push({field:'E_rs_org',msg:'Raison sociale manquante'});
+  // Actions
+  if(!f.actions||!f.actions.length) errs.push({field:null,msg:'Au moins 1 action requise'});
+  (f.actions||[]).forEach(function(a,i){
+    if(!a.num) errs.push({field:null,msg:'Action '+(i+1)+' : N° interne manquant'});
+    if(!a.prix||parseFloat(a.prix)<=0) errs.push({field:null,msg:'Action '+(i+1)+' : Prix TTC manquant'});
+    if(!a.duree||parseFloat(a.duree)<=0) errs.push({field:null,msg:'Action '+(i+1)+' : Durée manquante'});
+    if(!a.adr) errs.push({field:null,msg:'Action '+(i+1)+' : Adresse manquante'});
+    if(!a.cp||!/^\d{5}$/.test(a.cp)) errs.push({field:null,msg:'Action '+(i+1)+' : Code postal invalide (5 chiffres)'});
+    if(!a.ville) errs.push({field:null,msg:'Action '+(i+1)+' : Ville manquante'});
+    if(!a.sessions||!a.sessions.length) errs.push({field:null,msg:'Action '+(i+1)+' : Au moins 1 session requise'});
+    (a.sessions||[]).forEach(function(s,j){
+      if(!s.num) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : N° session manquant'});
+      if(a.entSor!=='1'&&(!s.debut||!s.fin)) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : Dates manquantes'});
+    });
+    // Anti-doublon action (erreur 30056 EDOF)
+    (f.actions||[]).forEach(function(b,j){
+      if(j<=i) return;
+      if(a.modEns===b.modEns&&a.cp===b.cp&&a.lang===b.lang&&a.prix===b.prix){
+        var da=parseFloat(a.duree||0),db=parseFloat(b.duree||0);
+        if(Math.abs(da-db)<10) errs.push({field:null,
+          msg:'Actions '+(i+1)+' et '+(j+1)+' trop similaires (EDOF erreur 30056/30057) - vérifiez modalités, lieu, durée'});
+      }
+    });
+  });
+  return errs;
+}
+
+// Afficher/masquer les erreurs dans le formulaire
+function showValidation(errs){
+  // Nettoyer les erreurs précédentes
+  document.querySelectorAll('.field-err').forEach(function(el){el.classList.remove('field-err');});
+  var old=$('val-banner');if(old)old.remove();
+
+  if(!errs||!errs.length) return true;
+
+  // Banner en haut de l'éditeur
+  var banner=document.createElement('div');
+  banner.id='val-banner';
+  banner.className='val-banner';
+  banner.innerHTML='<strong>'+errs.length+' erreur(s) à corriger avant export :</strong><ul>'+
+    errs.map(function(e){return '<li>'+e.msg+'</li>';}).join('')+'</ul>';
+  var edHead=$('.ed-head')||document.querySelector('.ed-head');
+  if(edHead) edHead.parentNode.insertBefore(banner,edHead.nextSibling);
+
+  // Surligner les champs en rouge
+  errs.forEach(function(e){
+    if(!e.field) return;
+    var el=$(e.field);
+    if(el){
+      var parent=el.closest('.fitem')||el.parentElement;
+      if(parent) parent.classList.add('field-err');
+    }
+  });
+  return false;
+}
+
+/* ==============================================================
+   VALIDATION SIRET (algorithme de Luhn)
+   ============================================================== */
+function luhnSiret(siret){
+  if(!siret) return false;
+  var s=siret.replace(/[\s\-]/g,'');
+  if(!/^\d{14}$/.test(s)) return false;
+  var sum=0;
+  for(var i=0;i<14;i++){
+    var d=parseInt(s[13-i]);
+    if(i%2===1){d*=2;if(d>9)d-=9;}
+    sum+=d;
+  }
+  return sum%10===0;
+}
+
+// Vérification SIRET en temps réel + API INSEE
+function checkSiretField(val,statusEl){
+  if(!val||val.replace(/\s/g,'').length!==14){
+    if(statusEl) statusEl.innerHTML='<span class="siret-err">14 chiffres requis</span>';
+    return;
+  }
+  if(!luhnSiret(val)){
+    if(statusEl) statusEl.innerHTML='<span class="siret-err">Clé SIRET invalide</span>';
+    return;
+  }
+  if(statusEl) statusEl.innerHTML='<span class="siret-ok">✓ Format SIRET valide</span>';
+  // Vérification INSEE via API annuaire-entreprises
+  var siret=val.replace(/\s/g,'');
+  fetch('https://recherche-entreprises.api.gouv.fr/search?q='+siret+'&page=1&per_page=1')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var res=data&&data.results&&data.results[0];
+      if(res){
+        var nom=res.nom_raison_sociale||res.nom_complet||'';
+        var etat=res.etat_administratif;
+        if(etat==='A'){
+          statusEl.innerHTML='<span class="siret-ok">✓ '+escEl(nom)+' — actif</span>';
+        } else {
+          statusEl.innerHTML='<span class="siret-err">⚠ '+escEl(nom)+' — état: '+escEl(etat||'?')+'</span>';
+        }
+      } else {
+        statusEl.innerHTML='<span class="siret-err">SIRET non trouvé dans la base INSEE</span>';
+      }
+    })
+    .catch(function(){
+      // Silencieux si pas de connexion
+      if(statusEl&&statusEl.innerHTML.indexOf('Format')>=0)
+        statusEl.innerHTML='<span class="siret-ok">✓ Format SIRET valide</span>';
+    });
+}
+
+function escEl(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):''; }
+
+/* ==============================================================
+   IMPORT RS (Répertoire Spécifique) via API France Compétences
+   ============================================================== */
+function fetchRS(){
+  var L=window._lheo;
+  if(!L){alert('Logiciel non prêt');return;}
+  L.doSave(L.curId,true);
+  var ff=L.cat.find(function(x){return x.id===L.curId;});
+  if(!ff||!ff.rs){alert('Saisissez un code RS (ex: RS5267 ou 5267) et enregistrez');return;}
+  var rs=ff.rs.trim().toUpperCase();
+  if(/^\d+$/.test(rs)) rs='RS'+rs;
+  if(!/^RS\d+$/.test(rs)){alert('Format invalide. Exemples: RS5267 ou 5267');return;}
+  var st=$('E_rs_status');
+  if(st) st.textContent='Chargement '+rs+'...';
+  var num=rs.replace('RS','');
+  fetch('https://api.francecompetences.fr/api/rs/'+num)
+    .then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    })
+    .then(function(data){
+      applyRSData(ff,rs,data,st);
+    })
+    .catch(function(e1){
+      // Essai via proxy CORS alternatif
+      fetch('https://api.apprentissage.beta.gouv.fr/api/certification/v1?code_certif='+rs)
+        .then(function(r){return r.json();})
+        .then(function(data){applyRSData(ff,rs,data&&data[0]?data:[{id:rs}],st);})
+        .catch(function(){
+          if(st) st.textContent='';
+          alert(rs+' : impossible de récupérer les données (vérifiez votre connexion)');
+        });
+    });
+}
+
+function applyRSData(ff,rs,data,st){
+  var L=window._lheo;
+  var d=Array.isArray(data)?data[0]:data;
+  if(!d){alert(rs+' introuvable dans France Compétences');if(st)st.textContent='';return;}
+  var maj=[];
+  // Intitulé
+  var intitule=(d.intitule||d.libelle||d.label||'');
+  if(intitule&&!ff.intitule){ff.intitule=intitule;maj.push('intitulé');}
+  // Niveau
+  var niv=d.niveau_europeen||(d.niveau&&d.niveau.europeen)||(d.nomenclature_europe&&d.nomenclature_europe.niveauEn);
+  if(niv){var m={'2':'3','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8'};
+    ff.nivS=m[String(niv)]||ff.nivS;maj.push('niveau');}
+  // NSF
+  var nsf=(d.nsf||[]).map?d.nsf:[];
+  if(nsf.length&&(!ff.nsf||!ff.nsf.length)){
+    ff.nsf=nsf.map(function(n){return n.code||n;}).slice(0,3);maj.push('NSF');}
+  // FORMACODE
+  var fc=(d.formacode||d.formacodes||[]);
+  if(fc.length&&(!ff.formacode||!ff.formacode.length)){
+    ff.formacode=fc.map(function(n){return n.code||n;}).slice(0,5);maj.push('FORMACODE');}
+  ff.certif='O';
+  if(st) st.textContent='';
+  L.persist();L.openEditor(L.curId);
+  alert('Import RS OK pour '+rs+'\nChamps importés : '+(maj.length?maj.join(', '):'aucun nouveau'));
+}
+
+/* ==============================================================
+   DUPLICATION DE FICHE
+   ============================================================== */
+function dupFiche(fid){
+  var f=cat.find(function(x){return x.id===fid;});
+  if(!f) return;
+  var clone=JSON.parse(JSON.stringify(f));
+  clone.id=uid();
+  clone.numIntOf=f.numIntOf?f.numIntOf+'_copie':'';
+  clone.intitule=f.intitule?'Copie - '+f.intitule:'';
+  // Réinitialiser les numéros de sessions pour éviter les doublons
+  clone.actions.forEach(function(a,i){
+    a.num=a.num?a.num+'_c':'';
+    a.sessions.forEach(function(s,j){s.num=s.num?s.num+'_c':'';});
+  });
+  cat.push(clone);persist();drawList();
+  openEditor(clone.id);
+  toast('Fiche dupliquée — pensez à modifier les numéros internes');
+}
+
+function doSave(fid,silent){
+  collect(fid);persist();drawList();
+  if(!silent){
+    toast('Fiche enregistrée');
+    var f=cat.find(function(x){return x.id===fid;});
+    if(f){var errs=validateFiche(f);showValidation(errs);}
+  }
+}
 function doAddAction(fid){
   doSave(fid,true);var ff=cat.find(function(x){return x.id===fid;});
   ff.actions.push(emptyAction());persist();openEditor(fid);}
@@ -4100,11 +4358,31 @@ function doPreview(fid){
   xmlBuf=toXML([f]);xmlName=(f.siret||'SIRET')+'_'+(f.numIntOf||'formation')+'.xml';
   $('J_xmlPre').textContent=xmlBuf;$('J_modal').classList.add('open');}
 function doExport1(fid){
-  doSave(fid,true);var f=cat.find(function(x){return x.id===fid;});
-  dl(toXML([f]),(f.siret||'SIRET')+'_'+(f.numIntOf||'formation')+'.xml');toast('XML telecharge');}
+  doSave(fid,true);
+  var f=cat.find(function(x){return x.id===fid;});
+  var errs=validateFiche(f);
+  if(errs.length){
+    showValidation(errs);
+    toast(errs.length+' erreur(s) — corrigez avant export',true);
+    return;
+  }
+  dl(toXML([f]),(f.siret||'SIRET')+'_'+(f.numIntOf||'formation')+'.xml');
+  toast('XML exporté ✓');
+}
 function doExportAll(){
   if(!cat.length){toast('Aucune formation',true);return;}
-  dl(toXML(cat),(cat[0].siret||'SIRET')+'_catalogue.xml');toast(cat.length+' formation(s) exportee(s)');}
+  var allErrs=[];
+  cat.forEach(function(f){
+    var errs=validateFiche(f);
+    if(errs.length) allErrs.push({fiche:f.intitule||f.numIntOf||f.id, count:errs.length, errs:errs});
+  });
+  if(allErrs.length){
+    var msg=allErrs.map(function(e){return e.fiche+' : '+e.count+' erreur(s)';}).join('\n');
+    if(!confirm(allErrs.length+' fiche(s) avec erreurs :\n'+msg+'\n\nExporter quand meme ?')) return;
+  }
+  dl(toXML(cat),(cat[0].siret||'SIRET')+'_catalogue.xml');
+  toast(cat.length+' formation(s) exportée(s)');
+}
 function dl(content,name){
   var b=new Blob([content],{type:'application/xml;charset=utf-8'});
   var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
