@@ -3377,6 +3377,30 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
 window.fetchRS=function(){fetchRS();};
 window.dupFiche=function(id){dupFiche(id);};
 window.fetchBlocs=function(){fetchBlocs();};
+window.addVaeRncp=function(){
+  var list=document.getElementById('vae-rncp-list');
+  if(!list) return;
+  var idx=list.querySelectorAll('.vae-rncp-row').length;
+  var div=document.createElement('div');
+  div.innerHTML=buildVaeRncpRow('','',idx);
+  list.appendChild(div.firstChild);
+};
+// Récupération automatique du titre RNCP depuis France Compétences
+window.autoFillRncpTitre=function(input){
+  var row=input.closest('.vae-rncp-row');
+  if(!row) return;
+  var code=input.value.trim().toUpperCase();
+  if(!/^RNCP\d+$/.test(code)) return;
+  var titreEl=row.querySelector('.vae-rncp-titre');
+  if(!titreEl||titreEl.value) return; // ne pas écraser si déjà rempli
+  fetch('https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant='+code,{
+    headers:{'Authorization':'Bearer '+window.API_APPRENTISSAGE_TOKEN}
+  }).then(function(r){return r.json();})
+  .then(function(data){
+    var d=data&&data[0];
+    if(d){var t=(d.intitule&&d.intitule.rncp)||d.libelle||'';if(t)titreEl.value=t;}
+  }).catch(function(){});
+};
 
 /* ==============================================================
    UTILITAIRES
@@ -3504,7 +3528,7 @@ function emptyFiche(){return {
   typeOffre:'certification',
   objGen:'7',certif:'N',parcours:'2',
   rncp:'',rs:'',cpf:'',certifinfo:'',
-  resumeContenu:'',categorisationOffre:'',
+  resumeContenu:'',categorisationOffre:'',vaeRncpList:[],
   blocsCompetences:[],blocsModifiables:'0',
   formacode:[],nsf:[],rome:[],
   nivE:'0',nivS:'0',
@@ -3835,13 +3859,40 @@ function buildCertif(f){
     '</div>';}
 
 function buildDesc(f){
+  var isVaeBD=(f.typeOffre==='vae'||f.cpf==='CPF200');
   return fg(2)+
     fta('Objectif pédagogique <span class="req">*</span>','E_obj',f.objectif,3000,true)+
     fta('Contenu <span class="req">*</span>','E_cont',f.contenu,3000,true)+
-    fta('Résultats attendus <span class="req">*</span>','E_res',f.resultats,3000,true)+
+    // Résultats attendus : généré automatiquement pour VAE, libre sinon
+    (isVaeBD?
+      '<div class="fitem full"><label>Résultats attendus <span class="req">*</span>'+
+      ' <span class="bdg b-o">généré automatiquement pour la VAE</span></label>'+
+      '<div style="background:var(--g1);border:1px solid var(--g2);border-radius:5px;padding:8px 12px;margin-bottom:4px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
+      '<span style="font-size:11px;font-weight:600;color:var(--g7)">Certifications RNCP visées par votre accompagnement VAE</span>'+
+      '<button type="button" class="btn btn-p btn-sm" onclick="addVaeRncp()">+ Ajouter RNCP</button></div>'+
+      '<div id="vae-rncp-list">'+
+      (f.vaeRncpList&&f.vaeRncpList.length?
+        f.vaeRncpList.map(function(r,i){return buildVaeRncpRow(r.code,r.titre,i);}).join('')
+        : buildVaeRncpRow('','',0)
+      )+
+      '</div>'+
+      '<p style="font-size:10px;color:var(--g5);margin-top:6px">'+
+      'Le texte généré : <em>Passage devant un jury pour les certifications : - RNCP... - Titre...</em></p>'+
+      '</div></div>'
+    :
+      fta('Résultats attendus <span class="req">*</span>','E_res',f.resultats,3000,true)
+    )+
     fi('Points forts <span class="req">*</span> (255 car max)','E_resumec','text',f.resumeContenu,255,'Accroche courte visible sur Mon Compte Formation',true,true)+
     fta('Rythme de la formation','E_rythme',f.rythme,3000,true)+
     fi('URL formation','E_url','url',f.url,'','https://...','',true)+
+    '</div>';}
+
+function buildVaeRncpRow(code,titre,idx){
+  return '<div class="vae-rncp-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px" data-idx="'+idx+'">'+
+    '<input class="vae-rncp-code" type="text" placeholder="Ex: RNCP12345" value="'+esc(code)+'" style="width:130px;flex-shrink:0" maxlength="10" onblur="window.autoFillRncpTitre(this)">'+
+    '<input class="vae-rncp-titre" type="text" placeholder="Intitulé de la certification" value="'+esc(titre)+'" style="flex:1">'+
+    '<button type="button" class="btn btn-err btn-sm" onclick="this.parentElement.remove()">✕</button>'+
     '</div>';}
 
 function buildOrga(f){
@@ -3971,6 +4022,25 @@ function collect(fid){
   if(f.rncp&&/^\d+$/.test(f.rncp.trim()))f.rncp='RNCP'+f.rncp.trim();
   if(f.rs&&/^\d+$/.test(f.rs.trim()))f.rs='RS'+f.rs.trim();
   f.resumeContenu=g('E_resumec');
+  // VAE : collecter la liste RNCP visés et générer resultats-attendus
+  if(f.typeOffre==='vae'||f.cpf==='CPF200'){
+    var vaeRows=document.querySelectorAll('.vae-rncp-row');
+    f.vaeRncpList=[];
+    vaeRows.forEach(function(row){
+      var cEl=row.querySelector('.vae-rncp-code');
+      var tEl=row.querySelector('.vae-rncp-titre');
+      var c=cEl?cEl.value.trim():'';
+      var t=tEl?tEl.value.trim():'';
+      if(c) f.vaeRncpList.push({code:c,titre:t});
+    });
+    if(f.vaeRncpList.length){
+      var lines=['Passage devant un jury pour les certifications :'];
+      f.vaeRncpList.forEach(function(r){
+        lines.push('- '+r.code+(r.titre?' - '+r.titre:''));
+      });
+      f.resultats=lines.join('\n');
+    }
+  }
   if(f.cpf==='CPF200')f.categorisationOffre=g('E_catoffre');else f.categorisationOffre='';
   // Blocs de compétences (RNCP uniquement)
   if(f.rncp){
@@ -4475,7 +4545,16 @@ function doImport(e){
         }
         f.nivE=tx(fEl,'code-niveau-entree')||'0';f.nivS=tx(fEl,'code-niveau-sortie')||'0';
         f.objectif=tx(fEl,'objectif-formation');f.contenu=tx(fEl,'contenu-formation');
-        f.resultats=tx(fEl,'resultats-attendus');f.rythme=tx(fEl,'rythme-formation');
+        f.resultats=tx(fEl,'resultats-attendus');
+        // VAE : reconstruire la liste RNCP depuis le texte résultats-attendus
+        if(f.cpf==='CPF200'&&f.resultats){
+          var lines=f.resultats.split('\n');
+          f.vaeRncpList=[];
+          lines.forEach(function(l){
+            var m=l.match(/^-\s*(RNCP\d+)(?:\s*-\s*(.*))?/);
+            if(m) f.vaeRncpList.push({code:m[1].trim(),titre:(m[2]||'').trim()});
+          });
+        }f.rythme=tx(fEl,'rythme-formation');
         f.raisonSociale=tx(fEl,'raison-sociale')||tx(fEl,'raison-sociale-formateur');
         f.numActivite=tx(fEl,'numero-activite');
         f.formacode=Array.from(fEl.querySelectorAll('code-FORMACODE')).map(function(c){return c.textContent.trim();});
