@@ -52,6 +52,7 @@ input,select,textarea{width:100%;padding:5px 8px;border:1px solid var(--g3);bord
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 2px rgba(26,86,219,.1)}
 textarea{resize:vertical;min-height:68px;line-height:1.5}
 .hint{font-size:10px;color:var(--g5)}
+.hint-type{font-size:11px;color:#1565C0;background:#E3F2FD;padding:4px 8px;border-radius:4px;margin:4px 0 0 0;display:inline-block}
 .cc{font-size:10px;color:var(--g5);text-align:right}
 /* select filtrable */
 .sf-wrap{display:flex;flex-direction:column}
@@ -3365,8 +3366,8 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
 function uid(){return 'f'+Date.now()+Math.floor(Math.random()*9999);}
 function persist(){localStorage.setItem(DB,JSON.stringify(cat));}
 function $(i){return document.getElementById(i);}
-function esc(s){return s?String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'&quot;'):''; }
-function escX(s){return s?String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>'):''; }
+function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''; }
+function escX(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):''; }
 function toast(msg,err){
   var n=$('J_notif');n.textContent=msg;
   n.className='notif '+(err?'n-err':'n-ok');n.style.display='block';
@@ -3477,6 +3478,7 @@ function newFiche(){var f=emptyFiche();cat.push(f);persist();drawList();openEdit
 
 function emptyFiche(){return {
   id:uid(),intitule:'',numIntOf:'',siret:'',raisonSociale:'',numActivite:'',codeUAI:'',
+  typeOffre:'certification',
   objGen:'7',certif:'N',parcours:'2',
   rncp:'',rs:'',cpf:'',certifinfo:'',
   resumeContenu:'',categorisationOffre:'',
@@ -3574,31 +3576,93 @@ function fta(lbl,id,val,max,full){
     '<div class="cc" id="cc_'+id+'">'+(val||'').length+'/'+max+'</div></div>';}
 
 function buildIdent(f){
+  var to=f.typeOffre||'certification';
+  var isBilan=(to==='bilan');
+  var isPermis=(to==='permis');
+  var isVae=(to==='vae');
+  var isCertif=(to==='certification');
+
+  // Pré-remplissage automatique selon le type (si champs encore vides ou valeur par défaut)
+  // Note : on pré-remplit en mémoire, le formulaire affichera les valeurs mises à jour
+  if(isBilan&&(f.objGen==='7'||f.objGen==='6')){f.objGen='4';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';}
+  if(isVae&&(f.objGen==='7')){f.objGen='6';f.certif='O';f.cpf='CPF200';f.rncp='';f.rs='';}
+  if(isPermis&&(f.objGen==='7')){f.objGen='3';f.certif='N';if(!f.cpf||f.cpf==='')f.cpf='CPF206';}
+  if(isCertif&&f.cpf==='CPF200'){}// ne pas toucher si déjà saisi
+
   return fg(2)+
+    '<div class="fitem full" style="margin-bottom:10px;grid-column:1/-1">'+
+    '<label style="font-weight:700;font-size:13px">Type d\'offre <span class="req">*</span></label>'+
+    '<select id="E_typeoffre" style="font-size:13px;padding:8px" onchange="onTypeOffreChange(this.value)">'+
+    '<option value="certification"'+(isCertif?' selected':'')+'>Formation préparant à une certification</option>'+
+    '<option value="bilan"'+(isBilan?' selected':'')+'>Bilan de compétences</option>'+
+    '<option value="permis"'+(isPermis?' selected':'')+'>Permis de conduire</option>'+
+    '<option value="vae"'+(isVae?' selected':'')+'>Accompagnement à la VAE</option>'+
+    '</select>'+
+    (isBilan?'<p class="hint-type">→ CPF202 · Objectif : Bilan de compétences · Non certifiante</p>':'')+
+    (isVae?'<p class="hint-type">→ CPF200 · Objectif : Certification · Certifiante · Catégorisation Formacode requise</p>':'')+
+    (isPermis?'<p class="hint-type">→ Sélectionner le type de permis ci-dessous · Non certifiante</p>':'')+
+    '</div>'+
     fi('Intitule de la formation','E_intitule','text',f.intitule,255,'Titre de la formation',true,true)+
     fi('N° interne OF (numero)','E_num','text',f.numIntOf,30,'Ex : FORM-001',true)+
     fi('SIRET organisme','E_siret','text',f.siret,14,'14 chiffres',true)+
-    fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true)+
+    (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'4':isVae?'6':'3')+'">')+
     fsel('Type de parcours','E_parcours',sOpts(PARCOURS,f.parcours))+
-    fsel('Certifiante (hors champ CPF)','E_certif',
-      '<option value="N"'+(f.certif==='N'?' selected':'')+'>Non certifiante</option>'+
-      '<option value="O"'+(f.certif==='O'?' selected':'')+'>Oui</option>')+
+    (!isBilan&&!isPermis?
+      fsel('Certifiante (hors champ CPF)','E_certif',
+        '<option value="N"'+(f.certif==='N'?' selected':'')+'>Non certifiante</option>'+
+        '<option value="O"'+(f.certif==='O'?' selected':'')+'>Oui</option>')
+    :'<input type="hidden" id="E_certif" value="N">'+
+      '<div class="fitem"><label>Certifiante</label><span style="padding:6px;font-size:12px;color:var(--g4)">Non certifiante (fixe pour ce type)</span></div>')+
     '</div>';}
 
+
+
 function buildCertif(f){
-  var cpf200=(f.cpf==='CPF200');
+  var to=f.typeOffre||'certification';
+  var cpf200=(f.cpf==='CPF200'||to==='vae');
+  var isPermis=(to==='permis');
+  var isBilan=(to==='bilan');
+  var isVae=(to==='vae');
+  var showRncp=(to==='certification');
+
   return fg(2)+
-    fi('Code RNCP','E_rncp','text',f.rncp,'','RNCP35482')+
-    fi('Code RS (repertoire specifique)','E_rs','text',f.rs,'','RS5287')+
-    fsel('Dispositif CPF specifique','E_cpf',
-      '<option value=""'+(f.cpf===''?' selected':'')+'>-- Aucun --</option>'+
-      '<option value="CPF200"'+(f.cpf==='CPF200'?' selected':'')+'>CPF200 - VAE</option>'+
-      '<option value="CPF202"'+(f.cpf==='CPF202'?' selected':'')+'>CPF202 - Bilan de competences</option>'+
-      '<option value="CPF206"'+(f.cpf==='CPF206'?' selected':'')+'>CPF206 - Permis B</option>'+
-      '<option value="CPF210"'+(f.cpf==='CPF210'?' selected':'')+'>CPF210 - Permis C</option>'+
-      '<option value="CPF214"'+(f.cpf==='CPF214'?' selected':'')+'>CPF214 - Permis D</option>'+
-      '<option value="CPF219"'+(f.cpf==='CPF219'?' selected':'')+'>CPF219 - Permis A1</option>'+
-      '<option value="CPF220"'+(f.cpf==='CPF220'?' selected':'')+'>CPF220 - Permis A2</option>')+
+    // RNCP et RS : uniquement pour "Formation préparant à une certification"
+    (showRncp?
+      fi('Code RNCP','E_rncp','text',f.rncp,'','RNCP35482')+
+      fi('Code RS (repertoire specifique)','E_rs','text',f.rs,'','RS5287')
+    :
+      '<input type="hidden" id="E_rncp" value="'+esc(f.rncp||'')+'">'+
+      '<input type="hidden" id="E_rs" value="'+esc(f.rs||'')+'">'+
+      '<div class="fitem full"><p class="hint-type">Code certification : non applicable pour ce type d\'offre (RNCP/RS masqués).</p></div>'
+    )+
+    // CPF : affiché pour tous mais pré-rempli et verrouillé pour Bilan/VAE/Permis
+    (isPermis?
+      fsel('Type de permis <span class="req">*</span>','E_cpf',
+        '<option value="CPF206"'+(f.cpf==='CPF206'?' selected':'')+'>CPF206 - Permis B (voiture)</option>'+
+        '<option value="CPF210"'+(f.cpf==='CPF210'?' selected':'')+'>CPF210 - Permis C (poids lourd)</option>'+
+        '<option value="CPF214"'+(f.cpf==='CPF214'?' selected':'')+'>CPF214 - Permis D (bus)</option>'+
+        '<option value="CPF219"'+(f.cpf==='CPF219'?' selected':'')+'>CPF219 - Permis A1 (moto légère)</option>'+
+        '<option value="CPF220"'+(f.cpf==='CPF220'?' selected':'')+'>CPF220 - Permis A2 (moto inter.)</option>')
+    :isBilan?
+      '<div class="fitem"><label>Dispositif CPF</label>'+
+      '<input type="hidden" id="E_cpf" value="CPF202">'+
+      '<span style="padding:6px;font-size:12px;color:var(--g4)">CPF202 — Bilan de compétences (fixe)</span></div>'
+    :isVae?
+      '<div class="fitem"><label>Dispositif CPF</label>'+
+      '<input type="hidden" id="E_cpf" value="CPF200">'+
+      '<span style="padding:6px;font-size:12px;color:var(--g4)">CPF200 — VAE (fixe)</span></div>'
+    :
+      fsel('Dispositif CPF specifique','E_cpf',
+        '<option value=""'+(f.cpf===''?' selected':'')+'>-- Aucun --</option>'+
+        '<option value="CPF200"'+(f.cpf==='CPF200'?' selected':'')+'>CPF200 - VAE</option>'+
+        '<option value="CPF202"'+(f.cpf==='CPF202'?' selected':'')+'>CPF202 - Bilan de competences</option>'+
+        '<option value="CPF206"'+(f.cpf==='CPF206'?' selected':'')+'>CPF206 - Permis B</option>'+
+        '<option value="CPF210"'+(f.cpf==='CPF210'?' selected':'')+'>CPF210 - Permis C</option>'+
+        '<option value="CPF214"'+(f.cpf==='CPF214'?' selected':'')+'>CPF214 - Permis D</option>'+
+        '<option value="CPF219"'+(f.cpf==='CPF219'?' selected':'')+'>CPF219 - Permis A1</option>'+
+        '<option value="CPF220"'+(f.cpf==='CPF220'?' selected':'')+'>CPF220 - Permis A2</option>')
+    )+
+    // Catégorisation Formacode : obligatoire pour VAE (CPF200)
     (cpf200?
       fsel('Categorisation offre VAE <span class="req">*</span> (Formacode V14)','E_catoffre',
         '<option value="">-- Choisir un domaine --</option>'+
@@ -3630,7 +3694,7 @@ function buildCertif(f){
     buildSF('nsf',NSF,f.nsf||[],3)+'</div>'+
     '<div class="fitem full"><label>Code ROME <span class="bdg b-o">max 5</span></label>'+
     buildSF('rome',ROME,f.rome||[],5)+'</div>'+
-    (f.rncp?
+    (showRncp&&f.rncp?
       '<div class="fitem full" style="margin-top:12px">'+
       '<label>Blocs de compétences RNCP <span class="bdg b-o">obligatoire dès le 11/06/2026</span>'+
       ' <span class="bdg b-r">RNCP uniquement</span></label>'+
@@ -3656,7 +3720,7 @@ function buildCertif(f){
       'Liste de blocs modifiable par le candidat lors de la commande</label></div>'+
       '</div>'
     :
-      (f.rs||f.cpf?'':'<div class="fitem full"><p style="font-size:11px;color:var(--g4);margin:4px 0">Les blocs de compétences ne sont disponibles que pour les certifications RNCP.</p></div>')
+      (showRncp?'<div class="fitem full"><p style="font-size:11px;color:var(--g4);margin:4px 0">Saisissez un code RNCP pour faire apparaître les blocs de compétences.</p></div>':'')
     )+
     '</div>';}
 
@@ -3688,33 +3752,44 @@ function buildAction(a,i){
     '<button class="btn btn-err btn-sm del-act" data-ai="'+i+'">Supprimer</button></div>'+
     fg(2)+
     aif(i,'num','text',a.num,'N° interne OF action <span class="req">*</span>','30','')+
+    afsel(i,'niveauEntreeObl','Y a-t-il un niveau requis à l\'entrée ?',
+      so('0','Non',a.niveauEntreeObl||'0')+so('1','Oui',a.niveauEntreeObl))+
+    afsel(i,'aPrereq','Conditions spécifiques et prérequis ?',
+      so('0','Non',a.aPrereq||'0')+so('1','Oui',a.aPrereq))+
     afsel(i,'modEns','Modalité enseignement <span class="req">*</span>',
       so('0','Présentiel',a.modEns)+so('1','À distance',a.modEns)+so('2','Mixte/hybride',a.modEns))+
-    aif(i,'duree','number',a.duree,'Heures en centre <span class="req">*</span>','','21')+
-    aif(i,'dureeEntreprise','number',a.dureeEntreprise,'Dont heures en entreprise','','0')+
+    aif(i,'dureeTotal','number',a.dureeTotal,'Durée totale de l\'action (heures)','','60')+
+    aif(i,'duree','number',a.duree,'Dont heures en centre','','21')+
+    aif(i,'dureeEntreprise','number',a.dureeEntreprise,'Dont heures en entreprise (stage)','','0')+
     aif(i,'prix','number',a.prix,'Frais pédagogiques HT = TTC (net de TVA) <span class="req">*</span>','','1300')+
     afsel(i,'tva','Taux TVA <span class="req">*</span>',
       so('0.0','0 % — Net de TVA (exonéré)',a.tva||'0.0')+
       so('5.5','5,5 %',a.tva)+
       so('20.0','20 %',a.tva))+
-    afsel(i,'certifInclus','Frais certif. inclus dans frais péda. <span class="req">*</span>',
+    afsel(i,'certifInclus','Prix inclut frais administratifs liés à l\'examen ?',
       so('0','Non',a.certifInclus||'0')+so('1','Oui',a.certifInclus))+
     aif(i,'prixHoraire','number',a.prixHoraire,'Prix horaire TTC (euros)','','72')+
     aif(i,'lang','text',a.lang||'FR','Langue enseignement','2','FR')+
     afsel(i,'entSor','Entrées / sorties',so('0','Dates fixes',a.entSor)+so('1','Permanentes',a.entSor))+
-    '<div class="fitem full"><label>Prérequis / Conditions <span class="req">*</span></label>'+
-    '<textarea data-ai="'+i+'" data-f="prereq" maxlength="3000">'+esc(a.prereq)+'</textarea></div>'+
-    '<div class="fitem full"><label>Modalités pédagogiques <span class="req">*</span> <span class="bdg b-o">200 car.</span></label>'+
+    (a.aPrereq==='1'?
+      '<div class="fitem full"><label>Détails des conditions spécifiques et prérequis <span class="req">*</span></label>'+
+      '<textarea data-ai="'+i+'" data-f="prereq" maxlength="3000">'+esc(a.prereq)+'</textarea></div>'
+    :'')+
+    '<div class="fitem full"><label>Modalités pédagogiques <span class="bdg b-o">200 car.</span></label>'+
     '<textarea data-ai="'+i+'" data-f="modPed" maxlength="200">'+esc(a.modPed)+'</textarea></div>'+
-    '<div class="fitem full"><label>Accessibilité handicap</label>'+
-    '<textarea data-ai="'+i+'" data-f="handicap" maxlength="3000">'+esc(a.handicap)+'</textarea></div>'+
-    '<div class="fitem full"><label>Prise en charge des frais (conditions)</label>'+
-    '<textarea data-ai="'+i+'" data-f="priseCharge" maxlength="3000">'+esc(a.priseCharge)+'</textarea></div>'+
-    afsel(i,'perim','Périmètre recrutement',sOpts(PERIM,a.perim||'0'))+
+    '<div class="fitem full"><label>Modalités pédagogiques adaptées aux personnes en situation de handicap</label>'+
+    '<textarea data-ai="'+i+'" data-f="modHandicap" maxlength="3000">'+esc(a.modHandicap)+'</textarea></div>'+
+    '<div class="fitem full"><label>Accessibilité handicap <span class="bdg b-o">250 car.</span></label>'+
+    '<textarea data-ai="'+i+'" data-f="handicap" maxlength="250">'+esc(a.handicap)+'</textarea></div>'+
+    '<div class="fitem full"><label>Informations sur le recrutement</label>'+
+    '<textarea data-ai="'+i+'" data-f="infoRecrutement" maxlength="3000">'+esc(a.infoRecrutement)+'</textarea></div>'+
+    afsel(i,'perim','Périmètre géographique de recrutement',sOpts(PERIM,a.perim||'0'))+
+    aif(i,'infoPerim','text',a.infoPerim,'Informations sur le périmètre','50','')+
     aif(i,'urlAct','url',a.urlAct,'URL de l\'action','','https://...')+
     aif(i,'restauration','text',a.restauration,'Restauration','250','')+
     aif(i,'hebergement','text',a.hebergement,'Hébergement','250','')+
     aif(i,'transport','text',a.transport,'Transport','250','')+
+    aif(i,'autresServices','text',a.autresServices,'Autres services','255','')+
     '</div>'+
     '<div style="margin-top:10px"><div class="ss-t" style="margin-bottom:7px">Coordonnées de contact <span class="bdg b-o">affichées aux candidats</span></div>'+
     fg(2)+
@@ -3744,6 +3819,9 @@ function buildSess(s,ai,si){
     sif(ai,si,'num','text',s.num,'N° session <span class="req">*</span>','30','')+
     sif(ai,si,'debut','date',s.debut,'Debut <span class="req">*</span>','','')+
     sif(ai,si,'fin','date',s.fin,'Fin <span class="req">*</span>','','')+
+    '<div class="fitem"><label>Garantie de session <span class="req">*</span></label>'+
+    '<select data-ai="'+ai+'" data-si="'+si+'" data-fs="garantie">'+
+    so('0','Non',s.garantie||'0')+so('1','Oui',s.garantie)+'</select></div>'+
     '<div class="fitem"><label>Individuelle / Collective</label>'+
     '<select data-ai="'+ai+'" data-si="'+si+'" data-fs="indColl">'+
     so('0','Individuelle',s.indColl||'0')+so('1','Collective',s.indColl)+'</select></div>'+
@@ -3752,6 +3830,8 @@ function buildSess(s,ai,si){
     sif(ai,si,'email','text',s.email,'Email contact','','contact@of.fr')+
     sif(ai,si,'tel','text',s.tel,'Telephone','','04...')+
     sif(ai,si,'urlSess','url',s.urlSess,'URL session','','https://...')+
+    '<div class="fitem full" style="grid-column:1/-1"><label>Modalités particulières (optionnel) <span class="bdg b-o">3000 car.</span></label>'+
+    '<textarea data-ai="'+ai+'" data-si="'+si+'" data-fs="modParticulieres" maxlength="3000" style="min-height:60px">'+esc(s.modParticulieres||'')+'</textarea></div>'+
     '</div></div>';}
 
 function aif(ai,f,type,val,lbl,max,ph){
@@ -3774,6 +3854,7 @@ function collect(fid){
   var f=cat.find(function(x){return x.id===fid;});if(!f)return;
   function g(id){var e=$(id);return e?e.value:'';}
   f.intitule=g('E_intitule');f.numIntOf=g('E_num');f.siret=g('E_siret');
+  f.typeOffre=g('E_typeoffre')||'certification';
   f.objGen=g('E_objgen');f.certif=g('E_certif');f.parcours=g('E_parcours');
   f.rncp=g('E_rncp');f.rs=g('E_rs');f.cpf=g('E_cpf');f.certifinfo=g('E_certifinfo');
   // Normaliser : ajouter le préfixe automatiquement si l'utilisateur n'a saisi que des chiffres
@@ -3821,12 +3902,14 @@ function doAddAction(fid){
   doSave(fid,true);var ff=cat.find(function(x){return x.id===fid;});
   ff.actions.push(emptyAction());persist();openEditor(fid);}
 function emptyAction(){return {
-  num:'',modEns:'0',duree:'',dureeEntreprise:'',prix:'',prixHoraire:'',lang:'FR',
+  num:'',modEns:'0',niveauEntreeObl:'0',aPrereq:'0',
+  dureeTotal:'',duree:'',dureeEntreprise:'',
+  prix:'',prixHoraire:'',lang:'FR',
   tva:'0.0',certifInclus:'0',tel:'',email:'',
-  entSor:'0',prereq:'',modPed:'',handicap:'',priseCharge:'',perim:'0',urlAct:'',
-  restauration:'',hebergement:'',transport:'',
+  entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'0',infoPerim:'',infoRecrutement:'',urlAct:'',
+  restauration:'',hebergement:'',transport:'',autresServices:'',
   adr:'',cp:'',ville:'',dep:'',reg:'84',pays:'FR',lat:'',lon:'',sessions:[]};}
-function emptySess(){return {num:'',debut:'',fin:'',indColl:'0',placesTotal:'',placesFinancees:'',email:'',tel:'',urlSess:''};}
+function emptySess(){return {num:'',debut:'',fin:'',garantie:'0',modParticulieres:'',indColl:'0',placesTotal:'',placesFinancees:'',email:'',tel:'',urlSess:''};}
 
 /* ==============================================================
    XML EDOF V14 (format Mon Compte Formation)
@@ -3853,7 +3936,7 @@ function toXML(formations){
       o+='      </certification>\n';}
     (f.actions||[]).forEach(function(a){
       o+='      <action numero="'+escX(a.num)+'" datemaj="'+today+'" datecrea="'+today+'">\n';
-      o+=xf('niveau-entree-obligatoire','0','        ');
+      o+=xf('niveau-entree-obligatoire',a.niveauEntreeObl||'0','        ');
       o+=xf('modalites-enseignement',a.modEns,'        ');
       if(a.prereq)o+=xf('conditions-specifiques',a.prereq,'        ');
       // Lieu de formation
@@ -3900,15 +3983,19 @@ function toXML(formations){
         o+='                <telfixe><numtel>'+escX(s.tel||a.tel||'0000000000')+'</numtel></telfixe>\n';
         o+='                <courriel>'+escX(s.email||a.email||'contact@organisme.fr')+'</courriel>\n';
         o+='              </coordonnees>\n            </extra>\n';
-        o+='            <extra info="garantie">0</extra>\n';
-        o+='          </extras>\n        </session>\n';
+        o+='            <extra info="garantie">'+(s.garantie||'0')+'</extra>\n';
+        if(s.modParticulieres)o+='            <extra info="modalites-particulieres">'+escX(s.modParticulieres)+'</extra>\n';
+        o+='          </extras>\n';
+        o+='        </session>\n';
       if(a.restauration)o+=xf('restauration',a.restauration,'        ');
       if(a.hebergement)o+=xf('hebergement',a.hebergement,'        ');
       if(a.transport)o+=xf('transport',a.transport,'        ');
       o+=xf('acces-handicapes',a.handicap||'Nous contacter pour accessibilite','        ');
       o+=xf('langue-formation',a.lang||'FR','        ');
+      if(a.infoRecrutement)o+=xf('modalites-recrutement',a.infoRecrutement,'        ');
       if(a.modPed)o+=xf('modalites-pedagogiques',a.modPed,'        ');
       if(a.perim&&a.perim!=='0')o+=xf('code-perimetre-recrutement',a.perim,'        ');
+      if(a.infoPerim)o+=xf('infos-perimetre-recrutement',a.infoPerim,'        ');
       if(a.duree)o+=xf('nombre-heures-centre',a.duree,'        ');
       if(a.dureeEntreprise)o+=xf('nombre-heures-entreprise',a.dureeEntreprise,'        ');
         });
@@ -3931,8 +4018,11 @@ function toXML(formations){
       o+='            <extra info="frais-ht">'+ht.toFixed(2)+'</extra>\n';
       o+='            <extra info="frais-ttc">'+ttc.toFixed(2)+'</extra>\n';
       o+='          </extras>\n';
-      o+='          <extra info="existence-prerequis">'+(a.prereq?'1':'0')+'</extra>\n';
-      o+='        </extras>\n      </action>\n';});
+        o+='          <extra info="existence-prerequis">'+(a.aPrereq==='1'?'1':'0')+'</extra>\n';
+        if(a.modHandicap)o+='          <extra info="modalites-handicap">'+escX(a.modHandicap)+'</extra>\n';
+        if(a.autresServices)o+='          <extra info="autres-services">'+escX(a.autresServices)+'</extra>\n';
+        if(a.dureeTotal)o+='          <extra info="duree-apprentissage">'+escX(a.dureeTotal)+'</extra>\n';
+        o+='        </extras>\n      </action>\n';});
     // Organisme responsable
     o+='      <organisme-formation-responsable>\n';
     o+='        <SIRET-organisme-formation><SIRET>'+escX(f.siret)+'</SIRET></SIRET-organisme-formation>\n';
@@ -4195,6 +4285,20 @@ function generatePyScript(){
 showWelcome();drawList();
 });
 
+function onTypeOffreChange(val){
+  var L=window._lheo;if(!L)return;
+  L.doSave(L.curId,true);
+  var ff=L.cat.find(function(x){return x.id===L.curId;});
+  if(!ff)return;
+  ff.typeOffre=val;
+  // Pré-remplir les champs selon le type
+  if(val==='bilan'){ff.objGen='4';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';}
+  else if(val==='vae'){ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';}
+  else if(val==='permis'){ff.objGen='3';ff.certif='N';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
+  else{ff.certif=ff.certif||'N';}
+  L.persist();L.openEditor(L.curId);
+}
+
 // Fonctions globales (hors listener pour portee globale)
 var API_APPRENTISSAGE_TOKEN='eyJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI2YTI2YTRjYzFhY2JkMTE1ODkwMTNjOTkiLCJhcGlfa2V5IjoidmVRU2c0YkhZajZMQ2x5T0lMdmlIbHhWYXpSbjBLUWZkSkFjZnAwMTQ2Yz0iLCJvcmdhbmlzYXRpb24iOm51bGwsImVtYWlsIjoiZXJpY0BlcmljZmFsY29uLmZyIiwiaXNzIjoiYXBpIiwiaWF0IjoxNzgwOTE3NDY4LCJleHAiOjE4MTI0NTM0Njh9.1Budg3pGoDG6GOrnjecfWG_9EibGbXnJHSJJ7hf6fGY';
 
@@ -4258,186 +4362,6 @@ function removeBloc(i){
   L.doSave(L.curId,true);
   var ff=L.cat.find(function(x){return x.id===L.curId;});if(!ff)return;
   ff.blocsCompetences.splice(i,1);L.persist();L.openEditor(L.curId);}
-
-window.addEventListener('load', function() {
-
-// =========================
-// TYPE FORMATION
-// =========================
-function getTypeFormation(f){
-  return f.typeFormation || "rncp";
-}
-
-// =========================
-// VALIDATION METIER
-// =========================
-function validateEDOF(f){
-
-  let e = [];
-  const type = getTypeFormation(f);
-
-  if(!f.intitule) e.push("Intitulé manquant");
-  if(!f.objectif) e.push("Objectif manquant");
-  if(!f.contenu) e.push("Contenu manquant");
-
-  if(!/^\d{14}$/.test(f.siret))
-    e.push("SIRET invalide");
-
-  // ===== RNCP =====
-  if(type === "rncp"){
-    if(!f.rncp)
-      e.push("RNCP obligatoire");
-
-    if(!f.blocsCompetences || !f.blocsCompetences.length)
-      e.push("Blocs RNCP requis");
-  }
-
-  // ===== RS =====
-  if(type === "rs"){
-    if(!f.codeRS)
-      e.push("Code RS manquant");
-  }
-
-  // ===== PRIX =====
-  if(f.prixHT && f.prixTTC && f.tva){
-    let calc = f.prixHT * (1 + f.tva/100);
-    if(Math.abs(calc - f.prixTTC) > 1)
-      e.push("TVA incohérente");
-  }
-
-  return e;
-}
-
-// =========================
-// EXPORT CATALOGUE GLOBAL
-// =========================
-function exportCatalogue(){
-
-  var L = window._lheo;
-
-  if(!L.cat || !L.cat.length){
-    alert("Aucune fiche");
-    return;
-  }
-
-  let errorsGlobal = [];
-
-  L.cat.forEach(f => {
-    const e = validateEDOF(f);
-    if(e.length){
-      errorsGlobal.push("FICHE: " + f.intitule + " → " + e.join(", "));
-    }
-  });
-
-  if(errorsGlobal.length){
-    alert(errorsGlobal.join("\n"));
-    return;
-  }
-
-  const xml = buildCatalogueXML(L.cat);
-
-  const blob = new Blob([xml], {type:"text/xml"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "catalogue-edof.xml";
-  a.click();
-}
-
-// =========================
-// BUILD XML
-// =========================
-
-function buildCatalogueXML(cat){
-
-  const today = new Date().toISOString().slice(0,10).replace(/-/g,"");
-
-  let xml = `<?xml version="1.0" encoding="ISO-8859-1"?>\n`;
-  xml += `<lheo xmlns="https://www.of.moncompteformation.gouv.fr">\n<offres>\n`;
-
-  cat.forEach(function(f){
-
-    const type = getTypeFormation(f);
-
-    xml += `<formation numero="${f.numero}" datemaj="${today}" datecrea="${today}">\n`;
-
-    xml += `<intitule-formation>${escapeXML(f.intitule)}</intitule-formation>\n`;
-
-    xml += `<objectif-formation><![CDATA[${f.objectif || ""}]]></objectif-formation>\n`;
-    xml += `<contenu-formation><![CDATA[${f.contenu || ""}]]></contenu-formation>\n`;
-
-    xml += `<parcours-de-formation>2</parcours-de-formation>\n`;
-
-    // CERTIFICATION
-    if(type === "rncp"){
-      xml += `<certification><code-RNCP>${f.rncp}</code-RNCP></certification>\n`;
-    }
-
-    if(type === "rs"){
-      xml += `<certification><code-RS>${f.codeRS}</code-RS></certification>\n`;
-    }
-
-    if(type === "vae"){
-      xml += `<type-formation>VAE</type-formation>\n`;
-    }
-
-    // ORGANISME
-    xml += `<organisme-formation-responsable>
-      <SIRET-organisme-formation>
-        <SIRET>${f.siret}</SIRET>
-      </SIRET-organisme-formation>
-    </organisme-formation-responsable>\n`;
-
-    xml += `<action numero="ACT-1" datemaj="${today}" datecrea="${today}">\n`;
-
-    xml += `<session numero="SES-1" datemaj="${today}" datecrea="${today}">
-      <periode>
-        <debut>${f.dateDebut || today}</debut>
-        <fin>${f.dateFin || today}</fin>
-      </periode>
-    </session>\n`;
-
-    xml += `<extras info="action">
-      <extras info="frais-pedagogiques">
-        <extra info="taux-tva">${f.tva || 0}</extra>
-        <extra info="frais-ht">${f.prixHT || 0}</extra>
-        <extra info="frais-ttc">${f.prixTTC || 0}</extra>
-      </extras>
-    </extras>\n`;
-
-    xml += `</action>\n`;
-
-    // BLOCS RNCP
-    if(type === "rncp"){
-      xml += `<extras info="formation">
-        <extra info="blocs-competences">\n`;
-
-      (f.blocsCompetences || []).forEach(function(b){
-        xml += `<extra info="code-bloc">${b}</extra>\n`;
-      });
-
-      xml += `</extra>
-        <extra info="blocs-modifiables">0</extra>
-      </extras>\n`;
-    }
-
-    xml += `</formation>\n`;
-
-  });
-
-  xml += `</offres></lheo>`;
-
-  return xml;
-}
-
-
-// =========================
-// BOUTON EXPORT
-// =========================
-document.getElementById("J_expAll").addEventListener("click", function(){
-  exportCatalogue();
-});
-
-});
 </script>
 </body>
 </html>
