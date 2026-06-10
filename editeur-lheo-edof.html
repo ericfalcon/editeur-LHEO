@@ -3528,7 +3528,7 @@ function emptyFiche(){return {
   typeOffre:'certification',
   objGen:'7',certif:'N',parcours:'2',
   rncp:'',rs:'',cpf:'',certifinfo:'',
-  resumeContenu:'',categorisationOffre:'',vaeRncpList:[],
+  resumeContenu:'',categorisationOffre:'',vaeRncpList:[],vaeFreaisJury:'inclus',
   blocsCompetences:[],blocsModifiables:'0',
   formacode:[],nsf:[],rome:[],
   nivE:'0',nivS:'0',
@@ -3871,6 +3871,12 @@ function buildDesc(f){
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
       '<span style="font-size:11px;font-weight:600;color:var(--g7)">Certifications RNCP visées par votre accompagnement VAE</span>'+
       '<button type="button" class="btn btn-p btn-sm" onclick="addVaeRncp()">+ Ajouter RNCP</button></div>'+
+      '<div class="fitem" style="margin-bottom:8px"><label>Frais de jury <span class="req">*</span></label>'+
+      '<select id="E_vae_jury">'+
+      '<option value="inclus"'+(f.vaeFreaisJury==='inclus'?' selected':'')+'>Frais de jury inclus dans le prix du parcours</option>'+
+      '<option value="candidat"'+(f.vaeFreaisJury==='candidat'?' selected':'')+'>Frais de jury à la charge du candidat (payés au certificateur)</option>'+
+      '<option value="aucun"'+(f.vaeFreaisJury==='aucun'?' selected':'')+'>Aucun frais de jury pour le candidat</option>'+
+      '</select></div>'+
       '<div id="vae-rncp-list">'+
       (f.vaeRncpList&&f.vaeRncpList.length?
         f.vaeRncpList.map(function(r,i){return buildVaeRncpRow(r.code,r.titre,i);}).join('')
@@ -4034,10 +4040,17 @@ function collect(fid){
       if(c) f.vaeRncpList.push({code:c,titre:t});
     });
     if(f.vaeRncpList.length){
+      f.vaeFreaisJury=g('E_vae_jury')||'inclus';
       var lines=['Passage devant un jury pour les certifications :'];
       f.vaeRncpList.forEach(function(r){
         lines.push('- '+r.code+(r.titre?' - '+r.titre:''));
       });
+      if(f.vaeFreaisJury==='inclus')
+        lines.push('Les frais de jury sont inclus dans le prix du parcours.');
+      else if(f.vaeFreaisJury==='candidat')
+        lines.push("Les frais de jury sont a la charge du candidat et seront payes directement a l'organisme certificateur.");
+      else
+        lines.push("Aucun frais de jury n'est a prevoir par le candidat.");
       f.resultats=lines.join('\n');
     }
   }
