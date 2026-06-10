@@ -3778,12 +3778,32 @@ function buildCertif(f){
     fi('Code CERTIFINFO (base Centre Inffo)','E_certifinfo','text',f.certifinfo,'','Ex : 100982','',true)+
     fsel('Niveau a l entree','E_nive',sOpts(NIVEAUX,f.nivE),true)+
     fsel('Niveau a la sortie','E_nivs',sOpts(NIVEAUX,f.nivS))+
-    '<div class="fitem full"><label>FORMACODE <span class="req">*</span> <span class="bdg b-o">max 5 - 1er = principal</span></label>'+
-    buildSF('fc',FORMACODE,f.formacode||[],5)+'</div>'+
-    '<div class="fitem full"><label>Code NSF <span class="req">*</span> <span class="bdg b-o">max 3</span></label>'+
-    buildSF('nsf',NSF,f.nsf||[],3)+'</div>'+
-    '<div class="fitem full"><label>Code ROME <span class="bdg b-o">max 5</span></label>'+
-    buildSF('rome',ROME,f.rome||[],5)+'</div>'+
+    // FORMACODE 5 chiffres : masqué pour VAE (remplacé par categorisation-offre 3 chiffres)
+    //                          masqué pour Permis (pas de domaine de formation applicable)
+    (!isVae&&!isPermis?
+      '<div class="fitem full"><label>FORMACODE <span class="req">*</span> <span class="bdg b-o">max 5 - 1er = principal</span></label>'+
+      buildSF('fc',FORMACODE,f.formacode||[],5)+'</div>'
+    : isVae?
+      '<div class="fitem full"><p style="font-size:11px;color:var(--ok);background:#f0fff4;padding:6px 9px;border-radius:5px;border:1px solid var(--ok)">'+
+      '✓ Pour la VAE, le domaine de formation est le champ sémantique (catégorisation ci-dessus - 3 chiffres). '+
+      'Aucun code FORMACODE 5 chiffres requis.</p></div>'
+    :
+      '<div class="fitem full"><p style="font-size:11px;color:var(--g5);background:var(--g1);padding:6px 9px;border-radius:5px">'+
+      'FORMACODE non applicable pour le permis de conduire.</p></div>'
+    )+
+    // NSF : masqué pour Permis uniquement
+    (!isPermis?
+      '<div class="fitem full"><label>Code NSF <span class="req">*</span> <span class="bdg b-o">max 3</span></label>'+
+      buildSF('nsf',NSF,f.nsf||[],3)+'</div>'
+    :
+      '<div class="fitem full"><p style="font-size:11px;color:var(--g5);background:var(--g1);padding:6px 9px;border-radius:5px">'+
+      'Code NSF non applicable pour le permis de conduire.</p></div>'
+    )+
+    // ROME : optionnel pour tous sauf permis
+    (!isPermis?
+      '<div class="fitem full"><label>Code ROME <span class="bdg b-o">optionnel - max 5</span></label>'+
+      buildSF('rome',ROME,f.rome||[],5)+'</div>'
+    :'')+
     (showRncp&&f.rncp?
       '<div class="fitem full" style="margin-top:12px">'+
       '<label>Blocs de compétences RNCP <span class="bdg b-o">obligatoire dès le 11/06/2026</span>'+
@@ -4005,11 +4025,24 @@ function validateFiche(f){
   if(!f.contenu||f.contenu.trim().length<10) errs.push({field:'E_cont',msg:'Contenu manquant (min 10 car.)'});
   if(!f.resultats||f.resultats.trim().length<10) errs.push({field:'E_res',msg:'Résultats attendus manquants'});
   if(!f.resumeContenu||f.resumeContenu.trim().length<5) errs.push({field:'E_resumec',msg:'Points forts manquants (max 255 car.)'});
-  if(!f.formacode||!f.formacode.length) errs.push({field:'sf_t_fc',msg:'Au moins 1 code FORMACODE requis'});
-  if(!f.nsf||!f.nsf.length) errs.push({field:'sf_t_nsf',msg:'Au moins 1 code NSF requis'});
-  // Certification
-  if(!f.rncp&&!f.rs&&!f.cpf) errs.push({field:'E_rncp',msg:'Code certification manquant (RNCP, RS ou code CPF)'});
-  if(f.cpf==='CPF200'&&!f.categorisationOffre) errs.push({field:'E_catoffre',msg:'Catégorisation obligatoire pour CPF200 (VAE)'});
+  var to=f.typeOffre||'certification';
+  var isVaeV=(to==='vae'||f.cpf==='CPF200');
+  var isPermisV=(to==='permis');
+  // FORMACODE obligatoire sauf VAE (remplacé par categorisation) et Permis
+  if(!isVaeV&&!isPermisV&&(!f.formacode||!f.formacode.length))
+    errs.push({field:'sf_t_fc',msg:'Au moins 1 code FORMACODE requis'});
+  // NSF obligatoire sauf Permis
+  if(!isPermisV&&(!f.nsf||!f.nsf.length))
+    errs.push({field:'sf_t_nsf',msg:'Au moins 1 code NSF requis'});
+  // Certification : RNCP/RS pour formation certifiante, CPF pour les autres
+  if(to==='certification'&&!f.rncp&&!f.rs)
+    errs.push({field:'E_rncp',msg:'Code RNCP ou RS obligatoire pour une formation certifiante'});
+  if((to==='bilan')&&f.cpf!=='CPF202')
+    errs.push({field:'E_cpf',msg:'Code CPF202 obligatoire pour un bilan de compétences'});
+  if(isPermisV&&!f.cpf)
+    errs.push({field:'E_cpf',msg:'Type de permis obligatoire'});
+  if(isVaeV&&!f.categorisationOffre)
+    errs.push({field:'E_catoffre',msg:'Catégorisation (domaine 3 chiffres) obligatoire pour la VAE'});
   // Organisme
   if(!f.raisonSociale||f.raisonSociale.trim().length<2) errs.push({field:'E_rs_org',msg:'Raison sociale manquante'});
   // Actions
@@ -4234,6 +4267,22 @@ function toXML(formations){
   formations.forEach(function(f){
     var today=new Date().toISOString().slice(0,10).replace(/-/g,'');
     o+='    <formation numero="'+escX(f.numIntOf)+'" datemaj="'+today+'" datecrea="'+today+'">\n';
+    // domaine-formation : FORMACODE (sauf VAE), NSF (sauf permis), ROME
+    var toType=f.typeOffre||'certification';
+    var isVaeX=(toType==='vae'||f.cpf==='CPF200');
+    var isPermisX=(toType==='permis');
+    o+='      <domaine-formation>\n';
+    if(!isVaeX&&!isPermisX){
+      (f.formacode||[]).forEach(function(c,ci){
+        o+='        <code-FORMACODE ref="V13"'+(ci===0?' tag="principal"':'')+'>'+escX(c)+'</code-FORMACODE>\n';});
+    }
+    if(!isPermisX){
+      (f.nsf||[]).forEach(function(c){o+='        <code-NSF>'+escX(c)+'</code-NSF>\n';});
+    }
+    (f.rome||[]).forEach(function(c){o+='        <code-ROME>'+escX(c)+'</code-ROME>\n';});
+    o+='      </domaine-formation>\n';
+    // certifiante
+    o+=xf('certifiante',f.certif||'N');
     o+=xf('intitule-formation',f.intitule);
     o+=xf('objectif-formation',f.objectif);
     o+=xf('resultats-attendus',f.resultats);
