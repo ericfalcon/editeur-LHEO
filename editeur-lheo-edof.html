@@ -3653,7 +3653,7 @@ function newFiche(){var f=emptyFiche();cat.push(f);persist();drawList();openEdit
 function emptyFiche(){return {
   id:uid(),intitule:'',numIntOf:'',siret:'',raisonSociale:'',numActivite:'',codeUAI:'',
   typeOffre:'certification',
-  objGen:'7',certif:'N',parcours:'2',
+  objGen:'6',certif:'N',parcours:'2',
   rncp:'',rs:'',cpf:'',certifinfo:'',
   resumeContenu:'',categorisationOffre:'',vaeRncpList:[],
   blocsCompetences:[],blocsModifiables:'0',
@@ -4945,10 +4945,10 @@ function onTypeOffreChange(val){
   if(!ff)return;
   ff.typeOffre=val;
   // Pré-remplir les champs selon le type
-  if(val==='bilan'){ff.objGen='4';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';}
+  if(val==='bilan'){ff.objGen='9';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';}
   else if(val==='vae'){ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';}
   else if(val==='permis'){ff.objGen='3';ff.certif='N';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
-  else{ff.certif=ff.certif||'N';}
+  else{ff.objGen='6';ff.certif=ff.certif||'N';} // certification = 6
   L.persist();L.openEditor(L.curId);
 }
 
