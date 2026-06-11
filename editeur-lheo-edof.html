@@ -92,6 +92,21 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
 .rs-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:11px;font-weight:500;border-radius:5px;cursor:pointer;border:1px solid var(--pri);background:var(--prl);color:var(--pri);margin-top:4px;}
 .rs-btn:hover{background:var(--pri);color:#fff;}
 .rs-status{font-size:11px;color:var(--g5);margin-top:3px;}
+/* Aperçu MCF */
+.mcf-card{font-family:Arial,sans-serif;border:1px solid #ddd;border-radius:8px;overflow:hidden;margin-top:10px}
+.mcf-header{background:#003189;color:#fff;padding:12px 16px}
+.mcf-header h3{font-size:14px;margin:0 0 4px;font-weight:700}
+.mcf-header p{font-size:11px;margin:0;opacity:.85}
+.mcf-body{padding:14px 16px}
+.mcf-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #eee}
+.mcf-prix{font-size:20px;font-weight:700;color:#003189;white-space:nowrap}
+.mcf-label{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;margin-bottom:3px}
+.mcf-val{font-size:12px;color:#333}
+.mcf-desc{font-size:12px;color:#333;line-height:1.5;margin-bottom:10px;max-height:80px;overflow:hidden}
+.mcf-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.mcf-tag{background:#e8f0fe;color:#003189;font-size:10px;padding:2px 8px;border-radius:10px}
+.mcf-of{font-size:11px;color:#666;padding-top:8px;border-top:1px solid #eee}
+
 </style>
 </head>
 <body>
@@ -103,6 +118,7 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
     <div class="sb-foot">
       <button class="btn" style="flex:1" id="J_imp">Importer XML</button>
       <button class="btn btn-ok" style="flex:1" id="J_expAll">Exporter tout</button>
+      <button class="btn" id="J_expXls" title="Export CSV/Excel">📊</button>
     </div>
     <div class="sb-foot" style="border-top:1px solid var(--border);padding-top:5px;gap:4px">
       <button class="btn btn-sm" style="flex:1;font-size:10px" id="J_saveData" title="Sauvegarder toutes les fiches dans un fichier .json pour les retrouver sur un autre navigateur">&#128190; Sauvegarder fiches</button>
@@ -117,6 +133,15 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
     <div class="modal-h"><strong style="font-size:13px">Apercu XML LHEO 2.3</strong><button class="btn btn-sm" id="J_mc">Fermer</button></div>
     <div style="display:flex;gap:6px"><button class="btn btn-p btn-sm" id="J_copy">Copier</button><button class="btn btn-ok btn-sm" id="J_dlXml">Telecharger</button></div>
     <pre class="xml-box" id="J_xmlPre"></pre>
+  </div>
+</div>
+<div class="modal-bg" id="J_apercu_modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-h">
+      <strong style="font-size:13px">Aperçu Mon Compte Formation</strong>
+      <button class="btn btn-sm" id="J_apercu_close">Fermer</button>
+    </div>
+    <div id="J_apercu_content"></div>
   </div>
 </div>
 <div class="notif" id="J_notif"></div>
@@ -3375,6 +3400,80 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
 };
 // Exposer aussi les fonctions appelées via onclick= dans le HTML généré
 window.fetchRS=function(){fetchRS();};
+// Calcul prix bidirectionnel HT <-> TTC
+window.calcPrixTTC=function(ai){
+  var ht=parseFloat(document.getElementById('prix_ht_'+ai).value||'0');
+  var tva=parseFloat(document.getElementById('tva_'+ai).value||'0');
+  var ttc=Math.round(ht*(1+tva/100)*100)/100;
+  var el=document.getElementById('prix_ttc_'+ai);
+  if(el) el.value=isNaN(ttc)||ttc===0?'':ttc.toFixed(2);
+};
+window.calcPrixHT=function(ai){
+  var ttc=parseFloat(document.getElementById('prix_ttc_'+ai).value||'0');
+  var tva=parseFloat(document.getElementById('tva_'+ai).value||'0');
+  var ht=Math.round(ttc/(1+tva/100)*100)/100;
+  var elHT=document.getElementById('prix_ht_'+ai);
+  if(elHT) elHT.value=isNaN(ht)||ht===0?'':ht.toFixed(2);
+};
+// Géolocalisation automatique depuis adresse (API adresse.data.gouv.fr)
+window.geolocAction=function(ai){
+  var L=window._lheo;if(!L)return;
+  L.doSave(L.curId,true);
+  var ff=L.cat.find(function(x){return x.id===L.curId;});
+  if(!ff||!ff.actions[ai])return;
+  var a=ff.actions[ai];
+  var q=[a.adr,a.cp,a.ville].filter(Boolean).join(' ');
+  if(!q){alert('Renseignez l\'adresse, le code postal et la ville d\'abord');return;}
+  var st=document.getElementById('geo_status_'+ai);
+  if(st)st.textContent='Recherche...';
+  fetch('https://api-adresse.data.gouv.fr/search/?q='+encodeURIComponent(q)+'&limit=1')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.features&&data.features.length){
+        var f=data.features[0];
+        var coords=f.geometry.coordinates; // [lon, lat]
+        var props=f.properties;
+        a.lon=String(coords[0]);
+        a.lat=String(coords[1]);
+        // Auto-remplir ville et département depuis la réponse
+        if(!a.ville&&props.city) a.ville=props.city;
+        if(!a.dep&&props.departement) a.dep=props.departement;
+        if(!a.cp&&props.postcode) a.cp=props.postcode;
+        L.persist();
+        if(st)st.innerHTML='<span style="color:var(--ok)">✓ '+a.lat+', '+a.lon+' — '+escEl(props.label||'')+'</span>';
+        // Mettre à jour les champs visibles sans rechargement complet
+        var latEl=document.querySelector('[data-ai="'+ai+'"][data-f="lat"]');
+        var lonEl=document.querySelector('[data-ai="'+ai+'"][data-f="lon"]');
+        if(latEl)latEl.value=a.lat;
+        if(lonEl)lonEl.value=a.lon;
+      } else {
+        if(st)st.innerHTML='<span style="color:var(--err)">Adresse non trouvée</span>';
+      }
+    })
+    .catch(function(){if(st)st.innerHTML='<span style="color:var(--err)">Erreur API</span>';});
+};
+
+// Auto-remplissage organisme depuis la réponse SIRET déjà obtenue
+window.applySiretData=function(data){
+  var L=window._lheo;if(!L)return;
+  var ff=L.cat.find(function(x){return x.id===L.curId;});
+  if(!ff)return;
+  var nom=data.nom_raison_sociale||data.nom_complet||'';
+  var nda='';
+  // Chercher NDA dans les données si disponible
+  if(nom&&!ff.raisonSociale){
+    ff.raisonSociale=nom;
+    var rsEl=document.getElementById('E_rs_org');
+    if(rsEl){rsEl.value=nom;}
+    toast('Raison sociale pré-remplie : '+nom);
+  }
+};
+
+window.calcPrix=function(ai){
+  // Recalcul TTC quand TVA change
+  var ht=parseFloat(document.getElementById('prix_ht_'+ai).value||'0');
+  if(ht>0) window.calcPrixTTC(ai);
+};
 window.filterFormacodeByPrefix=function(p){filterFormacodeByPrefix(p);};
 window.filterRomeByFormacode=function(prefix3){filterRomeByFormacode(prefix3);};
 window.dupFiche=function(id){dupFiche(id);};
@@ -3675,6 +3774,7 @@ function renderEditor(f){
     '<div style="display:flex;gap:5px">'+
     '<button class="btn" id="E_prev">XML</button>'+
     '<button class="btn btn-ok" id="E_exp">Exporter</button>'+
+    '<button class="btn" id="E_apercu">👁 Aperçu MCF</button>'+
     '<button class="btn" onclick="dupFiche(\''+f.id+'\')">⧉ Dupliquer</button>'+
     '</div></div>'+
     sec('Identification <span class="bdg b-r">Obligatoire</span>',true,buildIdent(f))+
@@ -3690,6 +3790,28 @@ function renderEditor(f){
   bindSF('nsf',NSF,3,f.nsf||[]);
   bindSF('rome',ROME,5,f.rome||[]);
 
+  // Suggestion type de parcours selon modalité d'enseignement (1ère action)
+  (function(){
+    var parcoursEl=$('E_parcours');
+    var hint=$('parcours_hint');
+    // Écouter les changements de modalité dans toutes les actions
+    document.querySelectorAll('[data-f="modEns"]').forEach(function(sel){
+      sel.addEventListener('change',function(){
+        if(!parcoursEl||!hint) return;
+        var suggestions={'0':'Collectif (présentiel sans personnalisation)',
+                         '1':'Individualisé (à distance)',
+                         '2':'Mixte (présentiel + distanciel)'};
+        var parcoursCodes={'0':'3','1':'1','2':'4'};
+        var mod=sel.value;
+        if(suggestions[mod]){
+          hint.textContent='Suggestion : '+suggestions[mod];
+          hint.style.color='var(--pri)';
+          if(!parcoursEl.value||parcoursEl.value==='2')
+            parcoursEl.value=parcoursCodes[mod]||'3';
+        }
+      });
+    });
+  })();
   // Vérification SIRET en temps réel
   (function(){
     var siretEl=$('E_siret');
@@ -3757,6 +3879,8 @@ function renderEditor(f){
       var o=b.classList.toggle('open');if(arr)arr.classList.toggle('open',o);});});
 
   $('E_save').addEventListener('click',function(){doSave(f.id);});
+  var aperBtn=$('E_apercu');
+  if(aperBtn) aperBtn.addEventListener('click',function(){doSave(f.id,true);doApercu(f.id);});
   $('E_prev').addEventListener('click',function(){doPreview(f.id);});
   $('E_prev2').addEventListener('click',function(){doPreview(f.id);});
   $('E_exp').addEventListener('click',function(){doExport1(f.id);});
@@ -3832,7 +3956,9 @@ function buildIdent(f){
     '<input type="text" id="E_siret" maxlength="14" value="'+esc(f.siret||'')+'" placeholder="14 chiffres">'+
     '<div id="E_siret_status"></div></div>'+
     (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'4':isVae?'6':'3')+'">')+
-    fsel('Type de parcours','E_parcours',sOpts(PARCOURS,f.parcours))+
+    '<div class="fitem"><label>Type de parcours</label>'+
+    '<select id="E_parcours" onchange="">'+sOpts(PARCOURS,f.parcours)+'</select>'+
+    '<span class="hint" id="parcours_hint"></span></div>'+
     (!isBilan&&!isPermis?
       '<input type="hidden" id="E_certif" value="'+(f.typeOffre==="certification"||f.typeOffre==="vae"?'O':'N')+'">'+
       '<div class="fitem"><label>Certifiante</label>'+
@@ -4111,15 +4237,48 @@ function buildAction(a,i){
     aif(i,'dureeTotal','number',a.dureeTotal,'Durée totale de l\'action (heures)','','60')+
     aif(i,'duree','number',a.duree,'Dont heures en centre','','21')+
     aif(i,'dureeEntreprise','number',a.dureeEntreprise,'Dont heures en entreprise (stage)','','0')+
-    aif(i,'prix','number',a.prix,'Frais pédagogiques HT = TTC (net de TVA) <span class="req">*</span>','','1300')+
-    afsel(i,'tva','Taux TVA <span class="req">*</span>',
-      so('0.0','0 % — Net de TVA (exonéré)',a.tva||'0.0')+
-      so('5.5','5,5 %',a.tva)+
-      so('20.0','20 %',a.tva))+
+    '<div class="fitem full"><label>Frais pédagogiques <span class="req">*</span></label>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;align-items:end">'+
+    '<div><label style="font-size:10px;font-weight:400;color:var(--g5)">Taux TVA</label>'+
+    '<select data-ai="'+i+'" data-f="tva" id="tva_'+i+'" onchange="calcPrix('+i+')">'+
+    so('0.0','0 % (exonéré)',a.tva||'0.0')+so('5.5','5,5 %',a.tva)+so('20.0','20 %',a.tva)+
+    '</select></div>'+
+    '<div><label style="font-size:10px;font-weight:400;color:var(--g5)">Montant HT (€)</label>'+
+    '<input type="number" data-ai="'+i+'" data-f="prix" id="prix_ht_'+i+'" value="'+esc(a.prix||'')+
+    '" placeholder="1300.00" oninput="calcPrixTTC('+i+')"></div>'+
+    '<div><label style="font-size:10px;font-weight:400;color:var(--g5)">Montant TTC (€) <span style="color:var(--ok)">←→</span></label>'+
+    '<input type="number" id="prix_ttc_'+i+'" value="'+
+    (a.prix?String(Math.round(parseFloat(a.prix)*(1+parseFloat(a.tva||0)/100)*100)/100):'')+ 
+    '" placeholder="1300.00" oninput="calcPrixHT('+i+')"></div>'+
+    '<div><label style="font-size:10px;font-weight:400;color:var(--g5)">Prix horaire TTC (€)</label>'+
+    '<input type="number" data-ai="'+i+'" data-f="prixHoraire" value="'+esc(a.prixHoraire||'')+'" placeholder="72"></div>'+
+    '</div></div>'+
     afsel(i,'certifInclus','Prix inclut les frais d\'examen / frais de jury ? <span class="bdg b-o">Impacte les résultats attendus VAE</span>',
       so('0','Non',a.certifInclus||'0')+so('1','Oui',a.certifInclus))+
     aif(i,'prixHoraire','number',a.prixHoraire,'Prix horaire TTC (euros)','','72')+
     aif(i,'lang','text',a.lang||'FR','Langue enseignement','2','FR')+
+    '<div class="fitem full"><label>Modalités d\'admission <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px" id="adm_'+i+'">'+
+    ['92002:Collectif sans personnalisation','92003:Individuel sans personnalisation',
+     '92004:Collectif individualisé','92005:E-learning / à distance',
+     '92006:Tutorat','92001:VAE'].map(function(item){
+      var parts=item.split(':');var code=parts[0];var lbl=parts[1];
+      var checked=(a.codesAdm||['92002']).indexOf(code)>=0;
+      return '<label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;cursor:pointer">'+
+        '<input type="checkbox" data-ai="'+i+'" data-f="codesAdm_cb" data-code="'+code+'"'+(checked?' checked':'')+' style="width:auto">'+
+        code+' – '+lbl+'</label>';
+    }).join('')+
+    '</div></div>'+
+    '<div class="fitem full"><label>Rythme de formation <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px" id="rythme_'+i+'">'+
+    ['1:Temps plein','2:Temps partiel','3:Alternance','4:Cours du soir / weekend','5:À distance'].map(function(item){
+      var parts=item.split(':');var code=parts[0];var lbl=parts[1];
+      var checked=(a.codesRythme||['1']).indexOf(code)>=0;
+      return '<label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;cursor:pointer">'+
+        '<input type="checkbox" data-ai="'+i+'" data-f="codesRythme_cb" data-code="'+code+'"'+(checked?' checked':'')+' style="width:auto">'+
+        code+' – '+lbl+'</label>';
+    }).join('')+
+    '</div></div>'+
     afsel(i,'entSor','Entrées / sorties',so('0','Dates fixes',a.entSor)+so('1','Permanentes',a.entSor))+
     (a.aPrereq==='1'?
       '<div class="fitem full"><label>Détails des conditions spécifiques et prérequis <span class="req">*</span></label>'+
@@ -4154,6 +4313,11 @@ function buildAction(a,i){
     aif(i,'dep','text',a.dep,'Département (code INSEE)','3','63')+
     aif(i,'reg','text',a.reg||'84','Région (code INSEE)','','84')+
     aif(i,'pays','text',a.pays||'FR','Pays','','FR')+
+    '<div class="fitem full" style="grid-column:1/-1">'+
+    '<button type="button" class="rs-btn" onclick="window.geolocAction('+i+')" style="margin-bottom:4px">'+
+    '📍 Géolocaliser depuis l\'adresse</button>'+
+    '<span id="geo_status_'+i+'" class="rs-status"></span>'+
+    '</div>'+
     aif(i,'lat','text',a.lat,'Latitude','','45.543')+
     aif(i,'lon','text',a.lon,'Longitude','','3.246')+
     '</div></div>'+
@@ -4268,7 +4432,36 @@ function collect(fid){
   f.rome=getTags('sf_t_rome');
   $('J_main').querySelectorAll('[data-ai][data-f]').forEach(function(el){
     var ai=parseInt(el.dataset.ai);if(!f.actions[ai])return;
-    f.actions[ai][el.dataset.f]=el.value;});
+    var field=el.dataset.f;
+    if(field==='codesAdm_cb'){
+      // collecté séparément ci-dessous
+    } else if(field==='codesRythme_cb'){
+      // collecté séparément ci-dessous
+    } else {
+      f.actions[ai][field]=el.value;
+    }
+  });
+  // Collecter les checkboxes codesAdm et codesRythme
+  $('J_main').querySelectorAll('[data-f="codesAdm_cb"]:checked').forEach(function(cb){
+    var ai=parseInt(cb.dataset.ai);if(!f.actions[ai])return;
+    if(!f.actions[ai].codesAdm) f.actions[ai].codesAdm=[];
+    f.actions[ai].codesAdm.push(cb.dataset.code);
+  });
+  $('J_main').querySelectorAll('[data-f="codesRythme_cb"]:checked').forEach(function(cb){
+    var ai=parseInt(cb.dataset.ai);if(!f.actions[ai])return;
+    if(!f.actions[ai].codesRythme) f.actions[ai].codesRythme=[];
+    f.actions[ai].codesRythme.push(cb.dataset.code);
+  });
+  // Réinitialiser avant de collecter
+  f.actions.forEach(function(a){a.codesAdm=[];a.codesRythme=[];});
+  $('J_main').querySelectorAll('[data-f="codesAdm_cb"]:checked').forEach(function(cb){
+    var ai=parseInt(cb.dataset.ai);if(!f.actions[ai])return;
+    f.actions[ai].codesAdm.push(cb.dataset.code);
+  });
+  $('J_main').querySelectorAll('[data-f="codesRythme_cb"]:checked').forEach(function(cb){
+    var ai=parseInt(cb.dataset.ai);if(!f.actions[ai])return;
+    f.actions[ai].codesRythme.push(cb.dataset.code);
+  });
   $('J_main').querySelectorAll('[data-ai][data-si][data-fs]').forEach(function(el){
     var ai=parseInt(el.dataset.ai),si=parseInt(el.dataset.si);
     if(!f.actions[ai]||!f.actions[ai].sessions[si])return;
@@ -4406,6 +4599,7 @@ function checkSiretField(val,statusEl){
         var etat=res.etat_administratif;
         if(etat==='A'){
           statusEl.innerHTML='<span class="siret-ok">✓ '+escEl(nom)+' — actif</span>';
+              if(nom) window.applySiretData&&window.applySiretData(res);
         } else {
           statusEl.innerHTML='<span class="siret-err">⚠ '+escEl(nom)+' — état: '+escEl(etat||'?')+'</span>';
         }
@@ -4519,6 +4713,7 @@ function emptyAction(){return {
   dureeTotal:'',duree:'',dureeEntreprise:'',
   prix:'',prixHoraire:'',lang:'FR',
   tva:'0.0',certifInclus:'0',tel:'',email:'',
+  codesAdm:['92002'],codesRythme:['1'],
   entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'0',infoPerim:'',infoRecrutement:'',urlAct:'',
   restauration:'',hebergement:'',transport:'',autresServices:'',
   adr:'',cp:'',ville:'',dep:'',reg:'84',pays:'FR',lat:'',lon:'',sessions:[]};}
@@ -4635,8 +4830,16 @@ function toXML(formations){
       o+='              <telfixe><numtel>'+escX(a.tel||'0000000000')+'</numtel></telfixe>\n';
       o+='              <courriel>'+escX(a.email||'contact@organisme.fr')+'</courriel>\n';
       o+='            </coordonnees>\n          </extra>\n';
-      o+='          <extras info="codes-modalites-admission"><extra info="code-modalites-admission">99999</extra></extras>\n';
-      o+='          <extras info="codes-rythme-formation"><extra info="code-rythme-formation">1</extra></extras>\n';
+      // codes-modalites-admission (dynamiques)
+      o+='          <extras info="codes-modalites-admission">\n';
+      var adm=(a.codesAdm&&a.codesAdm.length)?a.codesAdm:['92002'];
+      adm.forEach(function(c){o+='            <extra info="code-modalites-admission">'+escX(c)+'</extra>\n';});
+      o+='          </extras>\n';
+      // codes-rythme-formation (dynamiques)
+      o+='          <extras info="codes-rythme-formation">\n';
+      var ryt=(a.codesRythme&&a.codesRythme.length)?a.codesRythme:['1'];
+      ryt.forEach(function(c){o+='            <extra info="code-rythme-formation">'+escX(c)+'</extra>\n';});
+      o+='          </extras>\n';
       o+='          <extra info="frais-certif-inclus-frais-anpec">'+escX(a.certifInclus||'0')+'</extra>\n';
       // Calcul frais TTC selon TVA
       var ht=parseFloat(a.prix||'0');
@@ -4804,9 +5007,88 @@ function doImport(e){
 /* ==============================================================
    INIT
    ============================================================== */
+// Aperçu MCF
+function doApercu(fid){
+  doSave(fid,true);
+  var f=cat.find(function(x){return x.id===fid;});
+  if(!f) return;
+  var a=f.actions&&f.actions[0];
+  var prix=a?(parseFloat(a.prix||0)*(1+parseFloat(a.tva||0)/100)).toFixed(2):'—';
+  var duree=a?a.dureeTotal||a.duree:'—';
+  var modal=a?({'0':'Présentiel','1':'À distance','2':'Hybride'}[a.modEns]||'—'):'—';
+  var type={'certification':'Formation certifiante','bilan':'Bilan de compétences',
+    'vae':'Accompagnement VAE','permis':'Permis de conduire'}[f.typeOffre||'certification']||'Formation';
+  var fc=(f.formacode||[]).slice(0,3).join(', ');
+  var html='<div class="mcf-card">'+
+    '<div class="mcf-header"><h3>'+escEl(f.intitule||'Sans titre')+'</h3>'+
+    '<p>'+type+' · '+escEl(f.raisonSociale||f.siret||'Organisme')+'</p></div>'+
+    '<div class="mcf-body">'+
+    '<div class="mcf-row">'+
+    '<div style="flex:1">'+
+    '<div class="mcf-label">Objectif pédagogique</div>'+
+    '<div class="mcf-desc">'+escEl((f.objectif||'').substring(0,300))+'</div>'+
+    '</div>'+
+    '<div style="text-align:right;margin-left:16px">'+
+    '<div class="mcf-label">Prix</div>'+
+    '<div class="mcf-prix">'+prix+' €</div>'+
+    '<div style="font-size:10px;color:#666">TTC</div>'+
+    '</div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">'+
+    '<div><div class="mcf-label">Durée</div><div class="mcf-val">'+escEl(String(duree||'—'))+' h</div></div>'+
+    '<div><div class="mcf-label">Modalité</div><div class="mcf-val">'+modal+'</div></div>'+
+    '<div><div class="mcf-label">Niveau sortie</div><div class="mcf-val">'+escEl(f.nivS||'NC')+'</div></div>'+
+    '</div>'+
+    (f.resultats?'<div class="mcf-label">Résultats attendus</div>'+
+    '<div class="mcf-desc">'+escEl(f.resultats.substring(0,200))+'</div>':'')+
+    (fc?'<div class="mcf-tags">'+fc.split(',').map(function(c){
+      return '<span class="mcf-tag">'+escEl(c.trim())+'</span>';}).join('')+'</div>':'')+
+    '<div class="mcf-of">🏢 '+escEl(f.raisonSociale||f.siret||'')+'</div>'+
+    '</div></div>'+
+    '<p style="font-size:10px;color:var(--g5);margin-top:8px;text-align:center">'+
+    'Aperçu indicatif — le rendu réel peut différer légèrement sur Mon Compte Formation</p>';
+  $('J_apercu_content').innerHTML=html;
+  $('J_apercu_modal').classList.add('open');
+}
+
+// Export Excel (CSV simple compatible Excel)
+function doExportExcel(){
+  if(!cat.length){toast('Aucune formation',true);return;}
+  var rows=[['Type','Intitulé','N° interne','SIRET','Organisme','RNCP/RS/CPF',
+    'Objectif général','Certifiante','Niveau sortie','FORMACODE','NSF','ROME',
+    'Nb actions','Prix min','Durée min','Modalité']];
+  cat.forEach(function(f){
+    var a=f.actions&&f.actions[0];
+    rows.push([
+      f.typeOffre||'certification',
+      f.intitule||'',f.numIntOf||'',f.siret||'',f.raisonSociale||'',
+      f.rncp||f.rs||f.cpf||'',
+      f.objGen||'',f.certif||'N',f.nivS||'',
+      (f.formacode||[]).join(';'),(f.nsf||[]).join(';'),(f.rome||[]).join(';'),
+      String((f.actions||[]).length),
+      a?String(a.prix||''):'',
+      a?String(a.dureeTotal||a.duree||''):'',
+      a?({'0':'Présentiel','1':'Distance','2':'Hybride'}[a.modEns]||''):''
+    ]);
+  });
+  var csv=rows.map(function(r){
+    return r.map(function(c){
+      var s=String(c||'').replace(/"/g,'""');
+      return s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0?'"'+s+'"':s;
+    }).join(',');
+  }).join('\n');
+  // BOM UTF-8 pour Excel
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  var u=URL.createObjectURL(blob);var a=document.createElement('a');
+  a.href=u;a.download='catalogue_lheo_'+(new Date().toISOString().slice(0,10))+'.csv';
+  a.click();URL.revokeObjectURL(u);
+  toast(cat.length+' formation(s) exportées en CSV/Excel');
+}
+
 $('J_new').addEventListener('click',newFiche);
 $('J_imp').addEventListener('click',function(){$('file-in').click();});
+var xlsBtn=$('J_expXls');if(xlsBtn)xlsBtn.addEventListener('click',doExportExcel);
 $('J_expAll').addEventListener('click',doExportAll);
+$('J_apercu_close').addEventListener('click',function(){$('J_apercu_modal').classList.remove('open');});
 $('J_saveData').addEventListener('click',function(){
   var json=JSON.stringify({version:1,catalogue:cat},null,2);
   var b=new Blob([json],{type:'application/json;charset=utf-8'});
