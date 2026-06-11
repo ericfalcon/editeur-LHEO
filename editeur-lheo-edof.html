@@ -3728,10 +3728,24 @@ function buildCertif(f){
   return fg(2)+
     // RNCP et RS : uniquement pour "Formation préparant à une certification"
     (showRncp?
-      fi('Code RNCP','E_rncp','text',f.rncp,'','RNCP35482')+
-      fi('Code RS (repertoire specifique)','E_rs','text',f.rs,'','RS5287')+
-      '<button class="rs-btn" onclick="fetchRS()">⬇ Import RS auto</button>'+
+      // RNCP avec bouton import
+      '<div class="fitem"><label>Code RNCP</label>'+
+      '<div style="display:flex;gap:5px;align-items:center">'+
+      '<input type="text" id="E_rncp" value="'+esc(f.rncp||'')+
+        '" placeholder="RNCP35482" style="flex:1">'+
+      '<button class="rs-btn" onclick="fetchBlocs()" title="Importer depuis France Competences">⬇ Import RNCP</button>'+
+      '</div>'+
+      '<div id="E_blocs_status2" class="rs-status"></div>'+
+      '</div>'+
+      // RS avec bouton import
+      '<div class="fitem"><label>Code RS (repertoire specifique)</label>'+
+      '<div style="display:flex;gap:5px;align-items:center">'+
+      '<input type="text" id="E_rs" value="'+esc(f.rs||'')+
+        '" placeholder="RS5287" style="flex:1">'+
+      '<button class="rs-btn" onclick="fetchRS()" title="Importer depuis France Competences">⬇ Import RS</button>'+
+      '</div>'+
       '<div id="E_rs_status" class="rs-status"></div>'+
+      '</div>'+
       ''
     :
       '<input type="hidden" id="E_rncp" value="'+esc(f.rncp||'')+'">'+
@@ -4821,7 +4835,9 @@ function fetchBlocs(){
   if(/^\d+$/.test(rncp))rncp='RNCP'+rncp;
   if(!/^RNCP\d+$/.test(rncp)){alert('Format invalide, ex: RNCP41426 ou 41426');return;}
   var st=document.getElementById('E_blocs_status');
+  var st2=document.getElementById('E_blocs_status2');
   if(st)st.textContent='Chargement '+rncp+'...';
+  if(st2)st2.textContent='Chargement...';
   function callApi(url,headers){
     return fetch(url,{headers:headers}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
@@ -4854,7 +4870,7 @@ function applyRncpData(ff,rncp,data,st){
   if(blocs.length){blocs.sort(function(a,b){return a.code.localeCompare(b.code);});
     ff.blocsCompetences=blocs.map(function(b){return b.code+'||'+b.intitule;});maj.push(blocs.length+' blocs');}
   ff.certif='O';if(ff.objGen==='7')ff.objGen='6';
-  L.persist();L.openEditor(L.curId);if(st)st.textContent='';
+  L.persist();L.openEditor(L.curId);if(st)st.textContent='';var st2b=document.getElementById('E_blocs_status2');if(st2b)st2b.textContent='';
   alert('Import OK pour '+rncp+'\nChamps importes : '+(maj.length?maj.join(', '):'aucun nouveau'));}
 
 function addBloc(){
