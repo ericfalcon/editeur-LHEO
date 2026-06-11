@@ -3385,21 +3385,60 @@ window.addVaeRncp=function(){
   div.innerHTML=buildVaeRncpRow('','',idx);
   list.appendChild(div.firstChild);
 };
-// Récupération automatique du titre RNCP depuis France Compétences
+
+// Récupération silencieuse du titre RNCP au onblur (ne pas écraser si déjà rempli)
 window.autoFillRncpTitre=function(input){
   var row=input.closest('.vae-rncp-row');
   if(!row) return;
   var code=input.value.trim().toUpperCase();
+  if(/^\d+$/.test(code)) code='RNCP'+code;
   if(!/^RNCP\d+$/.test(code)) return;
   var titreEl=row.querySelector('.vae-rncp-titre');
-  if(!titreEl||titreEl.value) return; // ne pas écraser si déjà rempli
-  fetch('https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant='+code,{
-    headers:{'Authorization':'Bearer '+window.API_APPRENTISSAGE_TOKEN}
-  }).then(function(r){return r.json();})
-  .then(function(data){
+  if(!titreEl||titreEl.value.trim()) return; // ne pas écraser si déjà rempli
+  window._fetchRncpTitre(code,titreEl,null);
+};
+
+// Import explicite depuis le bouton ⬇ (écrase le titre existant, affiche un statut)
+window.importVaeRncp=function(btn){
+  var row=btn.closest('.vae-rncp-row');
+  if(!row) return;
+  var codeEl=row.querySelector('.vae-rncp-code');
+  var titreEl=row.querySelector('.vae-rncp-titre');
+  if(!codeEl) return;
+  var code=codeEl.value.trim().toUpperCase();
+  if(/^\d+$/.test(code)) code='RNCP'+code;
+  if(!/^RNCP\d+$/.test(code)){alert('Saisissez un code RNCP valide (ex: RNCP12345 ou 12345)');return;}
+  btn.textContent='...';
+  btn.disabled=true;
+  window._fetchRncpTitre(code,titreEl,function(ok,titre){
+    btn.textContent='\u2b07';
+    btn.disabled=false;
+    if(ok) btn.style.color='var(--ok)';
+    else {btn.style.color='var(--err)';alert(code+' : titre introuvable dans France Competences');}
+  });
+};
+
+// Fonction centrale de récupération titre RNCP (proxy local puis API directe)
+window._fetchRncpTitre=function(rncp,titreEl,callback){
+  function applyTitre(data){
     var d=data&&data[0];
-    if(d){var t=(d.intitule&&d.intitule.rncp)||d.libelle||'';if(t)titreEl.value=t;}
-  }).catch(function(){});
+    var t=(d&&d.intitule&&d.intitule.rncp)||(d&&d.libelle)||'';
+    if(t&&titreEl) titreEl.value=t;
+    if(callback) callback(!!t,t);
+  }
+  // Essai 1: proxy local
+  fetch('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,{
+    headers:{'X-App-Token':API_APPRENTISSAGE_TOKEN}
+  }).then(function(r){if(!r.ok)throw new Error('proxy '+r.status);return r.json();})
+  .then(applyTitre)
+  .catch(function(){
+    // Essai 2: API directe HTTPS
+    fetch('https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant.rncp='+rncp,{
+      headers:{'Authorization':'Bearer '+API_APPRENTISSAGE_TOKEN,'Accept':'application/json'}
+    }).then(function(r){if(!r.ok)throw new Error('direct '+r.status);return r.json();})
+    .then(applyTitre)
+    .catch(function(){if(callback)callback(false,'');});
+  });
 };
 
 /* ==============================================================
@@ -3891,8 +3930,10 @@ function buildDesc(f){
 
 function buildVaeRncpRow(code,titre,idx){
   return '<div class="vae-rncp-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px" data-idx="'+idx+'">'+
-    '<input class="vae-rncp-code" type="text" placeholder="Ex: RNCP12345" value="'+esc(code)+'" style="width:130px;flex-shrink:0" maxlength="10" onblur="window.autoFillRncpTitre(this)">'+
+    '<input class="vae-rncp-code" type="text" placeholder="Ex: RNCP12345" value="'+esc(code)+
+    '" style="width:130px;flex-shrink:0" maxlength="10" onblur="window.autoFillRncpTitre(this)">'+
     '<input class="vae-rncp-titre" type="text" placeholder="Intitulé de la certification" value="'+esc(titre)+'" style="flex:1">'+
+    '<button type="button" class="rs-btn" onclick="window.importVaeRncp(this)" title="Importer le titre depuis France Competences">⬇</button>'+
     '<button type="button" class="btn btn-err btn-sm" onclick="this.parentElement.remove()">✕</button>'+
     '</div>';}
 
