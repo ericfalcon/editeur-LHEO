@@ -3459,14 +3459,21 @@ window.applySiretData=function(data){
   var ff=L.cat.find(function(x){return x.id===L.curId;});
   if(!ff)return;
   var nom=data.nom_raison_sociale||data.nom_complet||'';
-  var nda='';
-  // Chercher NDA dans les données si disponible
+  var nda=data.nda||'';
+  var changed=[];
   if(nom&&!ff.raisonSociale){
     ff.raisonSociale=nom;
     var rsEl=document.getElementById('E_rs_org');
-    if(rsEl){rsEl.value=nom;}
-    toast('Raison sociale pré-remplie : '+nom);
+    if(rsEl) rsEl.value=nom;
+    changed.push('raison sociale');
   }
+  if(nda&&!ff.numActivite){
+    ff.numActivite=nda;
+    var ndaEl=document.getElementById('E_nda');
+    if(ndaEl) ndaEl.value=nda;
+    changed.push('NDA');
+  }
+  if(changed.length) toast('Pré-rempli depuis SIRET : '+changed.join(', '));
 };
 
 window.calcPrix=function(ai){
@@ -4584,33 +4591,40 @@ function checkSiretField(val,statusEl){
     return;
   }
   if(!luhnSiret(val)){
-    if(statusEl) statusEl.innerHTML='<span class="siret-err">Clé SIRET invalide</span>';
+    if(statusEl) statusEl.innerHTML='<span class="siret-err">Clé SIRET invalide (vérifiez les chiffres)</span>';
     return;
   }
-  if(statusEl) statusEl.innerHTML='<span class="siret-ok">✓ Format SIRET valide</span>';
-  // Vérification INSEE via API annuaire-entreprises
+  if(statusEl) statusEl.innerHTML='<span style="color:var(--g5);font-size:10px">Vérification en cours...</span>';
   var siret=val.replace(/\s/g,'');
-  fetch('https://recherche-entreprises.api.gouv.fr/search?q='+siret+'&page=1&per_page=1')
-    .then(function(r){return r.json();})
+  var url='https://dgefp.opendatasoft.com/api/explore/v2.1/catalog/datasets/liste-publique-des-of-v2/records'
+    +'?where=siretetablissementdeclarant%3D%22'+siret+'%22&limit=1';
+  fetch(url)
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(data){
       var res=data&&data.results&&data.results[0];
       if(res){
-        var nom=res.nom_raison_sociale||res.nom_complet||'';
-        var etat=res.etat_administratif;
-        if(etat==='A'){
-          statusEl.innerHTML='<span class="siret-ok">✓ '+escEl(nom)+' — actif</span>';
-              if(nom) window.applySiretData&&window.applySiretData(res);
-        } else {
-          statusEl.innerHTML='<span class="siret-err">⚠ '+escEl(nom)+' — état: '+escEl(etat||'?')+'</span>';
-        }
+        var nom=res.denomination||'';
+        var nda=res.numerodeclarationactivite||'';
+        var qActif=res.certifications_actionsdeformation;
+        var qBilan=res.certifications_bilansdecompetences;
+        var qVae=res.certifications_vae;
+        var qualiopi=[];
+        if(qActif) qualiopi.push('Actions de formation');
+        if(qBilan) qualiopi.push('Bilan');
+        if(qVae) qualiopi.push('VAE');
+        var qBadge=qualiopi.length
+          ?'<span style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;margin-left:5px;font-size:9px">✓ Qualiopi: '+qualiopi.join(', ')+'</span>'
+          :'<span style="background:#fff3e0;color:#e65100;border-radius:4px;padding:1px 6px;margin-left:5px;font-size:9px">⚠ Non Qualiopi</span>';
+        if(statusEl) statusEl.innerHTML=
+          '<span class="siret-ok">✓ '+escEl(nom)+'</span>'+qBadge+
+          (nda?'<br><span style="font-size:10px;color:var(--g5)">NDA : <strong>'+escEl(nda)+'</strong></span>':'<br><span style="font-size:10px;color:var(--err)">Aucun NDA trouvé dans le répertoire DGEFP</span>');
+        window.applySiretData&&window.applySiretData({nom_raison_sociale:nom,nda:nda});
       } else {
-        statusEl.innerHTML='<span class="siret-err">SIRET non trouvé dans la base INSEE</span>';
+        if(statusEl) statusEl.innerHTML='<span class="siret-err">⚠ SIRET non trouvé comme organisme de formation déclaré (DGEFP)</span>';
       }
     })
     .catch(function(){
-      // Silencieux si pas de connexion
-      if(statusEl&&statusEl.innerHTML.indexOf('Format')>=0)
-        statusEl.innerHTML='<span class="siret-ok">✓ Format SIRET valide</span>';
+      if(statusEl) statusEl.innerHTML='<span class="siret-ok">✓ Format SIRET valide (vérification réseau impossible)</span>';
     });
 }
 
