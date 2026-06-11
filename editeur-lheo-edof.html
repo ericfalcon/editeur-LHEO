@@ -3375,6 +3375,7 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
 };
 // Exposer aussi les fonctions appelées via onclick= dans le HTML généré
 window.fetchRS=function(){fetchRS();};
+window.filterFormacodeByPrefix=function(p){filterFormacodeByPrefix(p);};
 window.dupFiche=function(id){dupFiche(id);};
 window.fetchBlocs=function(){fetchBlocs();};
 window.addVaeRncp=function(){
@@ -3471,17 +3472,53 @@ function bindSF(uid,data,maxSel,initVals){
   if(!inp||!sel||!bar)return;
   // init tags
   (initVals||[]).forEach(function(v){addTag(bar,v,maxSel);});
-  // filtrage
+  // filtrage texte (combiné avec filtre préfixe)
   inp.addEventListener('input',function(){
     var q=inp.value.toLowerCase();
+    var prefix=sel.dataset.prefix||'';
     Array.from(sel.options).forEach(function(o){
-      o.style.display=(q===''||o.text.toLowerCase().indexOf(q)>=0)?'':'none';});
+      var matchQ=(q===''||o.text.toLowerCase().indexOf(q)>=0);
+      var matchP=(prefix===''||o.value.startsWith(prefix));
+      o.style.display=(matchQ&&matchP)?'':'none';
+    });
   });
   // selection
   sel.addEventListener('change',function(){
     var o=sel.options[sel.selectedIndex];if(!o)return;
     addTag(bar,o.value,maxSel);sel.selectedIndex=-1;
   });
+}
+
+// Filtre la liste FORMACODE 5ch selon un préfixe 3 chiffres
+// prefix3 = '310' ou '' pour tout montrer
+function filterFormacodeByPrefix(prefix3){
+  var sel=$('sf_s_fc');
+  var inp=$('sf_i_fc');
+  var banner=$('fc_filter_banner');
+  if(!sel) return;
+  sel.dataset.prefix=prefix3||'';
+  var q=(inp?inp.value.toLowerCase():'');
+  var count=0;
+  Array.from(sel.options).forEach(function(o){
+    var matchP=(prefix3===''||o.value.startsWith(prefix3));
+    var matchQ=(q===''||o.text.toLowerCase().indexOf(q)>=0);
+    o.style.display=(matchP&&matchQ)?'':'none';
+    if(matchP) count++;
+  });
+  // Mettre à jour le bandeau d'info
+  if(banner){
+    if(prefix3){
+      banner.style.display='block';
+      banner.textContent='Filtré sur le domaine '+prefix3+' ('+count+' codes). ';
+      var reset=document.createElement('button');
+      reset.type='button';reset.className='rs-btn';reset.style.marginLeft='6px';
+      reset.textContent='Voir tout';
+      reset.onclick=function(){filterFormacodeByPrefix('');};
+      banner.appendChild(reset);
+    } else {
+      banner.style.display='none';
+    }
+  }
 }
 
 function addTag(bar,val,max){
@@ -3607,9 +3644,31 @@ function renderEditor(f){
     var siretEl=$('E_siret');
     var statusEl=$('E_siret_status');
     if(siretEl&&statusEl){
-      // Vérifier à l'affichage si déjà renseigné
       if(siretEl.value) checkSiretField(siretEl.value,statusEl);
       siretEl.addEventListener('input',function(){checkSiretField(siretEl.value,statusEl);});
+    }
+  })();
+  // Filtre FORMACODE par catégorisation (champ sémantique 3ch)
+  (function(){
+    var catEl=$('E_catoffre');
+    if(catEl){
+      // Appliquer le filtre au chargement si catégorisation déjà sélectionnée
+      if(catEl.value) filterFormacodeByPrefix(catEl.value);
+      catEl.addEventListener('change',function(){
+        filterFormacodeByPrefix(catEl.value||'');
+      });
+    }
+    // NSF : filtrer FORMACODE quand on sélectionne un NSF dans sf_t_nsf
+    // (pas automatique car NSF est un select filtrable - on écoute les clics sur le select)
+    var nsfSel=$('sf_s_nsf');
+    if(nsfSel){
+      nsfSel.addEventListener('change',function(){
+        var o=nsfSel.options[nsfSel.selectedIndex];
+        if(o&&o.value){
+          // NSF code 3ch -> filtrer FORMACODE sur le même préfixe
+          filterFormacodeByPrefix(o.value);
+        }
+      });
     }
   })();
   ccBind('E_obj','cc_obj',3000);ccBind('E_cont','cc_cont',3000);
@@ -3858,7 +3917,9 @@ function buildCertif(f){
     // FORMACODE 5 chiffres : masqué pour VAE (remplacé par categorisation-offre 3 chiffres)
     //                          masqué pour Permis (pas de domaine de formation applicable)
     (!isVae&&!isPermis?
-      '<div class="fitem full"><label>FORMACODE <span class="req">*</span> <span class="bdg b-o">max 5 - 1er = principal</span></label>'+
+      '<div class="fitem full">'+
+    '<label>FORMACODE <span class="req">*</span> <span class="bdg b-o">max 5 - 1er = principal</span></label>'+
+    '<div id="fc_filter_banner" style="display:none;font-size:11px;color:var(--pri);background:var(--prl);padding:4px 8px;border-radius:4px;margin-bottom:5px"></div>'+
       buildSF('fc',FORMACODE,f.formacode||[],5)+'</div>'
     : isVae?
       '<div class="fitem full"><p style="font-size:11px;color:var(--ok);background:#f0fff4;padding:6px 9px;border-radius:5px;border:1px solid var(--ok)">'+
