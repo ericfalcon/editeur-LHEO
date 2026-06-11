@@ -3376,6 +3376,7 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
 // Exposer aussi les fonctions appelées via onclick= dans le HTML généré
 window.fetchRS=function(){fetchRS();};
 window.filterFormacodeByPrefix=function(p){filterFormacodeByPrefix(p);};
+window.filterRomeByFormacode=function(prefix3){filterRomeByFormacode(prefix3);};
 window.dupFiche=function(id){dupFiche(id);};
 window.fetchBlocs=function(){fetchBlocs();};
 window.addVaeRncp=function(){
@@ -3472,14 +3473,16 @@ function bindSF(uid,data,maxSel,initVals){
   if(!inp||!sel||!bar)return;
   // init tags
   (initVals||[]).forEach(function(v){addTag(bar,v,maxSel);});
-  // filtrage texte (combiné avec filtre préfixe)
+  // filtrage texte (combiné avec filtre préfixe FORMACODE et familles ROME)
   inp.addEventListener('input',function(){
     var q=inp.value.toLowerCase();
     var prefix=sel.dataset.prefix||'';
+    var families=(sel.dataset.rome_families||'').split(',').filter(Boolean);
     Array.from(sel.options).forEach(function(o){
       var matchQ=(q===''||o.text.toLowerCase().indexOf(q)>=0);
       var matchP=(prefix===''||o.value.startsWith(prefix));
-      o.style.display=(matchQ&&matchP)?'':'none';
+      var matchF=(families.length===0||families.indexOf(o.value[0])>=0);
+      o.style.display=(matchQ&&matchP&&matchF)?'':'none';
     });
   });
   // selection
@@ -3487,6 +3490,54 @@ function bindSF(uid,data,maxSel,initVals){
     var o=sel.options[sel.selectedIndex];if(!o)return;
     addTag(bar,o.value,maxSel);sel.selectedIndex=-1;
   });
+}
+
+// Table de correspondance FORMACODE 3ch -> familles ROME
+var FORMACODE_ROME_MAP={
+  '110':['M'],'114':['H','M'],'115':['H','M'],'120':['A','K'],'122':['A','H'],
+  '125':['A','H'],'130':['K','M'],'131':['C','M'],'132':['M','K'],'133':['M'],
+  '142':['K','M'],'144':['K'],'150':['M','K'],'152':['E','M','K'],'154':['G','K'],
+  '210':['A'],'213':['A'],'215':['H','D'],'216':['H'],'217':['H','D'],
+  '218':['H','D'],'220':['F'],'222':['F'],'223':['F'],'224':['F'],
+  '226':['F','H'],'228':['H'],'230':['H'],'235':['H'],'236':['H','I'],
+  '240':['H','I','F'],'241':['H','I'],'242':['I','M'],'243':['H','I'],
+  '244':['H','I','M'],'308':['M'],'310':['M','I'],'313':['H','M'],'314':['M'],
+  '316':['H','M'],'317':['N'],'318':['N'],'320':['M'],'321':['M'],
+  '326':['M','C'],'330':['M','K'],'340':['D','M'],'342':['D','N'],'345':['D'],
+  '350':['M'],'410':['C'],'420':['D','G'],'421':['C'],'426':['G'],'427':['G'],
+  '428':['K'],'430':['J'],'434':['J','K'],'440':['K'],'445':['K','M'],
+  '450':['B','L'],'455':['B','L'],'460':['E','L'],'462':['E','L'],'463':['E','M']
+};
+
+// Filtre la liste ROME selon les familles correspondant à un préfixe FORMACODE 3ch
+function filterRomeByFormacode(prefix3){
+  var sel=$('sf_s_rome');
+  var inp=$('sf_i_rome');
+  var banner=$('rome_filter_banner');
+  if(!sel) return;
+  var families=prefix3?(FORMACODE_ROME_MAP[prefix3]||[]):[];
+  sel.dataset.rome_families=families.join(',');
+  var q=(inp?inp.value.toLowerCase():'');
+  var count=0;
+  Array.from(sel.options).forEach(function(o){
+    var matchF=(families.length===0||families.indexOf(o.value[0])>=0);
+    var matchQ=(q===''||o.text.toLowerCase().indexOf(q)>=0);
+    o.style.display=(matchF&&matchQ)?'':'none';
+    if(matchF) count++;
+  });
+  if(banner){
+    if(families.length){
+      banner.style.display='block';
+      banner.innerHTML='Filtré : familles ROME '+families.join(', ')+' ('+count+' codes). ';
+      var reset=document.createElement('button');
+      reset.type='button';reset.className='rs-btn';reset.style.marginLeft='6px';
+      reset.textContent='Voir tout';
+      reset.onclick=function(){filterRomeByFormacode('');};
+      banner.appendChild(reset);
+    } else {
+      banner.style.display='none';
+    }
+  }
 }
 
 // Filtre la liste FORMACODE 5ch selon un préfixe 3 chiffres
@@ -3658,16 +3709,32 @@ function renderEditor(f){
         filterFormacodeByPrefix(catEl.value||'');
       });
     }
-    // NSF : filtrer FORMACODE quand on sélectionne un NSF dans sf_t_nsf
-    // (pas automatique car NSF est un select filtrable - on écoute les clics sur le select)
+    // NSF : filtrer FORMACODE quand on sélectionne un NSF
     var nsfSel=$('sf_s_nsf');
     if(nsfSel){
       nsfSel.addEventListener('change',function(){
         var o=nsfSel.options[nsfSel.selectedIndex];
         if(o&&o.value){
-          // NSF code 3ch -> filtrer FORMACODE sur le même préfixe
           filterFormacodeByPrefix(o.value);
+          filterRomeByFormacode(o.value);
         }
+      });
+    }
+    // FORMACODE : filtrer ROME quand on sélectionne un code FORMACODE
+    var fcSel=$('sf_s_fc');
+    if(fcSel){
+      fcSel.addEventListener('change',function(){
+        var o=fcSel.options[fcSel.selectedIndex];
+        if(o&&o.value){
+          var prefix3=o.value.substring(0,3);
+          filterRomeByFormacode(prefix3);
+        }
+      });
+    }
+    // Catégorisation VAE : filtrer aussi ROME
+    if(catEl){
+      catEl.addEventListener('change',function(){
+        filterRomeByFormacode(catEl.value||'');
       });
     }
   })();
@@ -3939,7 +4006,9 @@ function buildCertif(f){
     )+
     // ROME : optionnel pour tous sauf permis
     (!isPermis?
-      '<div class="fitem full"><label>Code ROME <span class="bdg b-o">optionnel - max 5</span></label>'+
+      '<div class="fitem full">'+
+      '<label>Code ROME <span class="bdg b-o">optionnel - max 5</span></label>'+
+      '<div id="rome_filter_banner" style="display:none;font-size:11px;color:var(--pri);background:var(--prl);padding:4px 8px;border-radius:4px;margin-bottom:5px"></div>'+
       buildSF('rome',ROME,f.rome||[],5)+'</div>'
     :'')+
     (showRncp&&f.rncp?
