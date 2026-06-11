@@ -3834,11 +3834,14 @@ function buildIdent(f){
     (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'4':isVae?'6':'3')+'">')+
     fsel('Type de parcours','E_parcours',sOpts(PARCOURS,f.parcours))+
     (!isBilan&&!isPermis?
-      fsel('Certifiante (hors champ CPF)','E_certif',
-        '<option value="N"'+(f.certif==='N'?' selected':'')+'>Non certifiante</option>'+
-        '<option value="O"'+(f.certif==='O'?' selected':'')+'>Oui</option>')
-    :'<input type="hidden" id="E_certif" value="N">'+
-      '<div class="fitem"><label>Certifiante</label><span style="padding:6px;font-size:12px;color:var(--g4)">Non certifiante (fixe pour ce type)</span></div>')+
+      '<input type="hidden" id="E_certif" value="'+(f.typeOffre==="certification"||f.typeOffre==="vae"?'O':'N')+'">'+
+      '<div class="fitem"><label>Certifiante</label>'+
+      '<div style="padding:6px 10px;background:var(--g1);border:1px solid var(--g2);border-radius:5px;font-size:12px;color:var(--g7)">'+
+      (f.typeOffre==="certification"||f.typeOffre==="vae"?
+        '<span style="color:var(--ok);font-weight:600">✓ Oui</span> — défini par le type d\'offre'
+       :'<span style="color:var(--g5)">Non</span> — défini par le type d\'offre')+
+      '</div></div>'
+    :'<input type="hidden" id="E_certif" value="N">')+
     '</div>';}
 
 
@@ -4202,7 +4205,9 @@ function collect(fid){
   function g(id){var e=$(id);return e?e.value:'';}
   f.intitule=g('E_intitule');f.numIntOf=g('E_num');f.siret=g('E_siret');
   f.typeOffre=g('E_typeoffre')||'certification';
-  f.objGen=g('E_objgen');f.certif=g('E_certif');f.parcours=g('E_parcours');
+  f.objGen=g('E_objgen');f.parcours=g('E_parcours');
+  // certifiante : déduit du type d'offre, pas saisi manuellement
+  f.certif=(f.typeOffre==='certification'||f.typeOffre==='vae')?'O':'N';
   f.rncp=g('E_rncp');f.rs=g('E_rs');f.cpf=g('E_cpf');f.certifinfo=g('E_certifinfo');
   // Normaliser : ajouter le préfixe automatiquement si l'utilisateur n'a saisi que des chiffres
   if(f.rncp&&/^\d+$/.test(f.rncp.trim()))f.rncp='RNCP'+f.rncp.trim();
