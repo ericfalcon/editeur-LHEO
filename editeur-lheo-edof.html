@@ -3843,9 +3843,11 @@ function showWelcome(){
       // file:// - mode local sans serveur
       '<div style="margin-top:16px;padding:12px;background:var(--warn-bg,#fff8e1);border:1px solid #f9a825;border-radius:6px;font-size:12px;text-align:left">'+
       '<strong>&#9888; Mode fichier local détecté</strong><br>'+
-      'L\'import France Competences necessite un mini serveur local.<br>'+
-      '<button class="btn btn-sm" style="margin-top:8px" id="J_gen_py">&#128190; Generer lancer-editeur.bat + .py</button>'+
-      '<span style="margin-left:8px;color:var(--g4)">Double-cliquez sur le <b>.bat</b> puis ouvrez <b>http://localhost:8765</b></span>'+
+      'L\'import France Compétences nécessite un mini serveur local.<br>'+
+      '<button class="btn btn-sm" style="margin-top:8px" id="J_gen_py">&#128190; Générer lancer-editeur.bat + .py</button>'+
+      '<span style="margin-left:8px;color:var(--g4)">'+
+      '&#9888; Après téléchargement : <b>clic droit &gt; Propriétés &gt; Débloquer</b> sur chaque fichier, puis double-cliquez sur le <b>.bat</b>'+
+      '</span>'+
       '</div>'
     )+
     '</div>';
@@ -5455,6 +5457,13 @@ function generatePyScript(){
   // Générer aussi le .bat Windows pour forcer l'ouverture dans une vraie console
   var bat='@echo off\r\n'+
 'title Editeur LHEO EDOF - Serveur local\r\n'+
+'echo ============================================\r\n'+
+'echo  IMPORTANT : si ce fichier vient d^)internet,\r\n'+
+'echo  faites clic droit ^> Proprietes ^> cocher\r\n'+
+'echo  "Debloquer" avant de le lancer.\r\n'+
+'echo ============================================\r\n'+
+'echo.\r\n'+
+
 'echo Demarrage du serveur LHEO EDOF...\r\n'+
 'echo.\r\n'+
 'python --version >nul 2>&1\r\n'+
@@ -5478,7 +5487,22 @@ function generatePyScript(){
     var a2=document.createElement('a');
     a2.href=u2;a2.download='lancer-editeur.bat';a2.click();
     URL.revokeObjectURL(u2);
-    toast('Fichiers telecharges : lancer-editeur.py + lancer-editeur.bat — Double-cliquez sur le .bat');
+    toast('Fichiers générés. Lisez les instructions ci-dessous.');
+    setTimeout(function(){
+      alert(
+        'Fichiers téléchargés :\n' +
+        '  lancer-editeur.py\n' +
+        '  lancer-editeur.bat\n\n' +
+        'ETAPE OBLIGATOIRE sous Windows :\n' +
+        'Ces fichiers viennent d\'internet et sont bloques par Windows.\n\n' +
+        'Pour CHAQUE fichier :\n' +
+        '  1. Clic droit sur le fichier\n' +
+        '  2. Proprietes\n' +
+        '  3. Cocher Debloquer en bas de la fenetre\n' +
+        '  4. Cliquer OK\n\n' +
+        'Ensuite : double-cliquez sur lancer-editeur.bat'
+      );
+    }, 400);
   }, 500);
 }
 
