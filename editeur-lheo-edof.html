@@ -3935,54 +3935,67 @@ function renderEditor(f){
       siretEl.addEventListener('input',function(){checkSiretField(siretEl.value,statusEl);});
     }
   })();
-  // Filtre FORMACODE par catégorisation (champ sémantique 3ch)
+  // Filtres croisés FORMACODE / NSF / ROME / catégorisation VAE
   (function(){
-    var catEl=$('E_catoffre');
-    if(catEl){
-      // Appliquer les filtres au chargement si catégorisation déjà sélectionnée
-      if(catEl.value){
-        filterFormacodeByPrefix(catEl.value);
-        filterRomeByFormacode(catEl.value);
+    var isVaePage = !!$('E_catoffre');
+    var catEl   = $('E_catoffre');
+    var nsfSel  = $('sf_s_nsf');
+    var fcSel   = $('sf_s_fc');
+
+    // Fonction centrale : appliquer filtres + présélections depuis un préfixe 3ch
+    function applyPrefix(prefix3, source){
+      // Filtrer FORMACODE par préfixe 3ch (sauf si NSF a déjà filtré autrement)
+      filterFormacodeByPrefix(prefix3);
+      // Filtrer ROME par familles correspondantes
+      filterRomeByFormacode(prefix3);
+      // En VAE : pré-sélectionner le NSF si vide et source != NSF
+      if(isVaePage && source!=='nsf'){
+        var nsfBar=$('sf_t_nsf');
+        if(nsfBar && !nsfBar.querySelectorAll('.tp').length && prefix3){
+          addTag(nsfBar, prefix3, 3);
+        }
       }
-      catEl.addEventListener('change',function(){
-        var prefix=catEl.value||'';
-        filterFormacodeByPrefix(prefix);
-        filterRomeByFormacode(prefix);
-        if(prefix){
-          // Pré-sélectionner le NSF correspondant (même code 3ch)
-          var nsfBar=$('sf_t_nsf');
-          if(nsfBar&&!nsfBar.querySelectorAll('.tp').length){
-            addTag(nsfBar,prefix,3);
-          }
-        }
+    }
+
+    // Au chargement : appliquer si catégorisation déjà renseignée
+    if(catEl && catEl.value){
+      applyPrefix(catEl.value, 'cat');
+    }
+    // Au chargement : appliquer si NSF déjà sélectionné (hors VAE)
+    if(!isVaePage && nsfSel && nsfSel.dataset.prefix){
+      applyPrefix(nsfSel.dataset.prefix, 'nsf');
+    }
+
+    // Changement catégorisation VAE
+    if(catEl){
+      catEl.addEventListener('change', function(){
+        applyPrefix(catEl.value||'', 'cat');
       });
     }
-    // NSF : filtrer FORMACODE et ROME quand on sélectionne un NSF
-    var nsfSel=$('sf_s_nsf');
+
+    // Sélection NSF → filtre FORMACODE + ROME
     if(nsfSel){
-      nsfSel.addEventListener('change',function(){
+      nsfSel.addEventListener('change', function(){
         var o=nsfSel.options[nsfSel.selectedIndex];
-        if(o&&o.value){
-          filterFormacodeByPrefix(o.value);
-          filterRomeByFormacode(o.value);
-        }
+        if(o && o.value) applyPrefix(o.value, 'nsf');
       });
     }
-    // FORMACODE : filtrer ROME quand on sélectionne un code FORMACODE
-    var fcSel=$('sf_s_fc');
+
+    // Sélection FORMACODE 5ch → filtre ROME + (VAE) présélectionne NSF depuis préfixe
     if(fcSel){
-      fcSel.addEventListener('change',function(){
+      fcSel.addEventListener('change', function(){
         var o=fcSel.options[fcSel.selectedIndex];
-        if(o&&o.value){
+        if(o && o.value){
           var prefix3=o.value.substring(0,3);
           filterRomeByFormacode(prefix3);
+          // En VAE : présélectionner aussi le NSF si vide
+          if(isVaePage){
+            var nsfBar=$('sf_t_nsf');
+            if(nsfBar && !nsfBar.querySelectorAll('.tp').length){
+              addTag(nsfBar, prefix3, 3);
+            }
+          }
         }
-      });
-    }
-    // Catégorisation VAE : filtrer aussi ROME
-    if(catEl){
-      catEl.addEventListener('change',function(){
-        filterRomeByFormacode(catEl.value||'');
       });
     }
   })();
