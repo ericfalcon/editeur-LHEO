@@ -3462,6 +3462,14 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
 };
 // Exposer aussi les fonctions appelées via onclick= dans le HTML généré
 window.fetchRS=function(){fetchRS();};
+// Calcul auto durée totale = centre + entreprise
+window.calcDureeAuto=function(ai){
+  var centre=parseFloat(document.getElementById('duree_'+ai)&&document.getElementById('duree_'+ai).value||'0');
+  var entr=parseFloat(document.getElementById('dureeEnt_'+ai)&&document.getElementById('dureeEnt_'+ai).value||'0');
+  var total=centre+entr;
+  var totEl=document.getElementById('dureeTotal_'+ai);
+  if(totEl&&total>0) totEl.value=total;
+};
 window.checkHabilitation=function(code,statusId){
   var el=document.getElementById(statusId);
   if(!el||!habList.length||!code) return;
@@ -4520,9 +4528,12 @@ function buildAction(a,i){
       so('0','Non',a.aPrereq||'0')+so('1','Oui',a.aPrereq))+
     afsel(i,'modEns','Modalité enseignement <span class="req">*</span>',
       so('0','Présentiel',a.modEns)+so('1','À distance',a.modEns)+so('2','Mixte/hybride',a.modEns))+
-    aif(i,'dureeTotal','number',a.dureeTotal,'Durée totale de l\'action (heures)','','60')+
-    aif(i,'duree','number',a.duree,'Dont heures en centre','','21')+
-    aif(i,'dureeEntreprise','number',a.dureeEntreprise,'Dont heures en entreprise (stage)','','0')+
+    '<div class="fitem"><label>Durée totale (heures) <span class="req">*</span></label>'+
+    '<input type="number" data-ai="'+i+'" data-f="dureeTotal" id="dureeTotal_'+i+'" value="'+esc(a.dureeTotal||'')+'" placeholder="60" oninput="calcDureeAuto('+i+')"></div>'+
+    '<div class="fitem"><label>Dont heures en centre</label>'+
+    '<input type="number" data-ai="'+i+'" data-f="duree" id="duree_'+i+'" value="'+esc(a.duree||'')+'" placeholder="21" oninput="calcDureeAuto('+i+')"></div>'+
+    '<div class="fitem"><label>Dont heures en entreprise</label>'+
+    '<input type="number" data-ai="'+i+'" data-f="dureeEntreprise" id="dureeEnt_'+i+'" value="'+esc(a.dureeEntreprise||'')+'" placeholder="0" oninput="calcDureeAuto('+i+')"></div>'+
     '<div class="fitem full"><label>Frais pédagogiques <span class="req">*</span></label>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;align-items:end">'+
     '<div><label style="font-size:10px;font-weight:400;color:var(--g5)">Taux TVA</label>'+
@@ -4617,22 +4628,33 @@ function buildSess(s,ai,si){
     '<button class="btn btn-err btn-sm del-sess" data-ai="'+ai+'" data-si="'+si+'">Supprimer</button></div>'+
     fg(3)+
     sif(ai,si,'num','text',s.num,'N° session <span class="req">*</span>','30','')+
-    sif(ai,si,'debut','date',s.debut,'Debut <span class="req">*</span>','','')+
+    sif(ai,si,'debut','date',s.debut,'Début <span class="req">*</span>','','')+
     sif(ai,si,'fin','date',s.fin,'Fin <span class="req">*</span>','','')+
-    '<div class="fitem"><label>Garantie de session <span class="req">*</span></label>'+
-    '<select data-ai="'+ai+'" data-si="'+si+'" data-fs="garantie">'+
-    so('0','Non',s.garantie||'0')+so('1','Oui',s.garantie)+'</select></div>'+
+    '<div class="fitem"><label>Etat recrutement <span class="req">*</span></label>'+
+    '<select data-ai="'+ai+'" data-si="'+si+'" data-fs="etatRecrutement">'+
+    so('1','1 - Ouvert',s.etatRecrutement||'1')+
+    so('2','2 - Fermé',s.etatRecrutement)+
+    so('3','3 - Complet',s.etatRecrutement)+
+    '</select></div>'+
     '<div class="fitem"><label>Individuelle / Collective</label>'+
     '<select data-ai="'+ai+'" data-si="'+si+'" data-fs="indColl">'+
-    so('0','Individuelle',s.indColl||'0')+so('1','Collective',s.indColl)+'</select></div>'+
-    sif(ai,si,'placesTotal','number',s.placesTotal,'Capacite','','12')+
-    sif(ai,si,'placesFinancees','number',s.placesFinancees,'Places financees','','')+
-    sif(ai,si,'email','text',s.email,'Email contact','','contact@of.fr')+
-    sif(ai,si,'tel','text',s.tel,'Telephone','','04...')+
+    so('0','Individuelle',s.indColl||'0')+so('1','Collective',s.indColl)+
+    '</select></div>'+
+    '<div class="fitem"><label>Garantie session</label>'+
+    '<select data-ai="'+ai+'" data-si="'+si+'" data-fs="garantie">'+
+    so('0','Non garantie',s.garantie||'0')+so('1','Garantie',s.garantie)+
+    '</select></div>'+
+    sif(ai,si,'placesTotal','number',s.placesTotal,'Capacité totale','','')+
+    sif(ai,si,'placesFinancees','number',s.placesFinancees,'Places financées','','')+
+    sif(ai,si,'contactNom','text',s.contactNom,'Nom contact inscription','','')+
+    sif(ai,si,'contactPrenom','text',s.contactPrenom,'Prénom contact','','')+
+    sif(ai,si,'email','text',s.email,'Email inscription','','contact@of.fr')+
+    sif(ai,si,'tel','text',s.tel,'Tél inscription','','04...')+
     sif(ai,si,'urlSess','url',s.urlSess,'URL session','','https://...')+
-    '<div class="fitem full" style="grid-column:1/-1"><label>Modalités particulières (optionnel) <span class="bdg b-o">3000 car.</span></label>'+
-    '<textarea data-ai="'+ai+'" data-si="'+si+'" data-fs="modParticulieres" maxlength="3000" style="min-height:60px">'+esc(s.modParticulieres||'')+'</textarea></div>'+
-    '</div></div>';}
+    sif(ai,si,'modParticulieres','text',s.modParticulieres,'Modalités particulières','','')+
+    '</div></div>';
+}
+
 
 function aif(ai,f,type,val,lbl,max,ph){
   return '<div class="fitem"><label>'+lbl+'</label>'+
@@ -5054,7 +5076,10 @@ function emptyAction(){return {
   entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'0',infoPerim:'',infoRecrutement:'',urlAct:'',
   restauration:'',hebergement:'',transport:'',autresServices:'',
   adr:'',cp:'',ville:'',dep:'',reg:'84',pays:'FR',lat:'',lon:'',sessions:[]};}
-function emptySess(){return {num:'',debut:'',fin:'',garantie:'0',modParticulieres:'',indColl:'0',placesTotal:'',placesFinancees:'',email:'',tel:'',urlSess:''};}
+function emptySess(){return {num:'',debut:'',fin:'',etatRecrutement:'1',garantie:'0',
+    indColl:'0',placesTotal:'',placesFinancees:'',
+    contactNom:'',contactPrenom:'',email:'',tel:'',
+    urlSess:'',modParticulieres:''};}
 
 /* ==============================================================
    XML EDOF V14 (format Mon Compte Formation)
@@ -5136,11 +5161,19 @@ function toXML(formations){
         else o+='              <pays>'+escX(a.pays)+'</pays>\n';
         o+='              <extras info="adresse"><extra info="conformite-reglementaire">'+(a.cp?'1':'0')+'</extra></extras>\n';
         o+='            </adresse>\n          </adresse-inscription>\n';
-        o+=xf('etat-recrutement','1','          ');
+        // etat-recrutement depuis le champ session
+        o+=xf('etat-recrutement',s.etatRecrutement||'1','          ');
+        // individuelle-collective
+        if(s.indColl) o+=xf('individuelle-collective',s.indColl,'          ');
+        // Places
+        if(s.placesTotal) o+='          <nb-places-total>'+escX(s.placesTotal)+'</nb-places-total>\n';
+        if(s.placesFinancees) o+='          <nb-places-financees>'+escX(s.placesFinancees)+'</nb-places-financees>\n';
+        // URL session
+        if(s.urlSess) o+='          <url-session><urlweb>'+escX(s.urlSess)+'</urlweb></url-session>\n';
         o+='          <extras info="session">\n';
         o+='            <extra info="contact-inscription">\n              <coordonnees numero="'+escX(s.num||'1')+'">\n';
-        o+='                <nom>'+escX(s.email?s.email.split('@')[0]:'Contact')+'</nom>\n';
-        o+='                <prenom>Formation</prenom>\n';
+        if(s.contactNom||a.contactNom) o+='                <nom>'+escX(s.contactNom||a.contactNom||'Contact')+'</nom>\n';
+        if(s.contactPrenom||a.contactPrenom) o+='                <prenom>'+escX(s.contactPrenom||a.contactPrenom||'')+'</prenom>\n';
         o+='                <telfixe><numtel>'+escX(s.tel||a.tel||'0000000000')+'</numtel></telfixe>\n';
         o+='                <courriel>'+escX(s.email||a.email||'contact@organisme.fr')+'</courriel>\n';
         o+='              </coordonnees>\n            </extra>\n';
