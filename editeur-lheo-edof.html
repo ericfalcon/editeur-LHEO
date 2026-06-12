@@ -210,7 +210,12 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
 window.addEventListener('load', function() {
 'use strict';
 
-/* ==============================================================
+// Initialisation globale des variables d'environnement (avant tout)
+window.isLocalProxy = (location.protocol==='http:' && (location.hostname==='localhost'||location.hostname==='127.0.0.1'));
+window.isGitHubPages = (location.protocol==='https:' && location.hostname.indexOf('github.io')>=0);
+window.isFileLocal = (location.protocol==='file:');
+
+/* =============================================================
    DONNEES DE REFERENCE
    ============================================================== */
 
@@ -4135,7 +4140,7 @@ function buildIdent(f){
 
 function buildCertif(f){
   var to=f.typeOffre||'certification';
-  var cpf200=(f.cpf==='CPF200'||to==='vae');
+  var cpf200=(to==='vae'); // catégorisation uniquement si typeOffre===vae
   var isPermis=(to==='permis');
   var isBilan=(to==='bilan');
   var isVae=(to==='vae');
@@ -4342,7 +4347,7 @@ function buildCertif(f){
     '</div>';}
 
 function buildDesc(f){
-  var isVaeBD=(f.typeOffre==='vae'||f.cpf==='CPF200');
+  var isVaeBD=(f.typeOffre==='vae');
   return fg(2)+
     fta('Objectif pédagogique <span class="req">*</span>','E_obj',f.objectif,3000,true)+
     fta('Contenu <span class="req">*</span>','E_cont',f.contenu,3000,true)+
@@ -4705,7 +4710,7 @@ function collect(fid){
   if(f.rs&&/^\d+$/.test(f.rs.trim()))f.rs='RS'+f.rs.trim();
   f.resumeContenu=g('E_resumec');
   // VAE : collecter la liste RNCP visés et générer resultats-attendus
-  if(f.typeOffre==='vae'||f.cpf==='CPF200'){
+  if(f.typeOffre==='vae'){
     var vaeRows=document.querySelectorAll('.vae-rncp-row');
     f.vaeRncpList=[];
     vaeRows.forEach(function(row){
@@ -4813,7 +4818,7 @@ function validateFiche(f){
   if(!f.resultats||f.resultats.trim().length<10) errs.push({field:'E_res',msg:'Résultats attendus manquants'});
   if(!f.resumeContenu||f.resumeContenu.trim().length<5) errs.push({field:'E_resumec',msg:'Points forts manquants (max 255 car.)'});
   var to=f.typeOffre||'certification';
-  var isVaeV=(to==='vae'||f.cpf==='CPF200');
+  var isVaeV=(to==='vae');
   var isPermisV=(to==='permis');
   // FORMACODE obligatoire sauf VAE (remplacé par categorisation) et Permis
   if(!isVaeV&&!isPermisV&&(!f.formacode||!f.formacode.length))
