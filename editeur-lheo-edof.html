@@ -3972,14 +3972,9 @@ function renderEditor(f){
       // Filtrer ROME par familles correspondantes
       filterRomeByFormacode(prefix3);
       // En VAE : pré-sélectionner le NSF si vide et source != NSF
-      if(isVaePage && source!=='nsf'){
-        var nsfBar=$('sf_t_nsf');
-        if(nsfBar && !nsfBar.querySelectorAll('.tp').length && prefix3){
-          // Convertir le champ sémantique (Formacode 3ch) en code NSF valide
-          var nsfCode=SEMANTIQUE_TO_NSF[prefix3]||prefix3;
-          addTag(nsfBar, nsfCode, 3);
-        }
-      }
+      // Note: ne pas pré-sélectionner le NSF depuis la catégorisation VAE.
+      // Le NSF exact est fourni par l'import RNCP (API France Compétences).
+      // La catégorisation 3ch filtre les listes mais n'impose pas le NSF.
     }
 
     // Au chargement : appliquer si catégorisation déjà renseignée
@@ -4302,7 +4297,10 @@ function buildCertif(f){
     )+
     // NSF : masqué pour Permis uniquement
     (!isPermis?
-      '<div class="fitem full"><label>Code NSF <span class="req">*</span> <span class="bdg b-o">max 3</span></label>'+
+      '<div class="fitem full">'+
+      '<label>Code NSF <span class="req">*</span> <span class="bdg b-o">max 3</span>'+
+      (isVae?' <span class="bdg b-o" style="background:#e3f2fd;color:#1565c0">ℹ Fourni par l\'import RNCP — ne pas saisir manuellement</span>':'')+
+      '</label>'+
       buildSF('nsf',NSF,f.nsf||[],3)+'</div>'
     :
       '<div class="fitem full"><p style="font-size:11px;color:var(--g5);background:var(--g1);padding:6px 9px;border-radius:5px">'+
