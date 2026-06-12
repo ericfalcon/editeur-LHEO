@@ -4199,15 +4199,8 @@ function buildCertif(f){
       '<input type="hidden" id="E_cpf" value="CPF200">'+
       '<span style="padding:6px;font-size:12px;color:var(--g4)">CPF200 — VAE (fixe)</span></div>'
     :
-      fsel('Dispositif CPF specifique','E_cpf',
-        '<option value=""'+(f.cpf===''?' selected':'')+'>-- Aucun --</option>'+
-        '<option value="CPF200"'+(f.cpf==='CPF200'?' selected':'')+'>CPF200 - VAE</option>'+
-        '<option value="CPF202"'+(f.cpf==='CPF202'?' selected':'')+'>CPF202 - Bilan de competences</option>'+
-        '<option value="CPF206"'+(f.cpf==='CPF206'?' selected':'')+'>CPF206 - Permis B</option>'+
-        '<option value="CPF210"'+(f.cpf==='CPF210'?' selected':'')+'>CPF210 - Permis C</option>'+
-        '<option value="CPF214"'+(f.cpf==='CPF214'?' selected':'')+'>CPF214 - Permis D</option>'+
-        '<option value="CPF219"'+(f.cpf==='CPF219'?' selected':'')+'>CPF219 - Permis A1</option>'+
-        '<option value="CPF220"'+(f.cpf==='CPF220'?' selected':'')+'>CPF220 - Permis A2</option>')
+      // Formation certifiante : pas de code CPF spécifique (le code RNCP/RS suffit)
+      '<input type="hidden" id="E_cpf" value="">'
     )+
     // Catégorisation Formacode : obligatoire pour VAE (CPF200)
     (cpf200?
@@ -5037,7 +5030,7 @@ function applyRSData(ff,rs,data,st){
   // Niveau
   var niv=(d.intitule&&d.intitule.niveau&&d.intitule.niveau.rncp&&d.intitule.niveau.rncp.europeen)||
           d.niveau_europeen||(d.niveau&&d.niveau.europeen)||'';
-  if(niv){var nm={'2':'3','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8'};
+  if(niv){var nm={'2':'12','3':'13','4':'14','5':'15','6':'16','7':'17','8':'18'};
     ff.nivS=nm[String(niv)]||ff.nivS;maj.push('niveau');}
 
   // FORMACODE (toujours importer)
@@ -5807,7 +5800,16 @@ function onTypeOffreChange(val){
     (ff.actions||[]).forEach(function(a){a.codesAdm=['92001'];});
   }
   else if(val==='permis'){ff.objGen='3';ff.certif='N';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
-  else{ff.objGen='6';ff.certif=ff.certif||'N';} // certification = 6
+  else{
+    // Formation certifiante : vider CPF (code RNCP/RS suffit), remettre parcours formation continue
+    ff.objGen='6';ff.certif='O';ff.cpf='';
+    ff.parcours=ff.parcours==='5'||ff.parcours==='6'?'2':ff.parcours;
+    // Remettre codesAdm par défaut
+    (ff.actions||[]).forEach(function(a){
+      if(a.codesAdm&&a.codesAdm.length===1&&a.codesAdm[0]==='92001')
+        a.codesAdm=['92002'];
+    });
+  }
   L.persist();L.openEditor(L.curId);
 }
 
@@ -5855,7 +5857,7 @@ function applyRncpData(ff,rncp,data,st){
 
   // Niveau sortie (toujours)
   var niveauEU=(d.intitule&&d.intitule.niveau&&d.intitule.niveau.rncp&&d.intitule.niveau.rncp.europeen)||'';
-  if(niveauEU){var nivMap={'2':'3','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8'};
+  if(niveauEU){var nivMap={'2':'12','3':'13','4':'14','5':'15','6':'16','7':'17','8':'18'};
     ff.nivS=nivMap[String(niveauEU)]||'9';maj.push('niveau');}
 
   // FORMACODE (toujours importer, écraser)
