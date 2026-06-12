@@ -3700,6 +3700,21 @@ function bindSF(uid,data,maxSel,initVals){
   });
 }
 
+// Table de correspondance champs sémantiques Formacode (VAE) -> codes NSF valides
+var SEMANTIQUE_TO_NSF={
+  '110':'114','114':'114','115':'116','120':'113','122':'117','125':'341',
+  '130':'128','131':'122','132':'128','133':'128','142':'123','144':'124',
+  '150':'315','152':'136','154':'411','210':'211','213':'213','215':'221',
+  '216':'241','217':'242','218':'243','220':'231','222':'230','223':'232',
+  '224':'233','226':'227','228':'222','230':'250','235':'250','236':'251',
+  '240':'255','241':'227','242':'255','243':'255','244':'255','308':'326',
+  '310':'326','313':'200','314':'314','316':'200','317':'311','318':'311',
+  '320':'310','321':'315','326':'314','330':'315','340':'312','342':'312',
+  '345':'312','350':'324','410':'313','420':'312','421':'313','426':'334',
+  '427':'334','428':'344','430':'331','434':'331','440':'332','445':'333',
+  '450':'133','455':'134','460':'322','462':'323','463':'320'
+};
+
 // Table de correspondance FORMACODE 3ch -> familles ROME
 var FORMACODE_ROME_MAP={
   '110':['M'],'114':['H','M'],'115':['H','M'],'120':['A','K'],'122':['A','H'],
@@ -3960,7 +3975,9 @@ function renderEditor(f){
       if(isVaePage && source!=='nsf'){
         var nsfBar=$('sf_t_nsf');
         if(nsfBar && !nsfBar.querySelectorAll('.tp').length && prefix3){
-          addTag(nsfBar, prefix3, 3);
+          // Convertir le champ sémantique (Formacode 3ch) en code NSF valide
+          var nsfCode=SEMANTIQUE_TO_NSF[prefix3]||prefix3;
+          addTag(nsfBar, nsfCode, 3);
         }
       }
     }
@@ -4556,11 +4573,17 @@ function buildAction(a,i){
     aif(i,'lang','text',a.lang||'FR','Langue enseignement','2','FR')+
     '<div class="fitem full"><label>Modalités d\'admission <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
     '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px" id="adm_'+i+'">'+
-    ['92002:Collectif sans personnalisation','92003:Individuel sans personnalisation',
-     '92004:Collectif individualisé','92005:E-learning / à distance',
-     '92006:Tutorat','92001:VAE'].map(function(item){
+    ['92001:VAE (Validation des Acquis de l\'Expérience)',
+     '92002:Collectif sans personnalisation',
+     '92003:Individuel sans personnalisation',
+     '92004:Collectif individualisé',
+     '92005:E-learning / formation à distance',
+     '92006:Tutorat'].map(function(item){
       var parts=item.split(':');var code=parts[0];var lbl=parts[1];
-      var checked=(a.codesAdm||['92002']).indexOf(code)>=0;
+      // Pour VAE : pré-sélectionner 92001 par défaut
+      var isVaeAction=(f.typeOffre==='vae'||f.cpf==='CPF200');
+      var defaultCodes=isVaeAction?['92001']:['92002'];
+      var checked=(a.codesAdm&&a.codesAdm.length?a.codesAdm:defaultCodes).indexOf(code)>=0;
       return '<label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;cursor:pointer">'+
         '<input type="checkbox" data-ai="'+i+'" data-f="codesAdm_cb" data-code="'+code+'"'+(checked?' checked':'')+' style="width:auto">'+
         code+' – '+lbl+'</label>';
@@ -5762,8 +5785,16 @@ function onTypeOffreChange(val){
   if(!ff)return;
   ff.typeOffre=val;
   // Pré-remplir les champs selon le type
-  if(val==='bilan'){ff.objGen='9';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';}
-  else if(val==='vae'){ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';}
+  if(val==='bilan'){
+    ff.objGen='9';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';
+    ff.parcours='6'; // parcours bilan de compétences
+  }
+  else if(val==='vae'){
+    ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';
+    ff.parcours='5'; // parcours VAE
+    // Pré-sélectionner 92001 sur toutes les actions existantes
+    (ff.actions||[]).forEach(function(a){a.codesAdm=['92001'];});
+  }
   else if(val==='permis'){ff.objGen='3';ff.certif='N';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
   else{ff.objGen='6';ff.certif=ff.certif||'N';} // certification = 6
   L.persist();L.openEditor(L.curId);
