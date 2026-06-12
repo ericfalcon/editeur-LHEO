@@ -3603,13 +3603,25 @@ window.importVaeRncp=function(btn){
   window._fetchRncpTitre(code,titreEl,function(ok,titre){
     btn.textContent='\u2b07';
     btn.disabled=false;
-    if(ok) btn.style.color='var(--ok)';
-    else {btn.style.color='var(--err)';alert(code+' : titre introuvable dans France Competences');}
+    if(ok){
+      btn.style.color='var(--ok)';
+    } else if(titre==='cors'){
+      btn.style.color='var(--g5)';
+      btn.title='Import auto disponible uniquement en mode local (serveur Python)';
+    } else {
+      btn.style.color='var(--err)';
+      alert(code+' : titre introuvable dans France Competences');
+    }
   });
 };
 
 // Fonction centrale de récupération titre RNCP (proxy local puis API directe)
 window._fetchRncpTitre=function(rncp,titreEl,callback){
+  // Sur GitHub Pages (pas en local), l'API est inaccessible à cause du CORS
+  if(!isLocalProxy){
+    if(callback) callback(false,'cors');
+    return;
+  }
   function applyTitre(data){
     var d=data&&data[0];
     var t=(d&&d.intitule&&d.intitule.rncp)||(d&&d.libelle)||'';
@@ -3808,6 +3820,7 @@ function showWelcome(){
   var isLocalProxy = (location.protocol==='http:' && (location.hostname==='localhost'||location.hostname==='127.0.0.1'));
   var isHttps = (location.protocol==='https:');
   var corsOk = isLocalProxy || isHttps;
+  var isGitHubPages = (isHttps && location.hostname.indexOf('github.io')>=0);
   $('J_main').innerHTML='<div class="welcome"><div style="font-size:50px">&#128203;</div>'+
     '<h2>Editeur LHEO 2.3 / EDOF</h2>'+
     '<p>Format XML LHEO 2.3.3 - Compatible Mon Compte Formation (EDOF).<br>'+
@@ -3816,16 +3829,24 @@ function showWelcome(){
     '<button class="btn btn-p" id="J_new_w">+ Nouvelle fiche</button>'+
     '<button class="btn" id="J_imp_w">Importer XML</button></div>'+
     (cat.length?'<p style="font-size:10px;margin-top:6px;color:var(--g5)">('+cat.length+' fiche(s) en memoire)</p>':'')+
-    (!corsOk?
+    (isLocalProxy?
+      // Mode serveur local actif
+      '<div style="margin-top:8px;padding:6px 10px;background:#e8f5e9;border-radius:6px;font-size:11px;color:#2e7d32">'+
+      '&#10003; Serveur local actif — Import RNCP/RS depuis France Compétences disponible</div>'
+    :isGitHubPages?
+      // GitHub Pages : import auto non dispo
+      '<div style="margin-top:8px;padding:8px 12px;background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;font-size:11px;color:#1565c0">'+
+      '&#9432; Mode GitHub Pages — Saisie et export XML disponibles.<br>'+
+      '<strong>Import RNCP/RS automatique</strong> : disponible uniquement en mode local (serveur Python).<br>'+
+      'Import CSV habilitations EDOF : disponible ici &#10003;</div>'
+    :
+      // file:// - mode local sans serveur
       '<div style="margin-top:16px;padding:12px;background:var(--warn-bg,#fff8e1);border:1px solid #f9a825;border-radius:6px;font-size:12px;text-align:left">'+
       '<strong>&#9888; Mode fichier local détecté</strong><br>'+
       'L\'import France Competences necessite un mini serveur local.<br>'+
       '<button class="btn btn-sm" style="margin-top:8px" id="J_gen_py">&#128190; Generer lancer-editeur.bat + .py</button>'+
       '<span style="margin-left:8px;color:var(--g4)">Double-cliquez sur le <b>.bat</b> puis ouvrez <b>http://localhost:8765</b></span>'+
       '</div>'
-    :
-      '<div style="margin-top:8px;padding:6px 10px;background:#e8f5e9;border-radius:6px;font-size:11px;color:#2e7d32">'+
-      '&#10003; Mode serveur actif - Import France Competences disponible</div>'
     )+
     '</div>';
   $('J_new_w').addEventListener('click',newFiche);
@@ -4876,6 +4897,10 @@ function escEl(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function fetchRS(){
   var L=window._lheo;
   if(!L){alert('Logiciel non prêt');return;}
+  if(!isLocalProxy){
+    alert('Import RS automatique disponible uniquement en mode local (serveur Python actif).\n\nSur GitHub Pages, saisissez le code RS manuellement.');
+    return;
+  }
   L.doSave(L.curId,true);
   var ff=L.cat.find(function(x){return x.id===L.curId;});
   if(!ff||!ff.rs){alert('Saisissez un code RS (ex: RS5267 ou 5267) et enregistrez');return;}
@@ -5631,6 +5656,10 @@ var API_APPRENTISSAGE_TOKEN='eyJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI2YTI2YTRjYzFhY2JkMT
 function fetchBlocs(){
   var L=window._lheo;
   if(!L){alert('Logiciel non pret, patientez et reessayez');return;}
+  if(!isLocalProxy){
+    alert('Import RNCP automatique disponible uniquement en mode local (serveur Python actif).\n\nSur GitHub Pages, saisissez le code RNCP manuellement.');
+    return;
+  }
   L.doSave(L.curId,true);
   var ff=L.cat.find(function(x){return x.id===L.curId;});
   if(!ff||!ff.rncp){alert('Saisissez un code RNCP (ex: RNCP41426 ou 41426) et enregistrez');return;}
