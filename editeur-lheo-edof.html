@@ -3939,13 +3939,25 @@ function renderEditor(f){
   (function(){
     var catEl=$('E_catoffre');
     if(catEl){
-      // Appliquer le filtre au chargement si catégorisation déjà sélectionnée
-      if(catEl.value) filterFormacodeByPrefix(catEl.value);
+      // Appliquer les filtres au chargement si catégorisation déjà sélectionnée
+      if(catEl.value){
+        filterFormacodeByPrefix(catEl.value);
+        filterRomeByFormacode(catEl.value);
+      }
       catEl.addEventListener('change',function(){
-        filterFormacodeByPrefix(catEl.value||'');
+        var prefix=catEl.value||'';
+        filterFormacodeByPrefix(prefix);
+        filterRomeByFormacode(prefix);
+        if(prefix){
+          // Pré-sélectionner le NSF correspondant (même code 3ch)
+          var nsfBar=$('sf_t_nsf');
+          if(nsfBar&&!nsfBar.querySelectorAll('.tp').length){
+            addTag(nsfBar,prefix,3);
+          }
+        }
       });
     }
-    // NSF : filtrer FORMACODE quand on sélectionne un NSF
+    // NSF : filtrer FORMACODE et ROME quand on sélectionne un NSF
     var nsfSel=$('sf_s_nsf');
     if(nsfSel){
       nsfSel.addEventListener('change',function(){
@@ -4954,28 +4966,40 @@ function fetchRS(){
 function applyRSData(ff,rs,data,st){
   var L=window._lheo;
   var d=Array.isArray(data)?data[0]:data;
-  if(!d){alert(rs+' introuvable dans France Compétences');if(st)st.textContent='';return;}
+  if(!d){alert(rs+' introuvable dans France Competences');if(st)st.textContent='';return;}
   var maj=[];
-  // Intitulé
-  var intitule=(d.intitule||d.libelle||d.label||'');
-  if(intitule&&!ff.intitule){ff.intitule=intitule;maj.push('intitulé');}
+
+  // Intitulé (seulement si vide)
+  var intitule=(d.intitule&&d.intitule.rncp)||d.libelle||d.label||'';
+  if(intitule&&!ff.intitule){ff.intitule=intitule;maj.push('intitule');}
+
   // Niveau
-  var niv=d.niveau_europeen||(d.niveau&&d.niveau.europeen)||(d.nomenclature_europe&&d.nomenclature_europe.niveauEn);
-  if(niv){var m={'2':'3','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8'};
-    ff.nivS=m[String(niv)]||ff.nivS;maj.push('niveau');}
-  // NSF
-  var nsf=(d.nsf||[]).map?d.nsf:[];
-  if(nsf.length&&(!ff.nsf||!ff.nsf.length)){
-    ff.nsf=nsf.map(function(n){return n.code||n;}).slice(0,3);maj.push('NSF');}
-  // FORMACODE
-  var fc=(d.formacode||d.formacodes||[]);
-  if(fc.length&&(!ff.formacode||!ff.formacode.length)){
-    ff.formacode=fc.map(function(n){return n.code||n;}).slice(0,5);maj.push('FORMACODE');}
+  var niv=(d.intitule&&d.intitule.niveau&&d.intitule.niveau.rncp&&d.intitule.niveau.rncp.europeen)||
+          d.niveau_europeen||(d.niveau&&d.niveau.europeen)||'';
+  if(niv){var nm={'2':'3','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8'};
+    ff.nivS=nm[String(niv)]||ff.nivS;maj.push('niveau');}
+
+  // FORMACODE (toujours importer)
+  var dom=d.domaines||{};
+  var fc=((dom.formacodes&&dom.formacodes.rncp)||d.formacode||d.formacodes||[]).map(function(x){
+    return x.code||x;});
+  if(fc.length){ff.formacode=fc.slice(0,5);maj.push('FORMACODE ('+fc.slice(0,5).join(', ')+')');}
+
+  // NSF : nettoyer lettre suffixe
+  var nsf=((dom.nsf&&dom.nsf.rncp)||d.nsf||[]).map(function(x){
+    return (x.code||x).replace(/[^0-9]/g,'');}).filter(Boolean);
+  if(nsf.length){ff.nsf=nsf.slice(0,3);maj.push('NSF ('+nsf.slice(0,3).join(', ')+')');}
+
+  // ROME
+  var rome=((dom.rome&&dom.rome.rncp)||d.rome||[]).map(function(x){return x.code||x;});
+  if(rome.length){ff.rome=rome.slice(0,5);maj.push('ROME ('+rome.slice(0,5).join(', ')+')');}
+
   ff.certif='O';
   if(st) st.textContent='';
-  L.persist();L.openEditor(L.curId);
-  alert('Import RS OK pour '+rs+'\nChamps importés : '+(maj.length?maj.join(', '):'aucun nouveau'));
+  L.persist(); L.openEditor(L.curId);
+  alert('Import RS OK pour '+rs+'\nChamps importes : '+(maj.length?maj.join('\n  - '):'aucun nouveau'));
 }
+
 
 /* ==============================================================
    DUPLICATION DE FICHE
@@ -5734,25 +5758,47 @@ function fetchBlocs(){
 
 function applyRncpData(ff,rncp,data,st){
   var L=window._lheo;
-  if(!data||!data[0]){alert(rncp+' introuvable dans France Competences');return;}
-  var d=data[0];var maj=[];
+  if(!data||!data[0]){alert(rncp+' introuvable dans France Competences');if(st)st.textContent='';return;}
+  var d=data[0]; var maj=[];
+
+  // Intitulé (seulement si vide)
   var intitule=(d.intitule&&d.intitule.rncp)||'';
   if(intitule&&!ff.intitule){ff.intitule=intitule;maj.push('intitule');}
+
+  // Niveau sortie (toujours)
   var niveauEU=(d.intitule&&d.intitule.niveau&&d.intitule.niveau.rncp&&d.intitule.niveau.rncp.europeen)||'';
   if(niveauEU){var nivMap={'2':'3','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8'};
     ff.nivS=nivMap[String(niveauEU)]||'9';maj.push('niveau');}
+
+  // FORMACODE (toujours importer, écraser)
   var fc=((d.domaines&&d.domaines.formacodes&&d.domaines.formacodes.rncp)||[]).map(function(x){return x.code;});
-  if(fc.length&&(!ff.formacode||!ff.formacode.length)){ff.formacode=fc.slice(0,5);maj.push('Formacode');}
-  var nsf=((d.domaines&&d.domaines.nsf&&d.domaines.nsf.rncp)||[]).map(function(x){return x.code;});
-  if(nsf.length&&(!ff.nsf||!ff.nsf.length)){ff.nsf=nsf.slice(0,3);maj.push('NSF');}
+  if(fc.length){ff.formacode=fc.slice(0,5);maj.push('FORMACODE ('+fc.slice(0,5).join(', ')+')');}
+
+  // NSF : nettoyer la lettre suffixe (ex: "312m" -> "312")
+  var nsf=((d.domaines&&d.domaines.nsf&&d.domaines.nsf.rncp)||[]).map(function(x){
+    return x.code.replace(/[^0-9]/g,'');
+  }).filter(Boolean);
+  if(nsf.length){ff.nsf=nsf.slice(0,3);maj.push('NSF ('+nsf.slice(0,3).join(', ')+')');}
+
+  // ROME (toujours importer)
   var rome=((d.domaines&&d.domaines.rome&&d.domaines.rome.rncp)||[]).map(function(x){return x.code;});
-  if(rome.length&&(!ff.rome||!ff.rome.length)){ff.rome=rome.slice(0,5);maj.push('ROME');}
+  if(rome.length){ff.rome=rome.slice(0,5);maj.push('ROME ('+rome.slice(0,5).join(', ')+')');}
+
+  // Blocs de compétences (toujours importer)
   var blocs=((d.blocs_competences&&d.blocs_competences.rncp)||[]);
-  if(blocs.length){blocs.sort(function(a,b){return a.code.localeCompare(b.code);});
-    ff.blocsCompetences=blocs.map(function(b){return b.code+'||'+b.intitule;});maj.push(blocs.length+' blocs');}
-  ff.certif='O';if(ff.objGen==='7')ff.objGen='6';
-  L.persist();L.openEditor(L.curId);if(st)st.textContent='';var st2b=document.getElementById('E_blocs_status2');if(st2b)st2b.textContent='';
-  alert('Import OK pour '+rncp+'\nChamps importes : '+(maj.length?maj.join(', '):'aucun nouveau'));}
+  if(blocs.length){
+    blocs.sort(function(a,b){return a.code.localeCompare(b.code);});
+    ff.blocsCompetences=blocs.map(function(b){return b.code+'||'+b.intitule;});
+    maj.push(blocs.length+' blocs de competences');
+  }
+
+  ff.certif='O'; if(ff.objGen==='7') ff.objGen='6';
+  L.persist(); L.openEditor(L.curId);
+  if(st) st.textContent='';
+  var st2b=document.getElementById('E_blocs_status2');if(st2b)st2b.textContent='';
+  alert('Import RNCP OK pour '+rncp+'\nChamps importes : '+(maj.length?maj.join('\n  - '):'aucun nouveau'));
+}
+
 
 function addBloc(){
   var L=window._lheo;if(!L)return;
