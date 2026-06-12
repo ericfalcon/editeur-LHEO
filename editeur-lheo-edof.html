@@ -107,6 +107,21 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
 .mcf-tag{background:#e8f0fe;color:#003189;font-size:10px;padding:2px 8px;border-radius:10px}
 .mcf-of{font-size:11px;color:#666;padding-top:8px;border-top:1px solid #eee}
 
+/* Habilitations */
+.hab-zone{background:var(--g1);border:2px dashed var(--g3);border-radius:var(--r);
+  padding:12px;text-align:center;cursor:pointer;transition:.2s}
+.hab-zone:hover,.hab-zone.drag{border-color:var(--pri);background:var(--prl)}
+.hab-zone p{font-size:11px;color:var(--g5);margin:4px 0 0}
+.hab-list{margin-top:8px;max-height:200px;overflow-y:auto;font-size:11px}
+.hab-list table{width:100%;border-collapse:collapse}
+.hab-list td,.hab-list th{padding:3px 6px;border-bottom:1px solid var(--g2);text-align:left}
+.hab-list th{font-weight:600;color:var(--g7);background:var(--g0);position:sticky;top:0}
+.hab-actif{color:var(--ok)}
+.hab-expire{color:var(--err)}
+.hab-warn{color:#d97706}
+.rncp-warn{border-color:#d97706!important;background:#fffbeb!important}
+.rncp-ok{border-color:var(--ok)!important;background:#f0fff4!important}
+
 </style>
 </head>
 <body>
@@ -115,10 +130,16 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
     <div class="sb-head"><h1>Editeur LHEO 2.3 / EDOF</h1><p>Format XML LHEO 2.3.3 · compatible EDOF 2026</p></div>
     <div class="sb-bar"><button class="btn btn-p btn-full" id="J_new">+ Nouvelle fiche</button></div>
     <div class="sb-list" id="J_list"></div>
-    <div class="sb-foot">
-      <button class="btn" style="flex:1" id="J_imp">Importer XML</button>
-      <button class="btn btn-ok" style="flex:1" id="J_expAll">Exporter tout</button>
-      <button class="btn" id="J_expXls" title="Export CSV/Excel">📊</button>
+    <div class="sb-foot" style="flex-direction:column;gap:5px">
+      <div style="display:flex;gap:5px">
+        <button class="btn" style="flex:1" id="J_imp">Importer XML</button>
+        <button class="btn btn-ok" style="flex:1" id="J_expAll">Exporter tout</button>
+        <button class="btn" id="J_expXls" title="Export CSV/Excel">📊</button>
+      </div>
+      <button class="btn btn-full" id="J_imp_hab" style="font-size:11px;justify-content:center">
+        🎓 Importer habilitations EDOF (.csv)
+      </button>
+      <div id="J_hab_status" style="font-size:10px;color:var(--g5);text-align:center;min-height:14px"></div>
     </div>
     <div class="sb-foot" style="border-top:1px solid var(--border);padding-top:5px;gap:4px">
       <button class="btn btn-sm" style="flex:1;font-size:10px" id="J_saveData" title="Sauvegarder toutes les fiches dans un fichier .json pour les retrouver sur un autre navigateur">&#128190; Sauvegarder fiches</button>
@@ -146,6 +167,7 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
 </div>
 <div class="notif" id="J_notif"></div>
 <input type="file" id="file-in" accept=".xml">
+<input type="file" id="file-hab" accept=".csv">
 <script>
 window.addEventListener('load', function() {
 'use strict';
@@ -3388,6 +3410,8 @@ var PERIM = [
 var DB='lheo_v7';
 var cat=[];var curId=null;var xmlBuf='';var xmlName='export.xml';
 try{cat=JSON.parse(localStorage.getItem(DB)||'[]');}catch(e){cat=[];}
+// Charger les habilitations sauvegardées
+try{var _hab=localStorage.getItem('lheo_hab');if(_hab)habList=JSON.parse(_hab);}catch(e){}
 if(!Array.isArray(cat))cat=[];
 // Exposer sur window pour fetchBlocs et autres fonctions globales
 window._lheo={get cat(){return cat;},set cat(v){cat=v;},
@@ -3400,6 +3424,26 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
 };
 // Exposer aussi les fonctions appelées via onclick= dans le HTML généré
 window.fetchRS=function(){fetchRS();};
+window.checkHabilitation=function(code,statusId){
+  var el=document.getElementById(statusId);
+  if(!el||!habList.length||!code) return;
+  code=code.trim().toUpperCase();
+  if(/^\d+$/.test(code)) code='RNCP'+code;
+  if(!/^(RNCP|RS)\d+$/.test(code)){el.textContent='';return;}
+  var h=isHabilite(code);
+  if(h===false){
+    el.className='siret-err';
+    el.textContent='⚠ '+code+' non trouvé dans vos habilitations EDOF';
+  } else if(h&&h.dateFin&&new Date(h.dateFin)<new Date()){
+    el.className='hab-expire';
+    el.textContent='⚠ Habilitation expirée le '+h.dateFin;
+  } else if(h){
+    el.className='hab-actif';
+    el.textContent='✓ Habilité — '+h.intitule;
+  } else {
+    el.textContent='';
+  }
+};
 // Calcul prix bidirectionnel HT <-> TTC
 window.calcPrixTTC=function(ai){
   var ht=parseFloat(document.getElementById('prix_ht_'+ai).value||'0');
@@ -3892,6 +3936,8 @@ function renderEditor(f){
   $('E_prev2').addEventListener('click',function(){doPreview(f.id);});
   $('E_exp').addEventListener('click',function(){doExport1(f.id);});
   var baa=$('E_addAct');if(baa)baa.addEventListener('click',function(){doAddAction(f.id);});
+  // Binder la zone d'import habilitations
+  bindHabZone();
   $('J_main').querySelectorAll('.del-act').forEach(function(b){
     b.addEventListener('click',function(){
       if(!confirm('Supprimer cette action ?'))return;
@@ -3994,19 +4040,28 @@ function buildCertif(f){
       '<div class="fitem"><label>Code RNCP</label>'+
       '<div style="display:flex;gap:5px;align-items:center">'+
       '<input type="text" id="E_rncp" value="'+esc(f.rncp||'')+
-        '" placeholder="RNCP35482" style="flex:1">'+
+        '" placeholder="RNCP35482" style="flex:1" oninput="window.checkHabilitation(this.value,\'E_rncp_hab\')">'+
       '<button class="rs-btn" onclick="fetchBlocs()" title="Importer depuis France Competences">⬇ Import RNCP</button>'+
       '</div>'+
       '<div id="E_blocs_status2" class="rs-status"></div>'+
+      (function(){
+        if(!habList.length||!f.rncp) return '';
+        var h=isHabilite(f.rncp);
+        if(h===false) return '<div id="E_rncp_hab" class="siret-err">⚠ '+esc(f.rncp)+' non trouvé dans vos habilitations EDOF</div>';
+        if(h&&h.dateFin&&new Date(h.dateFin)<new Date()) return '<div id="E_rncp_hab" class="hab-expire">⚠ Habilitation expirée le '+esc(h.dateFin)+'</div>';
+        if(h) return '<div id="E_rncp_hab" class="hab-actif">✓ Habilité — '+esc(h.intitule)+'</div>';
+        return '<div id="E_rncp_hab"></div>';
+      })()+
       '</div>'+
       // RS avec bouton import
       '<div class="fitem"><label>Code RS (repertoire specifique)</label>'+
       '<div style="display:flex;gap:5px;align-items:center">'+
       '<input type="text" id="E_rs" value="'+esc(f.rs||'')+
-        '" placeholder="RS5287" style="flex:1">'+
+        '" placeholder="RS5287" style="flex:1" oninput="checkHabInput(\'E_rs\',\'hab_status_rs\')">'+
       '<button class="rs-btn" onclick="fetchRS()" title="Importer depuis France Competences">⬇ Import RS</button>'+
       '</div>'+
       '<div id="E_rs_status" class="rs-status"></div>'+
+      '<div id="hab_status_rs" class="rs-status">'+(f.rs?checkHabStatusHtml(f.rs):'')+'</div>'+
       '</div>'+
       ''
     :
@@ -4217,11 +4272,147 @@ function buildVaeRncpRow(code,titre,idx){
     '<button type="button" class="btn btn-err btn-sm" onclick="this.parentElement.remove()">✕</button>'+
     '</div>';}
 
+/* ==============================================================
+   HABILITATIONS A FORMER (CSV EDOF)
+   ============================================================== */
+
+// Stockage des habilitations : tableau d'objets {type,code,intitule,etat,dateDebut,dateFin}
+var habList=[];
+
+function buildHabZone(f){
+  var count=habList.length;
+  var actif=habList.filter(function(h){return h.etat==='ACTIF';}).length;
+  if(!count){
+    return '<div class="hab-zone" id="hab_dropzone">'+
+      '<div>📄 Importer le CSV des habilitations EDOF</div>'+
+      '<p>Glissez-déposez ou cliquez pour sélectionner le fichier<br>'+
+      '(téléchargeable dans votre espace EDOF > Catalogue > Certifications disponibles)</p>'+
+      '</div>';
+  }
+  // Afficher la liste
+  var rows=habList.map(function(h){
+    var expire=h.dateFin&&new Date(h.dateFin)<new Date();
+    var cls=expire?'hab-expire':(h.etat==='ACTIF'?'hab-actif':'hab-warn');
+    return '<tr><td class="'+cls+'">'+esc(h.type)+'</td>'+
+      '<td><strong>'+esc(h.code)+'</strong></td>'+
+      '<td>'+esc(h.intitule)+'</td>'+
+      '<td class="'+cls+'">'+esc(h.etat)+'</td>'+
+      '<td style="font-size:10px">'+esc(h.dateDebut||'')+(h.dateFin?' → '+esc(h.dateFin):'')+'</td></tr>';
+  }).join('');
+  return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'+
+    '<span style="font-size:11px;color:var(--g7)"><strong>'+actif+'</strong> habilitation(s) active(s) / '+count+' total</span>'+
+    '<div style="display:flex;gap:5px">'+
+    '<button class="btn btn-sm" id="hab_reimport">Importer un autre CSV</button>'+
+    '<button class="btn btn-err btn-sm" id="hab_clear">Effacer</button>'+
+    '</div></div>'+
+    '<div class="hab-list"><table>'+
+    '<tr><th>Type</th><th>Code</th><th>Intitulé</th><th>État</th><th>Validité</th></tr>'+
+    rows+'</table></div>';}
+
+function parseHabCSV(text){
+  // Format EDOF : BOM + séparateur ";"
+  // Colonnes : Intitulé référentiel;Code certification;Intitulé certification;Etat;Date début;Date fin
+  var lines=text.replace(/^﻿/,'').split(/\r?\n/).filter(function(l){return l.trim();});
+  var result=[];
+  for(var i=1;i<lines.length;i++){ // skip header
+    var cols=lines[i].split(';');
+    if(cols.length<4) continue;
+    result.push({
+      type:(cols[0]||'').trim(),
+      code:(cols[1]||'').trim(),
+      intitule:(cols[2]||'').trim(),
+      etat:(cols[3]||'').trim(),
+      dateDebut:(cols[4]||'').trim(),
+      dateFin:(cols[5]||'').trim()
+    });
+  }
+  return result;
+}
+
+function isHabilite(code){
+  // Retourne l'objet habilitation si trouvé et ACTIF, null sinon
+  // Si aucune habilitation chargée, on ne bloque pas
+  if(!habList.length) return null; // pas de liste = pas de contrôle
+  var h=habList.find(function(x){return x.code===code&&x.etat==='ACTIF';});
+  return h||false; // false = liste chargée mais code absent
+}
+
+function bindHabZone(){
+  var dz=document.getElementById('hab_dropzone');
+  if(dz){
+    dz.addEventListener('click',function(){
+      var inp=document.createElement('input');
+      inp.type='file';inp.accept='.csv';
+      inp.onchange=function(e){
+        var f=e.target.files[0];if(!f)return;
+        var r=new FileReader();
+        r.onload=function(ev){
+          habList=parseHabCSV(ev.target.result);
+          localStorage.setItem('lheo_hab',JSON.stringify(habList));
+          toast(habList.length+' habilitations chargées');
+          // Rafraîchir la section organisme
+          var L=window._lheo;
+          if(L&&L.curId)L.openEditor(L.curId);
+        };
+        r.readAsText(f,'UTF-8');
+      };
+      inp.click();
+    });
+    // Drag & drop
+    dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag');});
+    dz.addEventListener('dragleave',function(){dz.classList.remove('drag');});
+    dz.addEventListener('drop',function(e){
+      e.preventDefault();dz.classList.remove('drag');
+      var f=e.dataTransfer.files[0];if(!f||!f.name.endsWith('.csv'))return;
+      var r=new FileReader();
+      r.onload=function(ev){
+        habList=parseHabCSV(ev.target.result);
+        localStorage.setItem('lheo_hab',JSON.stringify(habList));
+        toast(habList.length+' habilitations chargées');
+        var L=window._lheo;if(L&&L.curId)L.openEditor(L.curId);
+      };
+      r.readAsText(f,'UTF-8');
+    });
+  }
+  var clearBtn=document.getElementById('hab_clear');
+  if(clearBtn){
+    clearBtn.addEventListener('click',function(){
+      if(confirm('Effacer les '+habList.length+' habilitations ?')){
+        habList=[];localStorage.removeItem('lheo_hab');
+        var L=window._lheo;if(L&&L.curId)L.openEditor(L.curId);
+      }
+    });
+  }
+  var reimportBtn=document.getElementById('hab_reimport');
+  if(reimportBtn){
+    reimportBtn.addEventListener('click',function(){
+      var inp=document.createElement('input');inp.type='file';inp.accept='.csv';
+      inp.onchange=function(e){
+        var f=e.target.files[0];if(!f)return;
+        var r=new FileReader();
+        r.onload=function(ev){
+          habList=parseHabCSV(ev.target.result);
+          localStorage.setItem('lheo_hab',JSON.stringify(habList));
+          toast(habList.length+' habilitations mises à jour');
+          var L=window._lheo;if(L&&L.curId)L.openEditor(L.curId);
+        };
+        r.readAsText(f,'UTF-8');
+      };
+      inp.click();
+    });
+  }
+}
+
 function buildOrga(f){
   return fg(2)+
     fi('Raison sociale','E_rs_org','text',f.raisonSociale,255,'Nom de votre organisme',true)+
     fi('N° declaration activite (NDA)','E_nda','text',f.numActivite,11,'84630000000')+
     fi('Code UAI etablissement','E_uai','text',f.codeUAI,'','0631234A')+
+    '</div>'+
+    '<div style="margin-top:10px">'+
+    '<div class="ss-t" style="margin-bottom:6px">Habilitations à former (CSV EDOF) '+
+    '<span class="bdg b-o">optionnel — valide les codes RNCP/RS saisis</span></div>'+
+    buildHabZone(f)+
     '</div>';}
 
 function buildActions(f){
@@ -4504,6 +4695,17 @@ function validateFiche(f){
   // Certification : RNCP/RS pour formation certifiante, CPF pour les autres
   if(to==='certification'&&!f.rncp&&!f.rs)
     errs.push({field:'E_rncp',msg:'Code RNCP ou RS obligatoire pour une formation certifiante'});
+  // Vérification habilitation à former si liste chargée
+  if(habList.length&&to==='certification'){
+    var code=f.rncp||f.rs;
+    if(code){
+      var hab=isHabilite(code);
+      if(hab===false)
+        errs.push({field:'E_rncp',msg:'⚠ '+code+' : habilitation non trouvée dans votre liste EDOF'});
+      else if(hab&&hab.dateFin&&new Date(hab.dateFin)<new Date())
+        errs.push({field:'E_rncp',msg:'⚠ '+code+' : habilitation expirée le '+hab.dateFin});
+    }
+  }
   if((to==='bilan')&&f.cpf!=='CPF202')
     errs.push({field:'E_cpf',msg:'Code CPF202 obligatoire pour un bilan de compétences'});
   if(isPermisV&&!f.cpf)
@@ -5098,34 +5300,15 @@ function doExportExcel(){
   toast(cat.length+' formation(s) exportées en CSV/Excel');
 }
 
-$('J_new').addEventListener('click',newFiche);
-$('J_imp').addEventListener('click',function(){$('file-in').click();});
-var xlsBtn=$('J_expXls');if(xlsBtn)xlsBtn.addEventListener('click',doExportExcel);
-$('J_expAll').addEventListener('click',doExportAll);
-$('J_apercu_close').addEventListener('click',function(){$('J_apercu_modal').classList.remove('open');});
-$('J_saveData').addEventListener('click',function(){
-  var json=JSON.stringify({version:1,catalogue:cat},null,2);
-  var b=new Blob([json],{type:'application/json;charset=utf-8'});
-  var u=URL.createObjectURL(b);var a=document.createElement('a');
-  a.href=u;a.download='editeur-lheo-fiches.json';a.click();URL.revokeObjectURL(u);
-  toast(cat.length+' fiche(s) sauvegardee(s) dans editeur-lheo-fiches.json');});
-$('J_loadData').addEventListener('click',function(){$('file-data').click();});
-$('file-data').addEventListener('change',function(e){
-  var file=e.target.files[0];if(!file)return;
-  var r=new FileReader();
-  r.onload=function(ev){
-    try{
-      var obj=JSON.parse(ev.target.result);
-      var fiches=obj.catalogue||obj;
-      if(!Array.isArray(fiches))throw new Error('Format invalide');
-      var n=fiches.length;
-      if(cat.length&&!confirm('Remplacer les '+cat.length+' fiche(s) en memoire par les '+n+' fiche(s) du fichier ?'))return;
-      cat=fiches;persist();drawList();
-      toast(n+' fiche(s) restauree(s)');showWelcome();
-    }catch(err){toast('Erreur : '+err.message,true);}
-  };
-  r.readAsText(file);e.target.value='';});
-$('file-in').addEventListener('change',doImport);
+/* ==============================================================
+   HABILITATIONS EDOF
+   ============================================================== */
+
+// Format CSV EDOF : Intitulé référentiel;Code certification;Intitulé certification;
+//                   Etat de l'habilitation;Date début habilitation;Date fin habilitation;
+// Stocké dans localStorage clé lheo_habilitations
+
+
 $('J_mc').addEventListener('click',function(){$('J_modal').classList.remove('open');});
 $('J_copy').addEventListener('click',function(){navigator.clipboard.writeText(xmlBuf).then(function(){toast('Copie');});});
 $('J_dlXml').addEventListener('click',function(){dl(xmlBuf,xmlName);});
@@ -5235,6 +5418,30 @@ function generatePyScript(){
     toast('Fichiers telecharges : lancer-editeur.py + lancer-editeur.bat — Double-cliquez sur le .bat');
   }, 500);
 }
+
+// Bouton sidebar habilitations
+(function(){
+  var btn=document.getElementById('J_imp_hab');
+  if(btn){
+    btn.addEventListener('click',function(){
+      var inp=document.createElement('input');
+      inp.type='file';inp.accept='.csv';
+      inp.onchange=function(e){
+        var f=e.target.files[0];if(!f)return;
+        var r=new FileReader();
+        r.onload=function(ev){
+          habList=parseHabCSV(ev.target.result);
+          localStorage.setItem('lheo_hab',JSON.stringify(habList));
+          var actifs=habList.filter(function(h){return h.etat==='ACTIF';}).length;
+          toast(habList.length+' habilitations chargées ('+actifs+' actives)');
+          if(curId) openEditor(curId);
+        };
+        r.readAsText(f,'UTF-8');
+      };
+      inp.click();
+    });
+  }
+})();
 
 showWelcome();drawList();
 });
