@@ -3618,7 +3618,7 @@ window.importVaeRncp=function(btn){
 // Fonction centrale de récupération titre RNCP (proxy local puis API directe)
 window._fetchRncpTitre=function(rncp,titreEl,callback){
   // Sur GitHub Pages (pas en local), l'API est inaccessible à cause du CORS
-  if(!isLocalProxy){
+  if(!window.isLocalProxy){
     if(callback) callback(false,'cors');
     return;
   }
@@ -3821,6 +3821,8 @@ function showWelcome(){
   var isHttps = (location.protocol==='https:');
   var corsOk = isLocalProxy || isHttps;
   var isGitHubPages = (isHttps && location.hostname.indexOf('github.io')>=0);
+  // Exposer globalement pour fetchBlocs/fetchRS
+  window.isLocalProxy = isLocalProxy;
   $('J_main').innerHTML='<div class="welcome"><div style="font-size:50px">&#128203;</div>'+
     '<h2>Editeur LHEO 2.3 / EDOF</h2>'+
     '<p>Format XML LHEO 2.3.3 - Compatible Mon Compte Formation (EDOF).<br>'+
@@ -4046,7 +4048,7 @@ function buildIdent(f){
 
   // Pré-remplissage automatique selon le type (si champs encore vides ou valeur par défaut)
   // Note : on pré-remplit en mémoire, le formulaire affichera les valeurs mises à jour
-  if(isBilan&&(f.objGen==='7'||f.objGen==='6')){f.objGen='4';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';}
+  if(isBilan&&(f.objGen==='7')){f.objGen='9';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';}
   if(isVae&&(f.objGen==='7')){f.objGen='6';f.certif='O';f.cpf='CPF200';f.rncp='';f.rs='';}
   if(isPermis&&(f.objGen==='7')){f.objGen='3';f.certif='N';if(!f.cpf||f.cpf==='')f.cpf='CPF206';}
   if(isCertif&&f.cpf==='CPF200'){}// ne pas toucher si déjà saisi
@@ -4859,35 +4861,52 @@ function checkSiretField(val,statusEl){
   }
   if(statusEl) statusEl.innerHTML='<span style="color:var(--g5);font-size:10px">Vérification en cours...</span>';
   var siret=val.replace(/\s/g,'');
-  var url='https://dgefp.opendatasoft.com/api/explore/v2.1/catalog/datasets/liste-publique-des-of-v2/records'
-    +'?where=siretetablissementdeclarant%3D%22'+siret+'%22&limit=1';
-  fetch(url)
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  var siren=siret.substring(0,9);
+
+  function buildBadge(nom,nda,qualiopi,secondaire){
+    var qBadge=qualiopi.length
+      ?'<span style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;margin-left:5px;font-size:9px">\u2713 Qualiopi: '+qualiopi.join(', ')+'</span>'
+      :'<span style="background:#fff3e0;color:#e65100;border-radius:4px;padding:1px 6px;margin-left:5px;font-size:9px">\u26a0 Non Qualiopi</span>';
+    var label=secondaire?' (\u00e9tablissement secondaire)':'';
+    var ndaLabel=secondaire?' (si\u00e8ge)':'';
+    if(statusEl) statusEl.innerHTML=
+      '<span class="siret-ok">\u2713 '+escEl(nom)+label+'</span>'+qBadge+
+      (nda?'<br><span style="font-size:10px;color:var(--g5)">NDA'+ndaLabel+' : <strong>'+escEl(nda)+'</strong></span>'
+          :'<br><span style="font-size:10px;color:var(--err)">Aucun NDA trouv\u00e9 dans le r\u00e9pertoire DGEFP</span>');
+    window.applySiretData&&window.applySiretData({nom_raison_sociale:nom,nda:nda});
+  }
+
+  function parseDGEFP(res,secondaire){
+    var nom=res.denomination||'';
+    var nda=res.numerodeclarationactivite||'';
+    var q=[];
+    if(res.certifications_actionsdeformation) q.push('Actions de formation');
+    if(res.certifications_bilansdecompetences) q.push('Bilan');
+    if(res.certifications_vae) q.push('VAE');
+    buildBadge(nom,nda,q,secondaire||false);
+  }
+
+  var baseUrl='https://dgefp.opendatasoft.com/api/explore/v2.1/catalog/datasets/liste-publique-des-of-v2/records';
+  fetch(baseUrl+'?where=siretetablissementdeclarant%3D%22'+siret+'%22&limit=1')
+    .then(function(r){return r.json();})
     .then(function(data){
-      var res=data&&data.results&&data.results[0];
-      if(res){
-        var nom=res.denomination||'';
-        var nda=res.numerodeclarationactivite||'';
-        var qActif=res.certifications_actionsdeformation;
-        var qBilan=res.certifications_bilansdecompetences;
-        var qVae=res.certifications_vae;
-        var qualiopi=[];
-        if(qActif) qualiopi.push('Actions de formation');
-        if(qBilan) qualiopi.push('Bilan');
-        if(qVae) qualiopi.push('VAE');
-        var qBadge=qualiopi.length
-          ?'<span style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;margin-left:5px;font-size:9px">✓ Qualiopi: '+qualiopi.join(', ')+'</span>'
-          :'<span style="background:#fff3e0;color:#e65100;border-radius:4px;padding:1px 6px;margin-left:5px;font-size:9px">⚠ Non Qualiopi</span>';
-        if(statusEl) statusEl.innerHTML=
-          '<span class="siret-ok">✓ '+escEl(nom)+'</span>'+qBadge+
-          (nda?'<br><span style="font-size:10px;color:var(--g5)">NDA : <strong>'+escEl(nda)+'</strong></span>':'<br><span style="font-size:10px;color:var(--err)">Aucun NDA trouvé dans le répertoire DGEFP</span>');
-        window.applySiretData&&window.applySiretData({nom_raison_sociale:nom,nda:nda});
+      if(data.results&&data.results.length){
+        parseDGEFP(data.results[0],false);
       } else {
-        if(statusEl) statusEl.innerHTML='<span class="siret-err">⚠ SIRET non trouvé comme organisme de formation déclaré (DGEFP)</span>';
+        // Etablissement secondaire : chercher par SIREN
+        return fetch(baseUrl+'?where=siren%3D%22'+siren+'%22&limit=1')
+          .then(function(r2){return r2.json();})
+          .then(function(data2){
+            if(data2.results&&data2.results.length){
+              parseDGEFP(data2.results[0],true);
+            } else {
+              if(statusEl) statusEl.innerHTML='<span class="siret-err">\u26a0 Organisme non trouv\u00e9 dans le r\u00e9pertoire DGEFP (OF non d\u00e9clar\u00e9 ?)</span>';
+            }
+          });
       }
     })
     .catch(function(){
-      if(statusEl) statusEl.innerHTML='<span class="siret-ok">✓ Format SIRET valide (vérification réseau impossible)</span>';
+      if(statusEl) statusEl.innerHTML='<span class="siret-ok">\u2713 Format SIRET valide (v\u00e9rification r\u00e9seau impossible)</span>';
     });
 }
 
@@ -4899,7 +4918,7 @@ function escEl(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function fetchRS(){
   var L=window._lheo;
   if(!L){alert('Logiciel non prêt');return;}
-  if(!isLocalProxy){
+  if(!window.isLocalProxy){
     alert('Import RS automatique disponible uniquement en mode local (serveur Python actif).\n\nSur GitHub Pages, saisissez le code RS manuellement.');
     return;
   }
@@ -5656,6 +5675,12 @@ function checkHabBadge(code,containerId){
   });
 })();
 
+// Bindings boutons principaux sidebar
+$('J_new').addEventListener('click',newFiche);
+$('J_imp').addEventListener('click',function(){$('file-in').click();});
+$('J_expAll').addEventListener('click',doExportAll);
+var xlsBtn=$('J_expXls');if(xlsBtn)xlsBtn.addEventListener('click',doExportExcel);
+$('file-in').addEventListener('change',doImport);
 showWelcome();drawList();
 });
 
@@ -5680,7 +5705,7 @@ var API_APPRENTISSAGE_TOKEN='eyJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI2YTI2YTRjYzFhY2JkMT
 function fetchBlocs(){
   var L=window._lheo;
   if(!L){alert('Logiciel non pret, patientez et reessayez');return;}
-  if(!isLocalProxy){
+  if(!window.isLocalProxy){
     alert('Import RNCP automatique disponible uniquement en mode local (serveur Python actif).\n\nSur GitHub Pages, saisissez le code RNCP manuellement.');
     return;
   }
