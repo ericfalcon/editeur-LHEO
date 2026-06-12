@@ -122,6 +122,22 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
 .rncp-warn{border-color:#d97706!important;background:#fffbeb!important}
 .rncp-ok{border-color:var(--ok)!important;background:#f0fff4!important}
 
+/* Habilitations EDOF */
+.hab-banner{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:var(--r);
+  padding:8px 12px;font-size:11px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.hab-banner.warn{background:#fff3e0;border-color:#ffcc80;}
+.hab-banner.err{background:#fce4ec;border-color:#f48fb1;}
+.hab-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:5px;
+  cursor:pointer;border:1px solid var(--g2);margin-bottom:4px;background:#fff}
+.hab-item:hover{border-color:var(--pri);background:var(--prl)}
+.hab-item.selected{border-color:var(--ok);background:#f1f8e9}
+.hab-item.expired{opacity:.5;border-color:var(--err)}
+.hab-code{font-weight:700;font-size:11px;color:var(--pri);min-width:80px}
+.hab-title{font-size:11px;color:var(--g7);flex:1}
+.hab-date{font-size:10px;color:var(--g5);white-space:nowrap}
+.hab-list{max-height:320px;overflow-y:auto;margin-top:8px}
+.hab-filter{width:100%;margin-bottom:6px}
+
 </style>
 </head>
 <body>
@@ -133,6 +149,7 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
     <div class="sb-foot" style="flex-direction:column;gap:5px">
       <div style="display:flex;gap:5px">
         <button class="btn" style="flex:1" id="J_imp">Importer XML</button>
+      <button class="btn" id="J_hab_btn" title="Habilitations EDOF">🏅</button>
         <button class="btn btn-ok" style="flex:1" id="J_expAll">Exporter tout</button>
         <button class="btn" id="J_expXls" title="Export CSV/Excel">📊</button>
       </div>
@@ -165,6 +182,27 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
     <div id="J_apercu_content"></div>
   </div>
 </div>
+<div class="modal-bg" id="J_hab_modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-h">
+      <strong style="font-size:13px">Habilitations à former — CSV EDOF</strong>
+      <button class="btn btn-sm" id="J_hab_close">Fermer</button>
+    </div>
+    <div id="J_hab_content">
+      <p style="font-size:12px;color:var(--g5);margin-bottom:10px">
+        Importez le fichier CSV téléchargé depuis votre espace EDOF<br>
+        <em>(Menu Catalogue → Télécharger mes certifications)</em>
+      </p>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <input type="file" id="J_hab_file" accept=".csv" style="flex:1">
+        <button class="btn btn-p btn-sm" id="J_hab_import_btn">Importer</button>
+        <button class="btn btn-err btn-sm" id="J_hab_clear_btn">Effacer</button>
+      </div>
+      <div id="J_hab_list"></div>
+    </div>
+  </div>
+</div>
+<input type="file" id="J_hab_csv" accept=".csv" style="display:none">
 <div class="notif" id="J_notif"></div>
 <input type="file" id="file-in" accept=".xml">
 <input type="file" id="file-hab" accept=".csv">
@@ -5443,8 +5481,135 @@ function generatePyScript(){
   }
 })();
 
+/* ==============================================================
+   HABILITATIONS A FORMER (CSV EDOF)
+   ============================================================== */
+var HAB_KEY='lheo_habilitations';
+var habList=[];
+try{habList=JSON.parse(localStorage.getItem(HAB_KEY)||'[]');}catch(e){habList=[];}
+
+function parseHabCSV(text){
+  text=text.replace(/^﻿/,'');
+  var lines=text.split(/\r?\n/).filter(function(l){return l.trim();});
+  var result=[];
+  for(var i=1;i<lines.length;i++){
+    var cols=lines[i].split(';');
+    if(cols.length<4) continue;
+    var type=(cols[0]||'').trim();
+    var code=(cols[1]||'').trim();
+    var titre=(cols[2]||'').trim();
+    var etat=(cols[3]||'').trim();
+    var dateDebut=(cols[4]||'').trim();
+    var dateFin=(cols[5]||'').trim();
+    if(!code) continue;
+    result.push({type:type,code:code,titre:titre,etat:etat,
+      dateDebut:dateDebut,dateFin:dateFin});
+  }
+  return result;
+}
+
+function habIsActive(h){
+  if(h.etat!=='ACTIF') return false;
+  if(h.dateFin){var fin=new Date(h.dateFin);if(!isNaN(fin)&&fin<new Date())return false;}
+  return true;
+}
+function habFind(code){return habList.find(function(h){return h.code===code;});}
+function habCheck(code){
+  if(!habList.length) return 'none';
+  var h=habFind(code);
+  if(!h) return 'absent';
+  return habIsActive(h)?'ok':'expired';
+}
+
+function renderHabList(){
+  var el=$('J_hab_list');if(!el)return;
+  if(!habList.length){
+    el.innerHTML='<p style="font-size:12px;color:var(--g5);text-align:center;padding:20px">'+
+      'Aucune habilitation chargée. Importez votre fichier CSV EDOF.</p>';return;}
+  var actifs=habList.filter(habIsActive).length;
+  var expires=habList.length-actifs;
+  var htm='<div class="hab-banner">'+
+    '<span>&#10003; <strong>'+actifs+'</strong> habilitation(s) active(s)</span>'+
+    (expires?'<span style="color:var(--err)">&#9888; '+expires+' expirée(s)</span>':'')+
+    '</div>';
+  htm+='<input type="text" class="hab-filter" id="hab_search" placeholder="Filtrer...">';
+  htm+='<div class="hab-list" id="hab_items">';
+  habList.forEach(function(h){
+    var active=habIsActive(h);
+    var rncp=h.type==='RNCP';
+    var badge=rncp
+      ?'<span style="background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 5px;font-size:9px">RNCP</span>'
+      :'<span style="background:#f3e5f5;color:#6a1b9a;border-radius:3px;padding:1px 5px;font-size:9px">RS</span>';
+    var stat=active
+      ?'<span style="color:var(--ok);font-size:10px">&#10003; Actif</span>'
+      :'<span style="color:var(--err);font-size:10px">&#10007; '+escEl(h.etat)+'</span>';
+    var dateInfo=h.dateFin
+      ?'<span class="hab-date">Fin: '+escEl(h.dateFin)+'</span>'
+      :(h.dateDebut?'<span class="hab-date">Dep: '+escEl(h.dateDebut)+'</span>':'');
+    htm+='<div class="hab-item'+(active?'':' expired')+'">'+
+      badge+'<span class="hab-code">'+escEl(h.code)+'</span>'+
+      '<span class="hab-title">'+escEl(h.titre)+'</span>'+
+      dateInfo+stat+'</div>';
+  });
+  htm+='</div>';
+  el.innerHTML=htm;
+  var se=$('hab_search');
+  if(se) se.addEventListener('input',function(){
+    var q=se.value.toLowerCase();
+    document.querySelectorAll('#hab_items .hab-item').forEach(function(item){
+      item.style.display=item.textContent.toLowerCase().indexOf(q)>=0?'':'none';});
+  });
+}
+
+function showHabModal(){renderHabList();$('J_hab_modal').classList.add('open');}
+
+function checkHabBadge(code,containerId){
+  var el=$(containerId);if(!el)return;
+  var status=habCheck(code);
+  if(status==='none'){el.innerHTML='';return;}
+  var badges={
+    'ok':'<span style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:2px 8px;font-size:10px;display:inline-block;margin-top:2px">&#10003; Habilité</span>',
+    'expired':'<span style="background:#fce4ec;color:#c62828;border-radius:4px;padding:2px 8px;font-size:10px;display:inline-block;margin-top:2px">&#9888; Habilitation expirée ou supprimée</span>',
+    'absent':'<span style="background:#fff3e0;color:#e65100;border-radius:4px;padding:2px 8px;font-size:10px;display:inline-block;margin-top:2px">&#9888; Non trouvé dans vos habilitations</span>'
+  };
+  el.innerHTML=badges[status]||'';
+}
+
+// Init boutons modale habilitations
+(function(){
+  var btn=$('J_hab_btn');
+  if(btn) btn.addEventListener('click',showHabModal);
+  var close=$('J_hab_close');
+  if(close) close.addEventListener('click',function(){$('J_hab_modal').classList.remove('open');});
+  var importBtn=$('J_hab_import_btn');
+  if(importBtn) importBtn.addEventListener('click',function(){
+    var inp=$('J_hab_file');
+    if(!inp||!inp.files[0]){alert('Sélectionnez un fichier CSV');return;}
+    var r=new FileReader();
+    r.onload=function(ev){
+      var parsed=parseHabCSV(ev.target.result);
+      if(!parsed.length){toast('Aucune habilitation trouvée dans ce fichier',true);return;}
+      habList=parsed;
+      localStorage.setItem(HAB_KEY,JSON.stringify(habList));
+      var actifs=habList.filter(habIsActive).length;
+      renderHabList();
+      toast(parsed.length+' habilitations importées ('+actifs+' actives)');
+      if(curId) openEditor(curId);
+    };
+    r.readAsText(inp.files[0],'UTF-8');
+  });
+  var clearBtn=$('J_hab_clear_btn');
+  if(clearBtn) clearBtn.addEventListener('click',function(){
+    if(!confirm('Effacer toutes les habilitations ?')) return;
+    habList=[];localStorage.removeItem(HAB_KEY);
+    renderHabList();toast('Habilitations effacées');
+    if(curId) openEditor(curId);
+  });
+})();
+
 showWelcome();drawList();
 });
+
 
 function onTypeOffreChange(val){
   var L=window._lheo;if(!L)return;
