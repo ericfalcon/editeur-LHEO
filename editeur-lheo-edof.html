@@ -4175,7 +4175,12 @@ function buildCertif(f){
     :
       '<input type="hidden" id="E_rncp" value="'+esc(f.rncp||'')+'">'+
       '<input type="hidden" id="E_rs" value="'+esc(f.rs||'')+'">'+
-      '<div class="fitem full"><p class="hint-type">Code certification : non applicable pour ce type d\'offre (RNCP/RS masqués).</p></div>'
+      '<div class="fitem full">'+
+      '<div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:5px;padding:8px 12px;font-size:11px;color:#1565c0">'+
+      '&#9432; <strong>VAE — Certifications RNCP visées</strong><br>'+
+      'Les codes RNCP ne sont pas saisis ici. Ils sont renseignés dans la section '+
+      '<strong>Résultats attendus</strong> ci-dessous (liste des certifications préparées par votre accompagnement).'+
+      '</div></div>'
     )+
     // CPF : affiché pour tous mais pré-rempli et verrouillé pour Bilan/VAE/Permis
     (isPermis?
@@ -5137,9 +5142,17 @@ function toXML(formations){
     // Certification : choix exclusif RNCP / RS / CPF
     if(f.rncp||f.rs||f.cpf){
       o+='      <certification>\n';
-      if(f.rncp)      o+='        <code-RNCP>'+escX(f.rncp)+'</code-RNCP>\n';
-      else if(f.rs)   o+='        <code-RS>'+escX(f.rs)+'</code-RS>\n';
-      else if(f.cpf)  o+='        <code-CPF>'+escX(f.cpf)+'</code-CPF>\n';
+      var toType=f.typeOffre||'certification';
+      if(toType==='vae'||toType==='bilan'||toType==='permis'){
+        // VAE/Bilan/Permis : toujours code-CPF, jamais code-RNCP
+        o+='        <code-CPF>'+escX(f.cpf||'CPF200')+'</code-CPF>\n';
+      } else if(f.rncp) {
+        o+='        <code-RNCP>'+escX(f.rncp)+'</code-RNCP>\n';
+      } else if(f.rs) {
+        o+='        <code-RS>'+escX(f.rs)+'</code-RS>\n';
+      } else if(f.cpf) {
+        o+='        <code-CPF>'+escX(f.cpf)+'</code-CPF>\n';
+      }
       o+='      </certification>\n';}
     (f.actions||[]).forEach(function(a){
       o+='      <action numero="'+escX(a.num)+'" datemaj="'+today+'" datecrea="'+today+'">\n';
