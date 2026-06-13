@@ -3985,14 +3985,27 @@ function renderEditor(f){
 
     // Fonction centrale : appliquer filtres + présélections depuis un préfixe 3ch
     function applyPrefix(prefix3, source){
-      // Filtrer FORMACODE par préfixe 3ch (sauf si NSF a déjà filtré autrement)
+      // Filtrer FORMACODE par préfixe 3ch
       filterFormacodeByPrefix(prefix3);
       // Filtrer ROME par familles correspondantes
       filterRomeByFormacode(prefix3);
-      // En VAE : pré-sélectionner le NSF si vide et source != NSF
-      // Note: ne pas pré-sélectionner le NSF depuis la catégorisation VAE.
-      // Le NSF exact est fourni par l'import RNCP (API France Compétences).
-      // La catégorisation 3ch filtre les listes mais n'impose pas le NSF.
+      // Filtrer NSF : utiliser SEMANTIQUE_TO_NSF pour trouver le NSF correspondant
+      if(prefix3 && source!=='nsf'){
+        var nsfCode = SEMANTIQUE_TO_NSF[prefix3] || null;
+        if(nsfCode){
+          // Filtrer la liste NSF sur ce code
+          var nsfSel = document.getElementById('sf_s_nsf');
+          if(nsfSel){
+            var opts = nsfSel.options;
+            for(var i=0;i<opts.length;i++){
+              opts[i].hidden = opts[i].value && opts[i].value.indexOf(nsfCode) < 0;
+            }
+            // Mettre à jour le bandeau de filtre
+            var nsfBand = document.getElementById('sf_band_nsf');
+            if(nsfBand) nsfBand.textContent = 'Filtré sur NSF ' + nsfCode;
+          }
+        }
+      }
     }
 
     // Au chargement : appliquer si catégorisation déjà renseignée
@@ -4193,12 +4206,14 @@ function buildCertif(f){
     :
       '<input type="hidden" id="E_rncp" value="'+esc(f.rncp||'')+'">'+
       '<input type="hidden" id="E_rs" value="'+esc(f.rs||'')+'">'+
-      '<div class="fitem full">'+
-      '<div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:5px;padding:8px 12px;font-size:11px;color:#1565c0">'+
-      '&#9432; <strong>VAE — Certifications RNCP visées</strong><br>'+
-      'Les codes RNCP ne sont pas saisis ici. Ils sont renseignés dans la section '+
-      '<strong>Résultats attendus</strong> ci-dessous (liste des certifications préparées par votre accompagnement).'+
-      '</div></div>'
+      (isVae?
+        '<div class="fitem full">'+
+        '<div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:5px;padding:8px 12px;font-size:11px;color:#1565c0">'+
+        '&#9432; <strong>VAE — Certifications RNCP visées</strong><br>'+
+        'Les codes RNCP ne sont pas saisis ici. Ils sont renseignés dans la section '+
+        '<strong>Résultats attendus</strong> ci-dessous (liste des certifications préparées par votre accompagnement).'+
+        '</div></div>'
+      :'')
     )+
     // CPF : affiché pour tous mais pré-rempli et verrouillé pour Bilan/VAE/Permis
     (isPermis?
@@ -5835,7 +5850,7 @@ function onTypeOffreChange(val){
     // Pré-sélectionner 92001 sur toutes les actions existantes
     (ff.actions||[]).forEach(function(a){a.codesAdm=['92001'];});
   }
-  else if(val==='permis'){ff.objGen='3';ff.certif='N';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
+  else if(val==='permis'){ff.objGen='3';ff.certif='N';ff.parcours='2';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
   else{
     // Formation certifiante : vider CPF (code RNCP/RS suffit), remettre parcours formation continue
     ff.objGen='6';ff.certif='O';ff.cpf='';
