@@ -5819,8 +5819,6 @@ $('J_expAll').addEventListener('click',doExportAll);
 var xlsBtn=$('J_expXls');if(xlsBtn)xlsBtn.addEventListener('click',doExportExcel);
 $('file-in').addEventListener('change',doImport);
 showWelcome();drawList();
-});
-
 
 function onTypeOffreChange(val){
   var L=window._lheo;if(!L)return;
@@ -5859,7 +5857,6 @@ var API_APPRENTISSAGE_TOKEN='eyJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI2YTI2YTRjYzFhY2JkMT
 function fetchBlocs(){
   var L=window._lheo;
   if(!L){alert('Logiciel non pret, patientez et reessayez');return;}
-
   L.doSave(L.curId,true);
   var ff=L.cat.find(function(x){return x.id===L.curId;});
   if(!ff||!ff.rncp){alert('Saisissez un code RNCP (ex: RNCP41426 ou 41426) et enregistrez');return;}
@@ -5966,6 +5963,8 @@ function removeBloc(i){
   L.doSave(L.curId,true);
   var ff=L.cat.find(function(x){return x.id===L.curId;});if(!ff)return;
   ff.blocsCompetences.splice(i,1);L.persist();L.openEditor(L.curId);}
+
+});
 </script>
 </body>       if self.path == \\'/ping\\':\\n'+
 '            self.send_response(200)\\n'+
