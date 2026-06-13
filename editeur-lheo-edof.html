@@ -3468,7 +3468,7 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
   uid:function(){return uid();}
 };
 // Exposer aussi les fonctions appelées via onclick= dans le HTML généré
-window.fetchRS=function(){fetchRS();};
+window.fetchRS=_fetchRSImpl;
 // Calcul auto durée totale = centre + entreprise
 window.calcDureeAuto=function(ai){
   var centre=parseFloat(document.getElementById('duree_'+ai)&&document.getElementById('duree_'+ai).value||'0');
@@ -3581,7 +3581,7 @@ window.calcPrix=function(ai){
 window.filterFormacodeByPrefix=function(p){filterFormacodeByPrefix(p);};
 window.filterRomeByFormacode=function(prefix3){filterRomeByFormacode(prefix3);};
 window.dupFiche=function(id){dupFiche(id);};
-window.fetchBlocs=function(){fetchBlocs();};
+window.fetchBlocs=_fetchBlocsImpl;
 window.addVaeRncp=function(){
   var list=document.getElementById('vae-rncp-list');
   if(!list) return;
@@ -5001,7 +5001,7 @@ function escEl(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').
 /* ==============================================================
    IMPORT RS (Répertoire Spécifique) via API France Compétences
    ============================================================== */
-function fetchRS(){
+function _fetchRSImpl(){
   var L=window._lheo;
   if(!L){alert('Logiciel non prêt');return;}
 
@@ -5854,7 +5854,7 @@ function onTypeOffreChange(val){
 // Fonctions globales (hors listener pour portee globale)
 var API_APPRENTISSAGE_TOKEN='eyJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI2YTI2YTRjYzFhY2JkMTE1ODkwMTNjOTkiLCJhcGlfa2V5IjoidmVRU2c0YkhZajZMQ2x5T0lMdmlIbHhWYXpSbjBLUWZkSkFjZnAwMTQ2Yz0iLCJvcmdhbmlzYXRpb24iOm51bGwsImVtYWlsIjoiZXJpY0BlcmljZmFsY29uLmZyIiwiaXNzIjoiYXBpIiwiaWF0IjoxNzgwOTE3NDY4LCJleHAiOjE4MTI0NTM0Njh9.1Budg3pGoDG6GOrnjecfWG_9EibGbXnJHSJJ7hf6fGY';
 
-function fetchBlocs(){
+function _fetchBlocsImpl(){
   var L=window._lheo;
   if(!L){alert('Logiciel non pret, patientez et reessayez');return;}
   L.doSave(L.curId,true);
