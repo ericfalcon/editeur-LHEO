@@ -4308,7 +4308,7 @@ function buildCertif(f){
          ].map(function(item){var s=item.split(':');var c=s[0],l=s.slice(1).join(':');return '<option value="'+c+'"'+(f.categorisationOffre===c?' selected':'')+'>'+c+' - '+l+'</option>';}).join('')
       ,true)
     :'')+
-    fi('Code CERTIFINFO (base Centre Inffo)','E_certifinfo','text',f.certifinfo,'','Ex : 100982','',true)+
+    
     fsel('Niveau a l entree','E_nive',sOpts(NIVEAUX,f.nivE),true)+
     fsel('Niveau a la sortie','E_nivs',sOpts(NIVEAUX,f.nivS))+
     // FORMACODE 5 chiffres : masqué pour VAE (remplacé par categorisation-offre 3 chiffres)
