@@ -4616,16 +4616,15 @@ function buildAction(a,i,f){
     aif(i,'lang','text',a.lang||'FR','Langue enseignement','2','FR')+
     '<div class="fitem full"><label>Modalités d\'admission <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
     '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px" id="adm_'+i+'">'+
-    ['92001:VAE (Validation des Acquis de l\'Expérience)',
-     '92002:Collectif sans personnalisation',
-     '92003:Individuel sans personnalisation',
-     '92004:Collectif individualisé',
-     '92005:E-learning / formation à distance',
-     '92006:Tutorat'].map(function(item){
+    ['99999:Admission sans disposition particulière',
+     '92002:Admission sur dossier',
+     '92003:Admission sur concours',
+     '92005:Admission après entretien',
+     '92007:Admission après test',
+     '92009:Admission après visite médicale',
+     '99998:Plusieurs modalités possibles'].map(function(item){
       var parts=item.split(':');var code=parts[0];var lbl=parts[1];
-      // Pour VAE : pré-sélectionner 92001 par défaut
-      var isVaeAction=(f.typeOffre==='vae');
-      var defaultCodes=isVaeAction?['92001']:['92002'];
+      var defaultCodes=['99999'];
       var checked=(a.codesAdm&&a.codesAdm.length?a.codesAdm:defaultCodes).indexOf(code)>=0;
       return '<label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;cursor:pointer">'+
         '<input type="checkbox" data-ai="'+i+'" data-f="codesAdm_cb" data-code="'+code+'"'+(checked?' checked':'')+' style="width:auto">'+
@@ -4634,7 +4633,7 @@ function buildAction(a,i,f){
     '</div></div>'+
     '<div class="fitem full"><label>Rythme de formation <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
     '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px" id="rythme_'+i+'">'+
-    ['1:Temps plein','2:Temps partiel','3:Alternance','4:Cours du soir / weekend','5:À distance'].map(function(item){
+    ['1:Journalier','2:Hebdomadaire','3:En semaine','4:Le week-end','5:Temps plein','6:Temps partiel','7:Plusieurs rythmes'].map(function(item){
       var parts=item.split(':');var code=parts[0];var lbl=parts[1];
       var checked=(a.codesRythme||['1']).indexOf(code)>=0;
       return '<label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;cursor:pointer">'+
@@ -5135,7 +5134,7 @@ function emptyAction(){return {
   dureeTotal:'',duree:'',dureeEntreprise:'',
   prix:'',prixHoraire:'',lang:'FR',
   tva:'0.0',certifInclus:'0',tel:'',email:'',
-  codesAdm:['92002'],codesRythme:['1'],
+  codesAdm:['99999'],codesRythme:['5'],
   entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'0',infoPerim:'',infoRecrutement:'',urlAct:'',
   restauration:'',hebergement:'',transport:'',autresServices:'',
   adr:'',cp:'',ville:'',dep:'',reg:'84',pays:'FR',lat:'',lon:'',sessions:[]};}
@@ -5862,7 +5861,7 @@ function onTypeOffreChange(val){
     ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';
     ff.parcours='5'; // VAE
     // Pré-sélectionner 92001 sur toutes les actions existantes
-    (ff.actions||[]).forEach(function(a){a.codesAdm=['92001'];});
+    (ff.actions||[]).forEach(function(a){a.codesAdm=['99999'];});
   }
   else if(val==='permis'){ff.objGen='3';ff.certif='N';ff.parcours='7';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
   else{
@@ -5871,8 +5870,7 @@ function onTypeOffreChange(val){
     ff.parcours='2'; // Formation continue par défaut pour certification
     // Remettre codesAdm par défaut
     (ff.actions||[]).forEach(function(a){
-      if(a.codesAdm&&a.codesAdm.length===1&&a.codesAdm[0]==='92001')
-        a.codesAdm=['92002'];
+      a.codesAdm=['99999'];
     });
   }
   L.persist();L.openEditor(L.curId);
