@@ -5890,8 +5890,14 @@ function fetchBlocs(){
     callApi('https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant.rncp='+rncp,
       {'Authorization':'Bearer '+API_APPRENTISSAGE_TOKEN,'Accept':'application/json'})
     .then(function(data){if(st)st.textContent='';applyRncpData(ff,rncp,data,st);})
-    .catch(function(e2){if(st)st.textContent='Echec';
-      alert('Erreur:\nProxy: '+e1.message+'\nDirect: '+e2.message);});});}
+    .catch(function(e2){
+      if(st)st.textContent='Echec';
+      if(e2.message.indexOf('CORS')>=0||e2.message.indexOf('réseau')>=0||e2.message.indexOf('Network')>=0){
+        alert('Import impossible.\n\nCause probable : votre fichier lancer-editeur.py est une ancienne version qui ne supporte pas le proxy.\n\nSolution :\n1. Cliquez sur "Générer lancer-editeur.bat + .py" dans le menu\n2. Remplacez l\'ancien lancer-editeur.py\n3. Redémarrez le serveur (.bat)');
+      } else {
+        alert('Erreur d\'import :\nProxy: '+e1.message+'\nDirect: '+e2.message+'\n\nSi le problème persiste, regénérez le fichier lancer-editeur.py.');
+      }
+    });});}
 
 function applyRncpData(ff,rncp,data,st){
   var L=window._lheo;
