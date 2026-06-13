@@ -5962,9 +5962,23 @@ function removeBloc(i){
   var ff=L.cat.find(function(x){return x.id===L.curId;});if(!ff)return;
   ff.blocsCompetences.splice(i,1);L.persist();L.openEditor(L.curId);}
 
-// Expositions globales
+// Expositions globales - fonctions appelées depuis onclick/onchange inline
 window.fetchBlocs=fetchBlocs;
 window.fetchRS=fetchRS;
+window.onTypeOffreChange=onTypeOffreChange;
+window.calcDureeAuto=calcDureeAuto;
+window.calcPrixTTC=calcPrixTTC;
+window.calcPrixHT=calcPrixHT;
+window.calcPrix=calcPrix;
+window.geolocAction=geolocAction;
+window.dupFiche=dupFiche;
+window.addVaeRncp=addVaeRncp;
+window.autoFillRncpTitre=autoFillRncpTitre;
+window.importVaeRncp=importVaeRncp;
+window.filterFormacodeByPrefix=filterFormacodeByPrefix;
+window.filterRomeByFormacode=filterRomeByFormacode;
+window.applySiretData=applySiretData;
+window._fetchRncpTitre=_fetchRncpTitre;
 });
 </script>
 </body>
