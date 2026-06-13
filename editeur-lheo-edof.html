@@ -3829,7 +3829,7 @@ function drawList(){
     var d=document.createElement('div');
     d.className='fi'+(f.id===curId?' active':'');
     d.innerHTML='<div class="fi-t">'+esc(f.intitule||'(Sans titre)')+'</div>'+
-      '<div class="fi-m">'+((f.actions||[]).length)+' action(s) - '+(f.certif==='O'?'Certif.':'Non certif.')+'</div>'+
+      '<div class="fi-m">'+((f.actions||[]).length)+' action(s) - '+(({'certification':'Certif.','bilan':'Bilan','vae':'VAE','permis':'Permis'}[f.typeOffre||'certification']||'Certif.'))+'</div>'+
       '<button class="fi-x">x</button>';
     d.querySelector('.fi-x').addEventListener('click',function(e){
       e.stopPropagation();
@@ -4101,7 +4101,7 @@ function buildIdent(f){
   if(isBilan&&(f.objGen==='7')){f.objGen='9';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';}
   if(isVae&&(f.objGen==='7')){f.objGen='6';f.certif='O';f.cpf='CPF200';f.rncp='';f.rs='';}
   if(isPermis&&(f.objGen==='7')){f.objGen='3';f.certif='N';if(!f.cpf||f.cpf==='')f.cpf='CPF206';}
-  if(isCertif&&f.cpf==='CPF200'){}// ne pas toucher si déjà saisi
+  // Pour une formation certifiante, f.cpf doit être vide (code RNCP/RS suffit)
 
   return fg(2)+
     '<div class="fitem full" style="margin-bottom:10px;grid-column:1/-1">'+
@@ -4582,7 +4582,7 @@ function buildAction(a,i){
      '92006:Tutorat'].map(function(item){
       var parts=item.split(':');var code=parts[0];var lbl=parts[1];
       // Pour VAE : pré-sélectionner 92001 par défaut
-      var isVaeAction=(f.typeOffre==='vae'||f.cpf==='CPF200');
+      var isVaeAction=(f.typeOffre==='vae');
       var defaultCodes=isVaeAction?['92001']:['92002'];
       var checked=(a.codesAdm&&a.codesAdm.length?a.codesAdm:defaultCodes).indexOf(code)>=0;
       return '<label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;cursor:pointer">'+
@@ -4734,7 +4734,7 @@ function collect(fid){
       f.resultats=lines.join('\n');
     }
   }
-  if(f.cpf==='CPF200')f.categorisationOffre=g('E_catoffre');else f.categorisationOffre='';
+  if(f.typeOffre==='vae')f.categorisationOffre=g('E_catoffre');else f.categorisationOffre='';
   // Blocs de compétences (RNCP uniquement)
   if(f.rncp){
     var blocsInputs=document.querySelectorAll('[id^="E_bloc_"]');
@@ -5117,7 +5117,7 @@ function toXML(formations){
     o+='    <formation numero="'+escX(f.numIntOf)+'" datemaj="'+today+'" datecrea="'+today+'">\n';
     // domaine-formation : FORMACODE (sauf VAE), NSF (sauf permis), ROME
     var toType=f.typeOffre||'certification';
-    var isVaeX=(toType==='vae'||f.cpf==='CPF200');
+    var isVaeX=(toType==='vae');
     var isPermisX=(toType==='permis');
     o+='      <domaine-formation>\n';
     if(!isVaeX&&!isPermisX){
@@ -5143,7 +5143,8 @@ function toXML(formations){
       var toType=f.typeOffre||'certification';
       if(toType==='vae'||toType==='bilan'||toType==='permis'){
         // VAE/Bilan/Permis : toujours code-CPF, jamais code-RNCP
-        o+='        <code-CPF>'+escX(f.cpf||'CPF200')+'</code-CPF>\n';
+        var cpfCode=f.cpf||(toType==='bilan'?'CPF202':(toType==='permis'?'CPF206':'CPF200'));
+        o+='        <code-CPF>'+escX(cpfCode)+'</code-CPF>\n';
       } else if(f.rncp) {
         o+='        <code-RNCP>'+escX(f.rncp)+'</code-RNCP>\n';
       } else if(f.rs) {
@@ -5263,7 +5264,7 @@ function toXML(formations){
     o+='      </organisme-formation-responsable>\n';
     // Extras formation (obligatoires EDOF V14)
     o+='      <extras info="formation">\n';
-    if(f.cpf==='CPF200'&&f.categorisationOffre)
+    if(f.typeOffre==='vae'&&f.categorisationOffre)
       o+='        <extra info="categorisation-offre">'+escX(f.categorisationOffre)+'</extra>\n';
     o+='        <extra info="resume-contenu">'+escX(f.resumeContenu||f.intitule||'Résumé de la formation')+'</extra>\n';
     // Blocs de compétences (RNCP uniquement, obligatoire dès 11/06/2026)
@@ -5335,6 +5336,12 @@ function doImport(e){
         f.parcours=tx(fEl,'parcours-de-formation')||'2';
         f.rncp=tx(fEl,'code-RNCP');f.rs=tx(fEl,'code-RS');f.cpf=tx(fEl,'code-CPF');
         f.certifinfo=tx(fEl,'code-CERTIFINFO');
+        // Reconstruction du typeOffre depuis les données XML
+        if(f.cpf==='CPF200'||f.categorisationOffre) f.typeOffre='vae';
+        else if(f.cpf==='CPF202') f.typeOffre='bilan';
+        else if(f.cpf&&/^CPF20[6-9]|CPF21[0-9]|CPF220$/.test(f.cpf)) f.typeOffre='permis';
+        else if(f.rncp||f.rs) f.typeOffre='certification';
+        else f.typeOffre='certification';
         // extras formation V14
         var extForm=fEl.querySelector('extras[info="formation"]');
         f.resumeContenu=extForm?tx(extForm,'extra[info="resume-contenu"]'):'';
@@ -5349,7 +5356,7 @@ function doImport(e){
         f.objectif=tx(fEl,'objectif-formation');f.contenu=tx(fEl,'contenu-formation');
         f.resultats=tx(fEl,'resultats-attendus');
         // VAE : reconstruire la liste RNCP depuis le texte résultats-attendus
-        if(f.cpf==='CPF200'&&f.resultats){
+        if(f.typeOffre==='vae'&&f.resultats){
           var lines=f.resultats.split('\n');
           f.vaeRncpList=[];
           lines.forEach(function(l){
