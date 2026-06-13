@@ -3437,9 +3437,10 @@ var NIVEAUX = [
 ];
 
 var PARCOURS = [
-  ['1','Formation initiale'],['2','Formation continue'],
-  ['3','Apprentissage'],['4','Contrat de professionnalisation'],
-  ['5','VAE'],['6','Bilan de competences'],['7','Autre'],
+  ['1','Collectif — sans personnalisation'],
+  ['2','Individualisé — selon les objectifs individuels'],
+  ['3','Modulaire — selon les modules nécessaires'],
+  ['4','Mixte — individualisé et modularisé'],
 ];
 
 var PERIM = [
@@ -5842,11 +5843,11 @@ function onTypeOffreChange(val){
   // Pré-remplir les champs selon le type
   if(val==='bilan'){
     ff.objGen='9';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';
-    ff.parcours='6'; // parcours bilan de compétences
+    ff.parcours='2'; // Bilan = parcours individualisé
   }
   else if(val==='vae'){
     ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';
-    ff.parcours='5'; // parcours VAE
+    ff.parcours='2'; // VAE = parcours individualisé
     // Pré-sélectionner 92001 sur toutes les actions existantes
     (ff.actions||[]).forEach(function(a){a.codesAdm=['92001'];});
   }
@@ -5854,7 +5855,7 @@ function onTypeOffreChange(val){
   else{
     // Formation certifiante : vider CPF (code RNCP/RS suffit), remettre parcours formation continue
     ff.objGen='6';ff.certif='O';ff.cpf='';
-    ff.parcours=ff.parcours==='5'||ff.parcours==='6'?'2':ff.parcours;
+    ff.parcours=('12345678'.indexOf(ff.parcours||'')>=0&&ff.parcours<='4')?ff.parcours:'1';
     // Remettre codesAdm par défaut
     (ff.actions||[]).forEach(function(a){
       if(a.codesAdm&&a.codesAdm.length===1&&a.codesAdm[0]==='92001')
