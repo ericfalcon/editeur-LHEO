@@ -4086,7 +4086,7 @@ function renderEditor(f){
   $('E_prev').addEventListener('click',function(){doPreview(f.id);});
   $('E_prev2').addEventListener('click',function(){doPreview(f.id);});
   $('E_exp').addEventListener('click',function(){doExport1(f.id);});
-  var baa=$('E_addAct');if(baa)baa.addEventListener('click',function(){doAddAction(f.id);});
+  // E_addAct géré par délégation permanente sur J_main
   // Binder la zone d'import habilitations
   bindHabZone();
   $('J_main').querySelectorAll('.del-act').forEach(function(b){
@@ -6008,8 +6008,9 @@ window.applySiretData=applySiretData;
 window._fetchRncpTitre=_fetchRncpTitre;
 // Délégation permanente pour boutons dynamiques
 $('J_main').addEventListener('click',function(ev){
-  var t=ev.target;
-  if(t&&t.id==='E_addAct'&&curId) doAddAction(curId);
+  var t=ev.target.closest?ev.target.closest('[id="E_addAct"]'):
+    (ev.target.id==='E_addAct'?ev.target:null);
+  if(t&&curId) doAddAction(curId);
 });
 
 });
