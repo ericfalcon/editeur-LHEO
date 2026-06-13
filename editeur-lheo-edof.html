@@ -3936,6 +3936,7 @@ function openEditor(fid){
   renderEditor(f);}
 
 function renderEditor(f){
+  try{
   $('J_main').innerHTML='<div class="ed">'+
     '<div class="ed-head"><h2>Fiche formation</h2>'+
     '<div style="display:flex;gap:5px">'+
@@ -4101,7 +4102,11 @@ function renderEditor(f){
   $('J_main').querySelectorAll('.del-sess').forEach(function(b){
     b.addEventListener('click',function(){
       doSave(f.id,true);var ff=cat.find(function(x){return x.id===f.id;});
-      ff.actions[parseInt(b.dataset.ai)].sessions.splice(parseInt(b.dataset.si),1);persist();openEditor(f.id);});});}
+      ff.actions[parseInt(b.dataset.ai)].sessions.splice(parseInt(b.dataset.si),1);persist();openEditor(f.id);});})  }catch(err){
+    console.error('renderEditor ERREUR:',err);
+    $('J_main').innerHTML='<div style="padding:20px;color:red"><b>Erreur affichage</b><br><code>'+err.message+'</code></div>';
+  }
+}
 
 function ccBind(id,ccId,max){
   var inp=$(id),cc=$(ccId);if(!inp||!cc)return;
