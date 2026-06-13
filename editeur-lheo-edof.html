@@ -4572,10 +4572,10 @@ function buildOrga(f){
     '</div>';}
 
 function buildActions(f){
-  var h='';(f.actions||[]).forEach(function(a,i){h+=buildAction(a,i);});
+  var h='';(f.actions||[]).forEach(function(a,i){h+=buildAction(a,i,f);});
   h+='<div class="add-row"><button class="btn btn-p btn-sm" id="E_addAct">+ Ajouter une action</button></div>';return h;}
 
-function buildAction(a,i){
+function buildAction(a,i,f){
   var s=(a.sessions||[]).map(function(s,j){return buildSess(s,i,j);}).join('');
   return '<div class="ss" id="act_'+i+'">'+
     '<div class="ss-h"><span class="ss-t">Action '+(i+1)+' - '+esc(a.num||'sans n°')+'</span>'+
