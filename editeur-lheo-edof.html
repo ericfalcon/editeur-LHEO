@@ -218,11 +218,15 @@ window.isFileLocal = (location.protocol==='file:');
 // Détection dynamique du mini-serveur localhost:8765
 // Fonctionne même depuis file:// ou https://github.io
 window._probeLocalServer=function(){
-  fetch('http://localhost:8765/ping',{mode:'no-cors'})
-    .then(function(){
+  // Utiliser XHR avec timeout pour détecter localhost:8765
+  // fonctionne même depuis file:// et https://
+  var xhr=new XMLHttpRequest();
+  xhr.timeout=800;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState===4&&(xhr.status===200||xhr.status===0)){
+      // status=200 (réponse OK) ou 0 (opaque cross-origin = connexion établie)
       if(!window.isLocalProxy){
         window.isLocalProxy=true;
-        // Mettre à jour le bandeau si page d'accueil visible
         var el=document.getElementById('local_server_banner');
         if(el){
           el.style.background='#e8f5e9';
@@ -231,12 +235,17 @@ window._probeLocalServer=function(){
           el.innerHTML='&#10003; Serveur local détecté — Import RNCP/RS disponible';
         }
       }
-    })
-    .catch(function(){});
+    }
+  };
+  xhr.onerror=function(){
+    // Erreur réseau = connexion refusée = serveur absent, silencieux
+  };
+  try{xhr.open('GET','http://localhost:8765/ping',true);xhr.send();}
+  catch(e){}
 };
 // Sonder au démarrage et toutes les 5 secondes
-setTimeout(window._probeLocalServer, 500);
-setInterval(window._probeLocalServer, 5000);
+setTimeout(window._probeLocalServer,500);
+setInterval(window._probeLocalServer,5000);
 
 /* =============================================================
    DONNEES DE REFERENCE
@@ -3661,19 +3670,35 @@ window._fetchRncpTitre=function(rncp,titreEl,callback){
     if(t&&titreEl) titreEl.value=t;
     if(callback) callback(!!t,t);
   }
-  // Essai 1: proxy local
-  fetch('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,{
-    headers:{'X-App-Token':API_APPRENTISSAGE_TOKEN}
-  }).then(function(r){if(!r.ok)throw new Error('proxy '+r.status);return r.json();})
-  .then(applyTitre)
-  .catch(function(){
-    // Essai 2: API directe HTTPS
-    fetch('https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant.rncp='+rncp,{
-      headers:{'Authorization':'Bearer '+API_APPRENTISSAGE_TOKEN,'Accept':'application/json'}
-    }).then(function(r){if(!r.ok)throw new Error('direct '+r.status);return r.json();})
-    .then(applyTitre)
-    .catch(function(){if(callback)callback(false,'');});
-  });
+  // Essai 1 : proxy local via XHR (compatible file:// et https://)
+  function xhrGet(url,headers,cb){
+    var xhr=new XMLHttpRequest();xhr.timeout=5000;
+    xhr.onreadystatechange=function(){
+      if(xhr.readyState!==4)return;
+      if(xhr.status>=200&&xhr.status<300){
+        try{cb(null,JSON.parse(xhr.responseText));}catch(e){cb(e,null);}
+      } else {cb(new Error('HTTP '+xhr.status),null);}
+    };
+    xhr.onerror=function(){cb(new Error('réseau'),null);};
+    xhr.ontimeout=function(){cb(new Error('timeout'),null);};
+    try{xhr.open('GET',url,true);
+    Object.keys(headers||{}).forEach(function(k){xhr.setRequestHeader(k,headers[k]);});
+    xhr.send();}catch(e){cb(e,null);}
+  }
+  xhrGet('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,
+    {'X-App-Token':API_APPRENTISSAGE_TOKEN},
+    function(err,data){
+      if(!err&&data){applyTitre(data);}
+      else {
+        // Essai 2 : API directe
+        xhrGet('https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant.rncp='+rncp,
+          {'Authorization':'Bearer '+API_APPRENTISSAGE_TOKEN,'Accept':'application/json'},
+          function(err2,data2){
+            if(!err2&&data2)applyTitre(data2);
+            else if(callback)callback(false,'');
+          });
+      }
+    });
 };
 
 /* ==============================================================
@@ -5860,8 +5885,27 @@ function fetchBlocs(){
   if(st)st.textContent='Chargement '+rncp+'...';
   if(st2)st2.textContent='Chargement...';
   function callApi(url,headers){
-    return fetch(url,{headers:headers}).then(function(r){
-      if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+    return new Promise(function(resolve,reject){
+      var xhr=new XMLHttpRequest();
+      xhr.timeout=10000;
+      xhr.onreadystatechange=function(){
+        if(xhr.readyState!==4)return;
+        if(xhr.status>=200&&xhr.status<300){
+          try{resolve(JSON.parse(xhr.responseText));}
+          catch(e){reject(new Error('JSON invalide'));}
+        } else {
+          reject(new Error('HTTP '+xhr.status));
+        }
+      };
+      xhr.onerror=function(){reject(new Error('Erreur réseau'));};
+      xhr.ontimeout=function(){reject(new Error('Timeout'));};
+      try{
+        xhr.open('GET',url,true);
+        Object.keys(headers||{}).forEach(function(k){xhr.setRequestHeader(k,headers[k]);});
+        xhr.send();
+      }catch(e){reject(e);}
+    });
+  }
   callApi('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,
     {'X-App-Token':API_APPRENTISSAGE_TOKEN})
   .then(function(data){if(st)st.textContent='';applyRncpData(ff,rncp,data,st);})
@@ -6156,11 +6200,15 @@ window.isFileLocal = (location.protocol==='file:');
 // Détection dynamique du mini-serveur localhost:8765
 // Fonctionne même depuis file:// ou https://github.io
 window._probeLocalServer=function(){
-  fetch('http://localhost:8765/ping',{mode:'no-cors'})
-    .then(function(){
+  // Utiliser XHR avec timeout pour détecter localhost:8765
+  // fonctionne même depuis file:// et https://
+  var xhr=new XMLHttpRequest();
+  xhr.timeout=800;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState===4&&(xhr.status===200||xhr.status===0)){
+      // status=200 (réponse OK) ou 0 (opaque cross-origin = connexion établie)
       if(!window.isLocalProxy){
         window.isLocalProxy=true;
-        // Mettre à jour le bandeau si page d'accueil visible
         var el=document.getElementById('local_server_banner');
         if(el){
           el.style.background='#e8f5e9';
@@ -6169,12 +6217,17 @@ window._probeLocalServer=function(){
           el.innerHTML='&#10003; Serveur local détecté — Import RNCP/RS disponible';
         }
       }
-    })
-    .catch(function(){});
+    }
+  };
+  xhr.onerror=function(){
+    // Erreur réseau = connexion refusée = serveur absent, silencieux
+  };
+  try{xhr.open('GET','http://localhost:8765/ping',true);xhr.send();}
+  catch(e){}
 };
 // Sonder au démarrage et toutes les 5 secondes
-setTimeout(window._probeLocalServer, 500);
-setInterval(window._probeLocalServer, 5000);
+setTimeout(window._probeLocalServer,500);
+setInterval(window._probeLocalServer,5000);
 
 /* =============================================================
    DONNEES DE REFERENCE
