@@ -232,7 +232,13 @@ window._probeLocalServer=function(){
           el.style.background='#e8f5e9';
           el.style.borderColor='#a5d6a7';
           el.style.color='#2e7d32';
-          el.innerHTML='&#10003; Serveur local détecté — Import RNCP/RS disponible';
+          if(window.isFileLocal){
+            var htmlFile=location.pathname.split('/').pop()||'editeur-lheo-edof.html';
+            var localUrl='http://localhost:8765/'+htmlFile;
+            el.innerHTML='&#10003; Serveur détecté ! <a href="'+localUrl+'" style="font-weight:700;color:#1b5e20">Ouvrir via le serveur → '+localUrl+'</a>';
+          } else {
+            el.innerHTML='&#10003; Serveur local détecté — Import RNCP/RS disponible';
+          }
         }
       }
     }
@@ -3916,7 +3922,7 @@ function showWelcome(){
       'Import CSV habilitations EDOF : disponible ici &#10003;</div>'
     :
       // file:// - mode local sans serveur
-      '<div style="margin-top:16px;padding:12px;background:var(--warn-bg,#fff8e1);border:1px solid #f9a825;border-radius:6px;font-size:12px;text-align:left">'+
+      '<div id="local_server_banner" style="margin-top:16px;padding:12px;background:var(--warn-bg,#fff8e1);border:1px solid #f9a825;border-radius:6px;font-size:12px;text-align:left">'+
       '<strong>&#9888; Mode fichier local détecté</strong><br>'+
       'L\'import France Compétences nécessite un mini serveur local.<br>'+
       '<button class="btn btn-sm" style="margin-top:8px" id="J_gen_py">&#128190; Générer lancer-editeur.bat + .py</button>'+
