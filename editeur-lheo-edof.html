@@ -3436,7 +3436,18 @@ var NIVEAUX = [
   ['18','18 - Niveau 8 EQF (doctorat)'],
 ];
 
+// Parcours-de-formation (section Identification - nomenclature LHEO)
 var PARCOURS = [
+  ['1','Formation initiale'],
+  ['2','Formation continue'],
+  ['3','Apprentissage'],
+  ['4','Contrat de professionnalisation'],
+  ['5','VAE'],
+  ['6','Bilan de compétences'],
+  ['7','Autre'],
+];
+// Type de parcours action (nomenclature EDOF V14 §3.4.1)
+var PARCOURS_ACTION = [
   ['1','Collectif — sans personnalisation'],
   ['2','Individualisé — selon les objectifs individuels'],
   ['3','Modulaire — selon les modules nécessaires'],
@@ -4075,6 +4086,10 @@ function renderEditor(f){
   $('E_prev').addEventListener('click',function(){doPreview(f.id);});
   $('E_prev2').addEventListener('click',function(){doPreview(f.id);});
   $('E_exp').addEventListener('click',function(){doExport1(f.id);});
+  // Délégation pour le bouton Ajouter une action (section peut être collapsed)
+  $('J_main').addEventListener('click',function(ev){
+    if(ev.target&&ev.target.id==='E_addAct') doAddAction(f.id);
+  });
   var baa=$('E_addAct');if(baa)baa.addEventListener('click',function(){doAddAction(f.id);});
   // Binder la zone d'import habilitations
   bindHabZone();
@@ -5843,19 +5858,19 @@ function onTypeOffreChange(val){
   // Pré-remplir les champs selon le type
   if(val==='bilan'){
     ff.objGen='9';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';
-    ff.parcours='2'; // Bilan = parcours individualisé
+    ff.parcours='6'; // Bilan de compétences
   }
   else if(val==='vae'){
     ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';
-    ff.parcours='2'; // VAE = parcours individualisé
+    ff.parcours='5'; // VAE
     // Pré-sélectionner 92001 sur toutes les actions existantes
     (ff.actions||[]).forEach(function(a){a.codesAdm=['92001'];});
   }
-  else if(val==='permis'){ff.objGen='3';ff.certif='N';ff.parcours='2';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
+  else if(val==='permis'){ff.objGen='3';ff.certif='N';ff.parcours='7';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
   else{
     // Formation certifiante : vider CPF (code RNCP/RS suffit), remettre parcours formation continue
     ff.objGen='6';ff.certif='O';ff.cpf='';
-    ff.parcours=('12345678'.indexOf(ff.parcours||'')>=0&&ff.parcours<='4')?ff.parcours:'1';
+    ff.parcours='2'; // Formation continue par défaut pour certification
     // Remettre codesAdm par défaut
     (ff.actions||[]).forEach(function(a){
       if(a.codesAdm&&a.codesAdm.length===1&&a.codesAdm[0]==='92001')
