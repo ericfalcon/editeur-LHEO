@@ -215,43 +215,7 @@ window.isLocalProxy = (location.protocol==='http:' && (location.hostname==='loca
 window.isGitHubPages = (location.protocol==='https:' && location.hostname.indexOf('github.io')>=0);
 window.isFileLocal = (location.protocol==='file:');
 
-// Détection dynamique du mini-serveur localhost:8765
-// Fonctionne même depuis file:// ou https://github.io
-window._probeLocalServer=function(){
-  // Utiliser XHR avec timeout pour détecter localhost:8765
-  // fonctionne même depuis file:// et https://
-  var xhr=new XMLHttpRequest();
-  xhr.timeout=800;
-  xhr.onreadystatechange=function(){
-    if(xhr.readyState===4&&(xhr.status===200||xhr.status===0)){
-      // status=200 (réponse OK) ou 0 (opaque cross-origin = connexion établie)
-      if(!window.isLocalProxy){
-        window.isLocalProxy=true;
-        var el=document.getElementById('local_server_banner');
-        if(el){
-          el.style.background='#e8f5e9';
-          el.style.borderColor='#a5d6a7';
-          el.style.color='#2e7d32';
-          if(window.isFileLocal){
-            var htmlFile=location.pathname.split('/').pop()||'editeur-lheo-edof.html';
-            var localUrl='http://localhost:8765/'+htmlFile;
-            el.innerHTML='&#10003; Serveur détecté ! <a href="'+localUrl+'" style="font-weight:700;color:#1b5e20">Ouvrir via le serveur → '+localUrl+'</a>';
-          } else {
-            el.innerHTML='&#10003; Serveur local détecté — Import RNCP/RS disponible';
-          }
-        }
-      }
-    }
-  };
-  xhr.onerror=function(){
-    // Erreur réseau = connexion refusée = serveur absent, silencieux
-  };
-  try{xhr.open('GET','http://localhost:8765/ping',true);xhr.send();}
-  catch(e){}
-};
-// Sonder au démarrage et toutes les 5 secondes
-setTimeout(window._probeLocalServer,500);
-setInterval(window._probeLocalServer,5000);
+// Détection serveur : window.isLocalProxy défini au chargement (http://localhost)
 
 /* =============================================================
    DONNEES DE REFERENCE
@@ -5555,131 +5519,138 @@ $('J_copy').addEventListener('click',function(){navigator.clipboard.writeText(xm
 $('J_dlXml').addEventListener('click',function(){dl(xmlBuf,xmlName);});
 
 function generatePyScript(){
-  // Récupérer le nom du fichier HTML courant pour que le script serve le bon fichier
-  var htmlFile=location.pathname.split('/').pop()||'editeur-lheo-edof.html';
-  var py='#!/usr/bin/env python3\n'+
-'# Serveur local pour Editeur LHEO EDOF\n'+
-'# Placez ce fichier dans le meme dossier que '+htmlFile+'\n'+
-'# Lancez avec : python lancer-editeur.py\n'+
-'# Puis ouvrez : http://localhost:8765/'+htmlFile+'\n\n'+
-'import sys\n'+
-'try:\n'+
-'    import http.server, socketserver, os, urllib.request, json, threading, webbrowser, ssl\n'+
-'    ctx = ssl.create_default_context()\n'+
-'    ctx.check_hostname = False\n'+
-'    ctx.verify_mode = ssl.CERT_NONE\n'+
-'except ImportError as e:\n'+
-'    print(f"Erreur import : {e}")\n'+
-'    input("Appuyez sur Entree pour fermer...")\n'+
-'    sys.exit(1)\n\n'+
-'PORT = 8765\n'+
-'DIR = os.path.dirname(os.path.abspath(__file__))\n\n'+
-'class Handler(http.server.SimpleHTTPRequestHandler):\n'+
-'    def __init__(self, *a, **kw):\n'+
-'        super().__init__(*a, directory=DIR, **kw)\n\n'+
-'    def do_GET(self):\n'+
-'        if self.path.startswith(\'/proxy/apprentissage/\'):\n'+
-'            rncp = self.path.split(\'identifiant.rncp=\')[-1].split(\'&\')[0]\n'+
-'            token = self.headers.get(\'X-App-Token\',\'\')\n'+
-'            # Fallback: token hardcode si non transmis par le navigateur\n'+
-'            if not token: token = "'+API_APPRENTISSAGE_TOKEN+'"\n'+
-'            url = f\'https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant.rncp={rncp}\'\n'+
-'            req = urllib.request.Request(url, headers={\n'+
-'                \'Authorization\': f\'Bearer {token}\',\n'+
-'                \'Accept\': \'application/json\'\n'+
-'            })\n'+
-'            try:\n'+
-'                with urllib.request.urlopen(req, timeout=10, context=ctx) as r:\n'+
-'                    data = r.read()\n'+
-'                self.send_response(200)\n'+
-'                self.send_header(\'Content-Type\', \'application/json\')\n'+
-'                self.send_header(\'Access-Control-Allow-Origin\', \'*\')\n'+
-'                self.end_headers()\n'+
-'                self.wfile.write(data)\n'+
-'            except Exception as e:\n'+
-'                self.send_response(500)\n'+
-'                self.send_header(\'Content-Type\', \'application/json\')\n'+
-'                self.send_header(\'Access-Control-Allow-Origin\', \'*\')\n'+
-'                self.end_headers()\n'+
-'                self.wfile.write(json.dumps({\'error\': str(e)}).encode())\n'+
-'            return\n'+
-'        super().do_GET()\n\n'+
-'    def do_OPTIONS(self):\n'+
-'        self.send_response(200)\n'+
-'        self.send_header(\'Access-Control-Allow-Origin\', \'*\')\n'+
-'        self.send_header(\'Access-Control-Allow-Headers\', \'Content-Type, X-App-Token\')\n'+
-'        self.end_headers()\n\n'+
-'    def log_message(self, fmt, *args): pass\n\n'+
-'print(f"Editeur LHEO disponible sur : http://localhost:{PORT}/'+htmlFile+'")\n'+
-'print("Appuyez sur Ctrl+C pour arreter.")\n'+
-'import webbrowser, threading\n'+
-'threading.Timer(1, lambda: webbrowser.open(f"http://localhost:{PORT}/'+htmlFile+'")).start()\n'+
-'try:\n'+
-'    with socketserver.TCPServer((\'\', PORT), Handler) as httpd:\n'+
-'        try: httpd.serve_forever()\n'+
-'        except KeyboardInterrupt: print(\'\\nArrete.\')\n'+
-'except OSError as e:\n'+
-'    print(f"\\nERREUR : {e}")\n'+
-'    print(f"Le port {PORT} est peut-etre deja utilise.")\n'+
-'    print("Fermez les autres instances ou relancez le script.")\n'+
-'    input("\\nAppuyez sur Entree pour fermer...")\n';
+  var TOKEN=API_APPRENTISSAGE_TOKEN;
+  var py=[
+    '#!/usr/bin/env python3',
+    '# Serveur local permanent pour Editeur LHEO EDOF',
+    '# Placez ce fichier UNE SEULE FOIS dans votre dossier de travail.',
+    '# Pour mettre a jour : remplacez juste le fichier HTML et rechargez la page.',
+    '',
+    'import sys, os, glob, http.server, socketserver, urllib.request, json, threading, webbrowser, ssl',
+    '',
+    'PORT = 8765',
+    'DIR = os.path.dirname(os.path.abspath(__file__))',
+    'API_TOKEN = "'+token+'"',
+    '',
+    'def find_html():',
+    '    files = glob.glob(os.path.join(DIR, "editeur-lheo-edof*.html"))',
+    '    if not files: files = glob.glob(os.path.join(DIR, "editeur*.html"))',
+    '    return os.path.basename(max(files, key=os.path.getmtime)) if files else None',
+    '',
+    'ctx = ssl.create_default_context()',
+    'ctx.check_hostname = False',
+    'ctx.verify_mode = ssl.CERT_NONE',
+    '',
+    'class Handler(http.server.SimpleHTTPRequestHandler):',
+    '    def __init__(self, *a, **kw):',
+    '        super().__init__(*a, directory=DIR, **kw)',
+    '',
+    '    def do_GET(self):',
+    '        if self.path in ("/", ""):',
+    '            html = find_html()',
+    '            if html:',
+    '                self.send_response(302)',
+    '                self.send_header("Location", "/" + html)',
+    '                self.end_headers()',
+    '            else:',
+    '                self.send_response(404)',
+    '                self.end_headers()',
+    '                self.wfile.write(b"Aucun fichier editeur-lheo-edof.html trouve")',
+    '            return',
+    '        if self.path == "/ping":',
+    '            html = find_html()',
+    '            self.send_response(200)',
+    '            self.send_header("Content-Type", "application/json")',
+    '            self.send_header("Access-Control-Allow-Origin", "*")',
+    '            self.end_headers()',
+    '            self.wfile.write(json.dumps({"ok": True, "file": html}).encode())',
+    '            return',
+    '        if self.path.startswith("/proxy/apprentissage/"):',
+    '            rncp = self.path.split("identifiant.rncp=")[-1].split("&")[0]',
+    '            token = self.headers.get("X-App-Token", "") or API_TOKEN',
+    '            url = f"https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant.rncp={rncp}"',
+    '            req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})',
+    '            try:',
+    '                with urllib.request.urlopen(req, timeout=10, context=ctx) as r: data = r.read()',
+    '                self.send_response(200)',
+    '                self.send_header("Content-Type", "application/json")',
+    '                self.send_header("Access-Control-Allow-Origin", "*")',
+    '                self.end_headers()',
+    '                self.wfile.write(data)',
+    '            except Exception as e:',
+    '                self.send_response(500)',
+    '                self.send_header("Content-Type", "application/json")',
+    '                self.send_header("Access-Control-Allow-Origin", "*")',
+    '                self.end_headers()',
+    '                self.wfile.write(json.dumps({"error": str(e)}).encode())',
+    '            return',
+    '        super().do_GET()',
+    '',
+    '    def do_OPTIONS(self):',
+    '        self.send_response(200)',
+    '        self.send_header("Access-Control-Allow-Origin", "*")',
+    '        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-App-Token")',
+    '        self.end_headers()',
+    '',
+    '    def log_message(self, fmt, *args): pass',
+    '',
+    'html_file = find_html() or "editeur-lheo-edof.html"',
+    'print(f"Editeur LHEO disponible sur : http://localhost:{PORT}/{html_file}")',
+    'print("Appuyez sur Ctrl+C pour arreter.")',
+    'print("Pour mettre a jour : remplacez le .html et rechargez la page.")',
+    'threading.Timer(1, lambda: webbrowser.open(f"http://localhost:{PORT}/{html_file}")).start()',
+    'try:',
+    '    with socketserver.TCPServer(("", PORT), Handler) as httpd:',
+    '        httpd.serve_forever()',
+    'except KeyboardInterrupt:',
+    '    print("Serveur arrete.")',
+    'except OSError as e:',
+    '    if "10048" in str(e) or "Address already in use" in str(e):',
+    '        html_file = find_html() or "editeur-lheo-edof.html"',
+    '        print(f"Port {PORT} deja utilise - ouverture navigateur...")',
+    '        webbrowser.open(f"http://localhost:{PORT}/{html_file}")',
+    '    else: raise',
+  ].join('\n');
+  var pyBlob=new Blob([py],{type:'text/plain'});
+  var u1=URL.createObjectURL(pyBlob);var a1=document.createElement('a');
+  a1.href=u1;a1.download='lancer-editeur.py';a1.click();URL.revokeObjectURL(u1);
 
-  var b=new Blob([py],{type:'text/plain;charset=utf-8'});
-  var u=URL.createObjectURL(b);
-  var a=document.createElement('a');
-  a.href=u;a.download='lancer-editeur.py';a.click();
-  URL.revokeObjectURL(u);
-
-  // Générer aussi le .bat Windows pour forcer l'ouverture dans une vraie console
   var bat='@echo off\r\n'+
-'title Editeur LHEO EDOF - Serveur local\r\n'+
-'echo ============================================\r\n'+
-'echo  IMPORTANT : si ce fichier vient d^)internet,\r\n'+
-'echo  faites clic droit ^> Proprietes ^> cocher\r\n'+
-'echo  "Debloquer" avant de le lancer.\r\n'+
-'echo ============================================\r\n'+
-'echo.\r\n'+
+    'title Editeur LHEO EDOF\r\n'+
+    'netstat -an | find "8765" | find "LISTENING" >nul 2>&1\r\n'+
+    'if not errorlevel 1 (\r\n'+
+    '    echo Serveur deja actif - ouverture du navigateur...\r\n'+
+    '    start http://localhost:8765/\r\n'+
+    '    exit /b 0\r\n'+
+    ')\r\n'+
+    'python --version >nul 2>&1\r\n'+
+    'if errorlevel 1 (\r\n'+
+    '    echo ERREUR : Python non installe.\r\n'+
+    '    echo Telechargez Python sur https://www.python.org/downloads/\r\n'+
+    '    echo Cochez "Add Python to PATH" lors de l^)installation.\r\n'+
+    '    pause\r\n'+
+    '    exit /b 1\r\n'+
+    ')\r\n'+
+    'echo Demarrage du serveur LHEO EDOF...\r\n'+
+    'python lancer-editeur.py\r\n'+
+    'if errorlevel 1 pause\r\n';
+  var bat2=new Blob([bat],{type:'text/plain'});
+  var u2=URL.createObjectURL(bat2);var a2=document.createElement('a');
+  a2.href=u2;a2.download='lancer-editeur.bat';a2.click();URL.revokeObjectURL(u2);
 
-'echo Demarrage du serveur LHEO EDOF...\r\n'+
-'echo.\r\n'+
-'python --version >nul 2>&1\r\n'+
-'if errorlevel 1 (\r\n'+
-'    echo ERREUR : Python n^\'est pas installe ou pas dans le PATH.\r\n'+
-'    echo Telechargez Python sur https://www.python.org/downloads/\r\n'+
-'    echo Cochez "Add Python to PATH" lors de l^\'installation.\r\n'+
-'    pause\r\n'+
-'    exit /b 1\r\n'+
-')\r\n'+
-'python lancer-editeur.py\r\n'+
-'if errorlevel 1 (\r\n'+
-'    echo.\r\n'+
-'    echo Le serveur s^\'est arrete avec une erreur.\r\n'+
-'    pause\r\n'+
-')\r\n';
-
+  toast('Fichiers generes');
   setTimeout(function(){
-    var b2=new Blob([bat],{type:'text/plain;charset=utf-8'});
-    var u2=URL.createObjectURL(b2);
-    var a2=document.createElement('a');
-    a2.href=u2;a2.download='lancer-editeur.bat';a2.click();
-    URL.revokeObjectURL(u2);
-    toast('Fichiers générés. Lisez les instructions ci-dessous.');
-    setTimeout(function(){
-      alert(
-        'Fichiers téléchargés :\n' +
-        '  lancer-editeur.py\n' +
-        '  lancer-editeur.bat\n\n' +
-        'ETAPE OBLIGATOIRE sous Windows :\n' +
-        'Ces fichiers viennent d\'internet et sont bloques par Windows.\n\n' +
-        'Pour CHAQUE fichier :\n' +
-        '  1. Clic droit sur le fichier\n' +
-        '  2. Proprietes\n' +
-        '  3. Cocher Debloquer en bas de la fenetre\n' +
-        '  4. Cliquer OK\n\n' +
-        'Ensuite : double-cliquez sur lancer-editeur.bat'
-      );
-    }, 400);
-  }, 500);
+    alert(
+      'Fichiers telecharges :\n  lancer-editeur.py\n  lancer-editeur.bat\n\n'+
+      'ETAPE UNIQUE (a faire une seule fois) :\n'+
+      '  1. Clic droit > Proprietes > Debloquer sur chaque fichier\n'+
+      '  2. Double-cliquez sur lancer-editeur.bat\n\n'+
+      'ENSUITE - Pour chaque mise a jour du HTML :\n'+
+      '  - Remplacez le fichier editeur-lheo-edof.html\n'+
+      '  - Rechargez la page dans le navigateur (F5)\n'+
+      '  - C\'est tout ! Pas besoin de relancer le serveur.'
+    );
+  },400);
 }
 
 // Bouton sidebar habilitations
