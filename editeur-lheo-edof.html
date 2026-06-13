@@ -4086,10 +4086,6 @@ function renderEditor(f){
   $('E_prev').addEventListener('click',function(){doPreview(f.id);});
   $('E_prev2').addEventListener('click',function(){doPreview(f.id);});
   $('E_exp').addEventListener('click',function(){doExport1(f.id);});
-  // Délégation pour le bouton Ajouter une action (section peut être collapsed)
-  $('J_main').addEventListener('click',function(ev){
-    if(ev.target&&ev.target.id==='E_addAct') doAddAction(f.id);
-  });
   var baa=$('E_addAct');if(baa)baa.addEventListener('click',function(){doAddAction(f.id);});
   // Binder la zone d'import habilitations
   bindHabZone();
@@ -6010,6 +6006,12 @@ window.filterFormacodeByPrefix=filterFormacodeByPrefix;
 window.filterRomeByFormacode=filterRomeByFormacode;
 window.applySiretData=applySiretData;
 window._fetchRncpTitre=_fetchRncpTitre;
+// Délégation permanente pour boutons dynamiques
+$('J_main').addEventListener('click',function(ev){
+  var t=ev.target;
+  if(t&&t.id==='E_addAct'&&curId) doAddAction(curId);
+});
+
 });
 </script>
 </body>
