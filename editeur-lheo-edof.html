@@ -4576,7 +4576,8 @@ function buildActions(f){
   h+='<div class="add-row"><button class="btn btn-p btn-sm" id="E_addAct">+ Ajouter une action</button></div>';return h;}
 
 function buildAction(a,i,f){
-  var s=(a.sessions||[]).map(function(s,j){return buildSess(s,i,j);}).join('');
+  var isPerm=(a.entSor==='1');
+  var s=(a.sessions||[]).map(function(s,j){return buildSess(s,i,j,isPerm);}).join('');
   return '<div class="ss" id="act_'+i+'">'+
     '<div class="ss-h"><span class="ss-t">Action '+(i+1)+' - '+esc(a.num||'sans n°')+'</span>'+
     '<button class="btn btn-err btn-sm del-act" data-ai="'+i+'">Supprimer</button></div>'+
@@ -4687,14 +4688,14 @@ function buildAction(a,i,f){
     '<div id="sess_'+i+'">'+s+'</div>'+
     '<div class="add-row"><button class="btn btn-sm add-sess" data-ai="'+i+'">+ Session</button></div></div></div>';}
 
-function buildSess(s,ai,si){
+function buildSess(s,ai,si,isPerm){
   return '<div class="ss" style="background:#fff;margin-bottom:7px">'+
     '<div class="ss-h"><span class="ss-t">Session '+(si+1)+'</span>'+
     '<button class="btn btn-err btn-sm del-sess" data-ai="'+ai+'" data-si="'+si+'">Supprimer</button></div>'+
     fg(3)+
     sif(ai,si,'num','text',s.num,'N° session <span class="req">*</span>','30','')+
-    sif(ai,si,'debut','date',s.debut,'Début <span class="req">*</span>','','')+
-    sif(ai,si,'fin','date',s.fin,'Fin <span class="req">*</span>','','')+
+    (!isPerm?sif(ai,si,'debut','date',s.debut,'Début <span class="req">*</span>','',''):'<div class="fitem"><label>Début</label><span class="hint">Non requis — entrées/sorties permanentes</span></div>')+
+    (!isPerm?sif(ai,si,'fin','date',s.fin,'Fin <span class="req">*</span>','',''):'<div class="fitem"><label>Fin</label><span class="hint">Non requis — entrées/sorties permanentes</span></div>')+
     '<div class="fitem"><label>Etat recrutement <span class="req">*</span></label>'+
     '<select data-ai="'+ai+'" data-si="'+si+'" data-fs="etatRecrutement">'+
     so('1','1 - Ouvert',s.etatRecrutement||'1')+
