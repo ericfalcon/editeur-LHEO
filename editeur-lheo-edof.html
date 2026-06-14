@@ -3585,9 +3585,28 @@ window.applySiretData=function(data){
 };
 
 window.calcPrix=function(ai){
-  // Recalcul TTC quand TVA change
-  var ht=parseFloat(document.getElementById('prix_ht_'+ai).value||'0');
-  if(ht>0) window.calcPrixTTC(ai);
+  // Lire les valeurs
+  var phEl=document.getElementById('prixH_'+ai);
+  var centreEl=document.getElementById('duree_'+ai);
+  var tvaEl=document.getElementById('tva_'+ai);
+  var htEl=document.getElementById('prix_ht_'+ai);
+  var ttcEl=document.getElementById('prix_ttc_'+ai);
+  var juryEl=document.getElementById('fraisJury_'+ai);
+  if(!phEl||!centreEl||!tvaEl||!htEl||!ttcEl) return;
+  var ph=parseFloat(phEl.value)||0;
+  var centre=parseFloat(centreEl.value)||0;
+  var tva=parseFloat(tvaEl.value)||0;
+  var jury=(juryEl&&juryEl.closest('.fitem').style.display!=='none')?parseFloat(juryEl.value)||0:0;
+  if(ph===0||centre===0) return; // pas de calcul si données manquantes
+  // Calcul : TTC = (prix horaire × heures centre) + frais jury
+  // Si TVA=0 : prix horaire est HT=TTC
+  var ttc=Math.round((ph*centre+jury)*100)/100;
+  var ht=tva>0?Math.round(ttc/(1+tva/100)*100)/100:ttc;
+  ttcEl.value=ttc.toFixed(2);
+  htEl.value=ht.toFixed(2);
+  // Mettre à jour le label prix horaire
+  var lblPh=document.getElementById('lbl_ph_'+ai);
+  if(lblPh) lblPh.textContent=tva>0?'Prix horaire TTC (€)':'Prix horaire HT = TTC (€)';
 };
 window.filterFormacodeByPrefix=function(p){filterFormacodeByPrefix(p);};
 window.filterRomeByFormacode=function(prefix3){filterRomeByFormacode(prefix3);};
@@ -4592,7 +4611,7 @@ function buildAction(a,i,f){
     '<div class="fitem"><label>Durée totale (heures) <span class="req">*</span></label>'+
     '<input type="number" data-ai="'+i+'" data-f="dureeTotal" id="dureeTotal_'+i+'" value="'+esc(a.dureeTotal||'')+'" placeholder="60" oninput="calcDureeAuto('+i+')"></div>'+
     '<div class="fitem"><label>Dont heures en centre</label>'+
-    '<input type="number" data-ai="'+i+'" data-f="duree" id="duree_'+i+'" value="'+esc(a.duree||'')+'" placeholder="21" oninput="calcDureeAuto('+i+')"></div>'+
+    '<input type="number" data-ai="'+i+'" data-f="duree" id="duree_'+i+'" value="'+esc(a.duree||'')+'" oninput="calcDureeAuto('+i+');calcPrix('+i+')" placeholder="21" oninput="calcDureeAuto('+i+')"></div>'+
     '<div class="fitem"><label>Dont heures en entreprise</label>'+
     '<input type="number" data-ai="'+i+'" data-f="dureeEntreprise" id="dureeEnt_'+i+'" value="'+esc(a.dureeEntreprise||'')+'" placeholder="0" oninput="calcDureeAuto('+i+')"></div>'+
     '<div class="fitem full"><label>Frais pédagogiques <span class="req">*</span></label>'+
@@ -4608,8 +4627,8 @@ function buildAction(a,i,f){
     '<input type="number" id="prix_ttc_'+i+'" value="'+
     (a.prix?String(Math.round(parseFloat(a.prix)*(1+parseFloat(a.tva||0)/100)*100)/100):'')+ 
     '" placeholder="1300.00" oninput="calcPrixHT('+i+')"></div>'+
-    '<div><label style="font-size:10px;font-weight:400;color:var(--g5)">Prix horaire TTC (€)</label>'+
-    '<input type="number" data-ai="'+i+'" data-f="prixHoraire" value="'+esc(a.prixHoraire||'')+'" placeholder="72"></div>'+
+    '<div><label id="lbl_ph_'+i+'" style="font-size:10px;font-weight:400;color:var(--g5)">'+(a.tva&&parseFloat(a.tva)>0?'Prix horaire TTC (€)':'Prix horaire HT = TTC (€)')+'</label>'+
+    '<input type="number" id="prixH_'+i+'" data-ai="'+i+'" data-f="prixHoraire" value="'+esc(a.prixHoraire||'')+'" oninput="calcPrix('+i+')" placeholder="72"></div>'+
     '</div></div>'+
     '<div class="fitem"><label>Prix inclut les frais d\'examen / frais de jury ? <span class="bdg b-o">Impacte les résultats attendus VAE</span></label>'+
       '<select data-ai="'+i+'" data-f="certifInclus" onchange="var r=document.getElementById(\'jury_row_\'+this.dataset.ai);if(r)r.style.display=this.value===\'1\'?\'\'\':\'none\'">'+
@@ -4617,7 +4636,7 @@ function buildAction(a,i,f){
       '</select></div>'+
     '<div class="fitem" id="jury_row_'+i+'" style="'+(a.certifInclus==='1'?'':'display:none')+'">'+
       '<label>Montant TTC des frais d\'examen (€)</label>'+
-      '<input type="number" data-ai="'+i+'" data-f="fraisJury" value="'+esc(a.fraisJury||'')+'" placeholder="0.00">'+
+      '<input type="number" id="fraisJury_'+i+'" data-ai="'+i+'" data-f="fraisJury" value="'+esc(a.fraisJury||'')+'" oninput="calcPrix('+i+')" placeholder="0.00">'+
     '</div>'+
     aif(i,'lang','text',a.lang||'FR','Langue enseignement','2','FR')+
     '<div class="fitem full"><label>Modalités d\'admission <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
