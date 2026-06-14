@@ -4612,7 +4612,9 @@ function buildAction(a,i,f){
     '<input type="number" data-ai="'+i+'" data-f="prixHoraire" value="'+esc(a.prixHoraire||'')+'" placeholder="72"></div>'+
     '</div></div>'+
     afsel(i,'certifInclus','Prix inclut les frais d\'examen / frais de jury ? <span class="bdg b-o">Impacte les résultats attendus VAE</span>',
-      so('0','Non',a.certifInclus||'0')+so('1','Oui',a.certifInclus))+
+      so('0','Non',a.certifInclus||'0')+so('1','Oui',a.certifInclus)+so('2','Aucuns frais d\'examen attendus',a.certifInclus))+
+    (a.certifInclus==='1'?
+      aif(i,'fraisJury','number',a.fraisJury,'Montant TTC des frais d\'examen (€)','','0.00'):'')+
     aif(i,'prixHoraire','number',a.prixHoraire,'Prix horaire TTC (euros)','','72')+
     aif(i,'lang','text',a.lang||'FR','Langue enseignement','2','FR')+
     '<div class="fitem full"><label>Modalités d\'admission <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
@@ -4764,13 +4766,19 @@ function collect(fid){
     });
     if(f.vaeRncpList.length){
       // Lire frais de jury depuis la première action (champ frais-certif-inclus-frais-anpec)
-      var fraisInclus=(f.actions&&f.actions[0]&&f.actions[0].certifInclus==='1');
+      var certifInclusVal=(f.actions&&f.actions[0])?f.actions[0].certifInclus:'0';
+      var fraisInclus=(certifInclusVal==='1');
+      var aucunFrais=(certifInclusVal==='2');
       var lines=['Passage devant un jury pour les certifications :'];
       f.vaeRncpList.forEach(function(r){
         lines.push('- '+r.code+(r.titre?' - '+r.titre:''));
       });
-      if(fraisInclus)
+      if(fraisInclus){
         lines.push('Les frais de jury sont inclus dans le prix du parcours.');
+        if(f.actions&&f.actions[0]&&f.actions[0].fraisJury)
+          lines.push('Montant des frais de jury : '+f.actions[0].fraisJury+' € TTC.');
+      } else if(aucunFrais)
+        lines.push('Aucuns frais de passage de certification attendus.');
       else
         lines.push("Les frais de jury sont a la charge du candidat et seront payes directement a l'organisme certificateur.");
       f.resultats=lines.join('\n');
@@ -5135,7 +5143,7 @@ function emptyAction(){return {
   dureeTotal:'',duree:'',dureeEntreprise:'',
   prix:'',prixHoraire:'',lang:'FR',
   tva:'0.0',certifInclus:'0',tel:'',email:'',
-  codesAdm:['99999'],codesRythme:['5'],
+  codesAdm:['99999'],codesRythme:['5'],fraisJury:'',
   entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'0',infoPerim:'',infoRecrutement:'',urlAct:'',
   restauration:'',hebergement:'',transport:'',autresServices:'',
   adr:'',cp:'',ville:'',dep:'',reg:'84',pays:'FR',lat:'',lon:'',sessions:[]};}
@@ -5282,7 +5290,8 @@ function toXML(formations){
       var ryt=(a.codesRythme&&a.codesRythme.length)?a.codesRythme:['1'];
       ryt.forEach(function(c){o+='            <extra info="code-rythme-formation">'+escX(c)+'</extra>\n';});
       o+='          </extras>\n';
-      o+='          <extra info="frais-certif-inclus-frais-anpec">'+escX(a.certifInclus||'0')+'</extra>\n';
+      o+='          <extra info="frais-certif-inclus-frais-anpec">'+(a.certifInclus==='1'?'1':'0')+'</extra>\n';
+      if(a.certifInclus==='1'&&a.fraisJury)o+='          <extra info="frais-jury">'+escX(a.fraisJury)+'</extra>\n';
       // Calcul frais TTC selon TVA
       var ht=parseFloat(a.prix||'0');
       var tva=parseFloat(a.tva||'0.0');
