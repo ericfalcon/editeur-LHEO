@@ -4121,6 +4121,9 @@ function renderEditor(f){
     b.addEventListener('click',function(){
       doSave(f.id,true);var ff=cat.find(function(x){return x.id===f.id;});
       ff.actions[parseInt(b.dataset.ai)].sessions.splice(parseInt(b.dataset.si),1);persist();openEditor(f.id);});})
+
+  // Auto-lancer la recherche VAE
+  if(f.typeOffre==='vae'){setTimeout(function(){if(typeof fetchRncpVae==='function')fetchRncpVae();},400);}
 }
 
 function ccBind(id,ccId,max){
@@ -6053,13 +6056,48 @@ function fetchRncpVae(){
   if(!resEl) return;
   var q=(qEl?qEl.value.trim():'');
 
-  // Récupérer le NSF depuis la catégorisation VAE (Formacode 3 chiffres -> NSF via SEMANTIQUE_TO_NSF)
+  // Récupérer les NSF depuis la catégorisation VAE (Formacode 3 chiffres -> NSF)
+  // Table étendue: un Formacode peut mapper vers plusieurs NSF (ex: sport = 411 + 335)
+  var FORMACODE_TO_NSF_MULTI={
+    '154':['411','335'],  // Sport : pratiques sportives + animation sportive
+    '440':['332','333'],  // Action sociale
+    '430':['331'],        // Médecine/santé
+    '434':['331'],
+    '445':['333'],        // Ingénierie pédagogique
+    '320':['310','315'],  // Gestion organisations
+    '321':['315'],
+    '330':['315'],        // RH
+    '340':['312'],        // Commerce
+    '345':['312'],
+    '342':['312'],
+    '350':['324'],        // Secrétariat
+    '410':['313'],        // Banque/assurance
+    '420':['312'],
+    '427':['334'],        // Hôtellerie/restauration
+    '426':['334'],        // Tourisme
+    '428':['344'],        // Sécurité
+    '450':['133'],        // Art
+    '462':['323'],        // Audiovisuel
+    '463':['320'],        // Communication
+    '310':['326'],        // Informatique
+    '308':['326'],
+    '220':['231'],        // BTP
+    '223':['232'],
+    '224':['233'],
+    '240':['255'],        // Electricité
+    '326':['314'],        // Finance/compta
+    '210':['211'],        // Agriculture
+  };
   var nsfCodes=[];
   var catEl=document.getElementById('E_catoffre');
   if(catEl && catEl.value){
-    var formacode3=catEl.value.split(' ')[0]; // ex: "154"
-    var nsf=SEMANTIQUE_TO_NSF[formacode3];
-    if(nsf) nsfCodes.push(nsf);
+    var formacode3=catEl.value.split(' ')[0];
+    var nsfMulti=FORMACODE_TO_NSF_MULTI[formacode3];
+    if(nsfMulti) nsfCodes=nsfMulti;
+    else{
+      var nsf=SEMANTIQUE_TO_NSF[formacode3];
+      if(nsf) nsfCodes=[nsf];
+    }
   }
 
   resEl.style.display='block';
@@ -6115,14 +6153,28 @@ function fetchRncpVae(){
 }
 
 function selectRncpVae(code, intitule){
-  // Pré-remplir E_rncp et déclencher l'import
-  var el=document.getElementById('E_rncp');
-  if(el){ el.value=code; }
-  // Fermer les résultats
-  var resEl=document.getElementById('vae_search_results');
-  if(resEl) resEl.style.display='none';
-  // Déclencher l'import RNCP
-  fetchBlocs();
+  // Ajouter directement dans la liste VAE RNCP (sans import de blocs)
+  var L=window._lheo;
+  if(!L) return;
+  L.doSave(L.curId,true);
+  var ff=L.cat.find(function(x){return x.id===L.curId;});
+  if(!ff) return;
+  if(!ff.vaeRncpList) ff.vaeRncpList=[];
+  // Vérifier doublon
+  var exists=ff.vaeRncpList.some(function(r){return r.code===code;});
+  if(exists){
+    // Feedback visuel
+    var resEl=document.getElementById('vae_search_results');
+    if(resEl){
+      var existing=resEl.querySelector('[data-rncp="'+code+'"]');
+      if(existing){existing.style.background='#fff9c4';setTimeout(function(){existing.style.background='';},800);}
+    }
+    return;
+  }
+  ff.vaeRncpList.push({code:code, titre:intitule});
+  L.persist();
+  L.openEditor(L.curId);
+  // NE PAS fermer les résultats -> permettre sélection multiple
 }
 
 // Expositions globales - fonctions appelées depuis onclick/onchange inline
