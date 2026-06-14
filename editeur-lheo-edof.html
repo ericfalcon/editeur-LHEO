@@ -3585,7 +3585,6 @@ window.applySiretData=function(data){
 };
 
 window.calcPrix=function(ai){
-  // Lire les valeurs
   var phEl=document.getElementById('prixH_'+ai);
   var centreEl=document.getElementById('duree_'+ai);
   var tvaEl=document.getElementById('tva_'+ai);
@@ -3596,17 +3595,17 @@ window.calcPrix=function(ai){
   var ph=parseFloat(phEl.value)||0;
   var centre=parseFloat(centreEl.value)||0;
   var tva=parseFloat(tvaEl.value)||0;
-  var jury=(juryEl&&juryEl.closest('.fitem').style.display!=='none')?parseFloat(juryEl.value)||0:0;
-  if(ph===0||centre===0) return; // pas de calcul si données manquantes
-  // Calcul : TTC = (prix horaire × heures centre) + frais jury
-  // Si TVA=0 : prix horaire est HT=TTC
-  var ttc=Math.round((ph*centre+jury)*100)/100;
-  var ht=tva>0?Math.round(ttc/(1+tva/100)*100)/100:ttc;
-  ttcEl.value=ttc.toFixed(2);
+  // Frais jury : inclus dans HT si certifInclus=1 et champ visible
+  var juryRow=document.getElementById('jury_row_'+ai);
+  var jury=(juryEl&&juryRow&&juryRow.style.display!=='none')?parseFloat(juryEl.value)||0:0;
+  if(ph===0||centre===0) return;
+  // Prix horaire est TOUJOURS HT
+  // Montant HT = (prix horaire HT × heures centre) + frais examen HT
+  var ht=Math.round((ph*centre+jury)*100)/100;
+  // Montant TTC = Montant HT × (1 + TVA%)
+  var ttc=Math.round(ht*(1+tva/100)*100)/100;
   htEl.value=ht.toFixed(2);
-  // Mettre à jour le label prix horaire
-  var lblPh=document.getElementById('lbl_ph_'+ai);
-  if(lblPh) lblPh.textContent=tva>0?'Prix horaire TTC (€)':'Prix horaire HT = TTC (€)';
+  ttcEl.value=ttc.toFixed(2);
 };
 window.filterFormacodeByPrefix=function(p){filterFormacodeByPrefix(p);};
 window.filterRomeByFormacode=function(prefix3){filterRomeByFormacode(prefix3);};
@@ -4627,7 +4626,7 @@ function buildAction(a,i,f){
     '<input type="number" id="prix_ttc_'+i+'" value="'+
     (a.prix?String(Math.round(parseFloat(a.prix)*(1+parseFloat(a.tva||0)/100)*100)/100):'')+ 
     '" placeholder="1300.00" oninput="calcPrixHT('+i+')"></div>'+
-    '<div><label id="lbl_ph_'+i+'" style="font-size:10px;font-weight:400;color:var(--g5)">'+(a.tva&&parseFloat(a.tva)>0?'Prix horaire TTC (€)':'Prix horaire HT = TTC (€)')+'</label>'+
+    '<div><label style="font-size:10px;font-weight:400;color:var(--g5)">Prix horaire HT (€)</label>'+
     '<input type="number" id="prixH_'+i+'" data-ai="'+i+'" data-f="prixHoraire" value="'+esc(a.prixHoraire||'')+'" oninput="calcPrix('+i+')" placeholder="72"></div>'+
     '</div></div>'+
     '<div class="fitem"><label>Prix inclut les frais d\'examen / frais de jury ? <span class="bdg b-o">Impacte les résultats attendus VAE</span></label>'+
