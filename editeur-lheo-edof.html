@@ -6059,35 +6059,29 @@ function fetchRncpVae(){
   // Récupérer les NSF depuis la catégorisation VAE (Formacode 3 chiffres -> NSF)
   // Table étendue: un Formacode peut mapper vers plusieurs NSF (ex: sport = 411 + 335)
   var FORMACODE_TO_NSF_MULTI={
-    '154':['411','335'],  // Sport : pratiques sportives + animation sportive
-    '440':['332','333'],  // Action sociale
-    '430':['331'],        // Médecine/santé
-    '434':['331'],
-    '445':['333'],        // Ingénierie pédagogique
-    '320':['310','315'],  // Gestion organisations
-    '321':['315'],
-    '330':['315'],        // RH
-    '340':['312'],        // Commerce
-    '345':['312'],
-    '342':['312'],
-    '350':['324'],        // Secrétariat
-    '410':['313'],        // Banque/assurance
-    '420':['312'],
-    '427':['334'],        // Hôtellerie/restauration
-    '426':['334'],        // Tourisme
-    '428':['344'],        // Sécurité
-    '450':['133'],        // Art
-    '462':['323'],        // Audiovisuel
-    '463':['320'],        // Communication
-    '310':['326'],        // Informatique
-    '308':['326'],
-    '220':['231'],        // BTP
-    '223':['232'],
-    '224':['233'],
-    '240':['255'],        // Electricité
-    '326':['314'],        // Finance/compta
-    '210':['211'],        // Agriculture
-  };
+    '154':['411','335'],
+    '125':['343','341'],
+    '115':['222','111','116'],
+    '120':['118','112'],
+    '150':['412','413','415'],
+    '210':['211','212','210'],
+    '213':['213','212'],
+    '224':['233','232'],
+    '228':['222','224'],
+    '230':['254','251'],
+    '236':['252','251'],
+    '320':['310','314'],
+    '321':['310','300'],
+    '420':['336','330','312'],
+    '440':['332','330'],
+    '450':['133','132'],
+    '455':['234','134'],
+    '463':['321','320','325'],
+    '427':['334','221'],
+    '132':['128','313'],
+    '434':['331','330'],
+    '445':['333','315'],
+  };;
   var nsfCodes=[];
   var catEl=document.getElementById('E_catoffre');
   if(catEl && catEl.value){
