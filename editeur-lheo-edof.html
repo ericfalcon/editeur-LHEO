@@ -4423,6 +4423,11 @@ function buildDesc(f){
       '<div class="fitem full"><label>Résultats attendus <span class="req">*</span>'+
       ' <span class="bdg b-o">généré automatiquement pour la VAE</span></label>'+
       '<div style="background:var(--g1);border:1px solid var(--g2);border-radius:5px;padding:8px 12px;margin-bottom:4px">'+
+      '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">'+
+        '<input type="text" id="vae_search_q" placeholder="Mot-clé optionnel" style="flex:1;padding:5px 8px;border:1px solid var(--g3);border-radius:4px;font-size:11px">'+
+        '<button type="button" class="btn btn-sm rs-btn" onclick="fetchRncpVae()">🔍 Rechercher certifications</button>'+
+      '</div>'+
+      '<div id="vae_search_results" style="max-height:200px;overflow-y:auto;border:1px solid var(--g3);border-radius:4px;background:var(--bg);display:none;margin-bottom:8px"></div>'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
       '<span style="font-size:11px;font-weight:600;color:var(--g7)">Certifications RNCP visées par votre accompagnement VAE</span>'+
       '<button type="button" class="btn btn-p btn-sm" onclick="addVaeRncp()">+ Ajouter RNCP</button></div>'+
@@ -6034,19 +6039,13 @@ function fetchRncpVae(){
   if(!resEl) return;
   var q=(qEl?qEl.value.trim():'');
 
-  // Récupérer le NSF depuis les tags NSF sélectionnés
-  var nsfTags=document.querySelectorAll('.tag-nsf');
+  // Récupérer le NSF depuis la catégorisation VAE (Formacode 3 chiffres -> NSF via SEMANTIQUE_TO_NSF)
   var nsfCodes=[];
-  nsfTags.forEach(function(t){ var v=t.dataset.val||t.textContent.split(' ')[0]; if(v) nsfCodes.push(v); });
-  // Fallback: lire le select NSF
-  if(!nsfCodes.length){
-    var nsfSel=document.getElementById('sf_s_nsf');
-    if(nsfSel){
-      for(var i=0;i<nsfSel.selectedOptions.length;i++){
-        var v=nsfSel.selectedOptions[i].value;
-        if(v) nsfCodes.push(v.split(' ')[0]);
-      }
-    }
+  var catEl=document.getElementById('E_catoffre');
+  if(catEl && catEl.value){
+    var formacode3=catEl.value.split(' ')[0]; // ex: "154"
+    var nsf=SEMANTIQUE_TO_NSF[formacode3];
+    if(nsf) nsfCodes.push(nsf);
   }
 
   resEl.style.display='block';
@@ -6054,7 +6053,8 @@ function fetchRncpVae(){
 
   // Construire la query
   var qsParts=['SI_JURY_VAE:true','ACTIF:true'];
-  if(nsfCodes.length) qsParts.push('CODES_NSF:('+nsfCodes.map(function(c){return c.split('').slice(0,3).join('');}).join(' OR ')+')');
+  // Filtre NSF : CODES_NSF contient le code NSF (ex: "411")
+  if(nsfCodes.length) qsParts.push('CODES_NSF:('+nsfCodes.join(' OR ')+')');
   var qs=qsParts.join(' AND ');
   var params='qs='+encodeURIComponent(qs)+'&size=30&select=NUMERO_FICHE,INTITULE,NOMENCLATURE_EUROPE_NIVEAU,CODES_NSF,CERTIFICATEURS';
   if(q) params+='&q='+encodeURIComponent(q);
