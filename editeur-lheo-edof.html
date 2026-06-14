@@ -4244,7 +4244,14 @@ function buildCertif(f){
         '&#9432; <strong>VAE — Certifications RNCP visées</strong><br>'+
         'Les codes RNCP ne sont pas saisis ici. Ils sont renseignés dans la section '+
         '<strong>Résultats attendus</strong> ci-dessous (liste des certifications préparées par votre accompagnement).'+
-        '</div></div>'
+        '</div></div>'+
+        '<div class="fitem full">'+
+          '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">'+
+            '<input type="text" id="vae_search_q" placeholder="Recherche par mot-clé (ex: aide soignant)" style="flex:1;padding:6px 10px;border:1px solid var(--g3);border-radius:4px;font-size:12px">'+
+            '<button class="btn btn-sm rs-btn" onclick="fetchRncpVae()" title="Rechercher dans le RNCP France Compétences">🔍 Rechercher certifications VAE</button>'+
+          '</div>'+
+          '<div id="vae_search_results" style="max-height:220px;overflow-y:auto;border:1px solid var(--g3);border-radius:4px;background:var(--bg);display:none"></div>'+
+        '</div>'
       :'')
     )+
     // CPF : affiché pour tous mais pré-rempli et verrouillé pour Bilan/VAE/Permis
@@ -6020,8 +6027,94 @@ function removeBloc(i){
   var ff=L.cat.find(function(x){return x.id===L.curId;});if(!ff)return;
   ff.blocsCompetences.splice(i,1);L.persist();L.openEditor(L.curId);}
 
+// ─── Recherche RNCP pour la VAE via Koumoul (France Compétences) ───
+function fetchRncpVae(){
+  var qEl=document.getElementById('vae_search_q');
+  var resEl=document.getElementById('vae_search_results');
+  if(!resEl) return;
+  var q=(qEl?qEl.value.trim():'');
+
+  // Récupérer le NSF depuis les tags NSF sélectionnés
+  var nsfTags=document.querySelectorAll('.tag-nsf');
+  var nsfCodes=[];
+  nsfTags.forEach(function(t){ var v=t.dataset.val||t.textContent.split(' ')[0]; if(v) nsfCodes.push(v); });
+  // Fallback: lire le select NSF
+  if(!nsfCodes.length){
+    var nsfSel=document.getElementById('sf_s_nsf');
+    if(nsfSel){
+      for(var i=0;i<nsfSel.selectedOptions.length;i++){
+        var v=nsfSel.selectedOptions[i].value;
+        if(v) nsfCodes.push(v.split(' ')[0]);
+      }
+    }
+  }
+
+  resEl.style.display='block';
+  resEl.innerHTML='<div style="padding:8px;color:var(--g5);font-size:12px">⏳ Recherche en cours...</div>';
+
+  // Construire la query
+  var qsParts=['SI_JURY_VAE:true','ACTIF:true'];
+  if(nsfCodes.length) qsParts.push('CODES_NSF:('+nsfCodes.map(function(c){return c.split('').slice(0,3).join('');}).join(' OR ')+')');
+  var qs=qsParts.join(' AND ');
+  var params='qs='+encodeURIComponent(qs)+'&size=30&select=NUMERO_FICHE,INTITULE,NOMENCLATURE_EUROPE_NIVEAU,CODES_NSF,CERTIFICATEURS';
+  if(q) params+='&q='+encodeURIComponent(q);
+  params+='&sort=NOMENCLATURE_EUROPE_NIVEAU';
+
+  // Via proxy si local, direct si non
+  var baseUrl=window.isLocalProxy
+    ?'http://localhost:8765/proxy/koumoul/?'+params
+    :'https://opendata.koumoul.com/data-fair/api/v1/datasets/competences-rncp/lines?'+params;
+
+  fetch(baseUrl)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var results=data.results||[];
+      if(!results.length){
+        resEl.innerHTML='<div style="padding:8px;color:var(--g5);font-size:12px">Aucune certification VAE trouvée' +(nsfCodes.length?' pour NSF '+nsfCodes.join(','):'')+'. Essayez un mot-clé.</div>';
+        return;
+      }
+      var html='<div style="padding:4px 8px;font-size:11px;color:var(--g5);border-bottom:1px solid var(--g3)">'+results.length+' résultat(s)'+( data.total>results.length?' sur '+data.total:'')+' — cliquer pour pré-remplir le code RNCP</div>';
+      // Grouper par niveau
+      var byLevel={};
+      results.forEach(function(r){
+        var lv=r.NOMENCLATURE_EUROPE_NIVEAU||'?';
+        if(!byLevel[lv]) byLevel[lv]=[];
+        byLevel[lv].push(r);
+      });
+      Object.keys(byLevel).sort().forEach(function(lv){
+        html+='<div style="padding:3px 8px;background:var(--g1);font-size:10px;font-weight:600;color:var(--g5)">Niveau '+lv.replace('NIV','')+'</div>';
+        byLevel[lv].forEach(function(r){
+          var cert=r.CERTIFICATEURS?r.CERTIFICATEURS.split(';')[0].trim():'';
+          html+='<div class="vae-rncp-result" data-rncp="'+r.NUMERO_FICHE+'" style="padding:5px 10px;cursor:pointer;border-bottom:1px solid var(--g2);font-size:12px" '+
+            'onmouseover="this.style.background=\'var(--g1)\';" onmouseout="this.style.background=\'\';" '+
+            'onclick="selectRncpVae(\''+r.NUMERO_FICHE+'\',\''+r.INTITULE.replace(/'/g,"\'\'").replace(/"/g,'&quot;')+'\')">' +
+            '<strong>'+r.NUMERO_FICHE+'</strong> — '+r.INTITULE+
+            (cert?'<br><span style="color:var(--g5);font-size:10px">'+cert+'</span>':'')+
+            '</div>';
+        });
+      });
+      resEl.innerHTML=html;
+    })
+    .catch(function(e){
+      resEl.innerHTML='<div style="padding:8px;color:#c62828;font-size:12px">Erreur: '+e.message+'</div>';
+    });
+}
+
+function selectRncpVae(code, intitule){
+  // Pré-remplir E_rncp et déclencher l'import
+  var el=document.getElementById('E_rncp');
+  if(el){ el.value=code; }
+  // Fermer les résultats
+  var resEl=document.getElementById('vae_search_results');
+  if(resEl) resEl.style.display='none';
+  // Déclencher l'import RNCP
+  fetchBlocs();
+}
+
 // Expositions globales - fonctions appelées depuis onclick/onchange inline
 window.fetchBlocs=fetchBlocs;
+window.fetchRncpVae=fetchRncpVae;
+window.selectRncpVae=selectRncpVae;
 window.fetchRS=fetchRS;
 window.onTypeOffreChange=onTypeOffreChange;
 window.calcDureeAuto=calcDureeAuto;
