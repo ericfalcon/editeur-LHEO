@@ -4611,11 +4611,14 @@ function buildAction(a,i,f){
     '<div><label style="font-size:10px;font-weight:400;color:var(--g5)">Prix horaire TTC (€)</label>'+
     '<input type="number" data-ai="'+i+'" data-f="prixHoraire" value="'+esc(a.prixHoraire||'')+'" placeholder="72"></div>'+
     '</div></div>'+
-    afsel(i,'certifInclus','Prix inclut les frais d\'examen / frais de jury ? <span class="bdg b-o">Impacte les résultats attendus VAE</span>',
-      so('0','Non',a.certifInclus||'0')+so('1','Oui',a.certifInclus)+so('2','Aucuns frais d\'examen attendus',a.certifInclus))+
-    (a.certifInclus==='1'?
-      aif(i,'fraisJury','number',a.fraisJury,'Montant TTC des frais d\'examen (€)','','0.00'):'')+
-    aif(i,'prixHoraire','number',a.prixHoraire,'Prix horaire TTC (euros)','','72')+
+    '<div class="fitem"><label>Prix inclut les frais d\'examen / frais de jury ? <span class="bdg b-o">Impacte les résultats attendus VAE</span></label>'+
+      '<select data-ai="'+i+'" data-f="certifInclus" onchange="var r=document.getElementById(\'jury_row_\'+this.dataset.ai);if(r)r.style.display=this.value===\'1\'?\'\'\':\'none\'">'+
+      so('0','Non',a.certifInclus||'0')+so('1','Oui',a.certifInclus)+so('2','Aucuns frais d\'examen attendus',a.certifInclus)+
+      '</select></div>'+
+    '<div class="fitem" id="jury_row_'+i+'" style="'+(a.certifInclus==='1'?'':'display:none')+'">'+
+      '<label>Montant TTC des frais d\'examen (€)</label>'+
+      '<input type="number" data-ai="'+i+'" data-f="fraisJury" value="'+esc(a.fraisJury||'')+'" placeholder="0.00">'+
+    '</div>'+
     aif(i,'lang','text',a.lang||'FR','Langue enseignement','2','FR')+
     '<div class="fitem full"><label>Modalités d\'admission <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
     '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px" id="adm_'+i+'">'+
