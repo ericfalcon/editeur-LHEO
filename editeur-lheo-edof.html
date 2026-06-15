@@ -4402,7 +4402,7 @@ function buildCertif(f){
     (!isPermis?
       '<div class="fitem full">'+
       '<label>Code NSF <span class="req">*</span> <span class="bdg b-o">max 3</span>'+
-      (isVae?' <span class="bdg b-o" style="background:#e3f2fd;color:#1565c0">ℹ Fourni par l\'import RNCP — ne pas saisir manuellement</span>':'')+
+      (isVae?' <span class="bdg b-o" style="background:#e3f2fd;color:#1565c0">ℹ Fourni par la catégorisation VAE — ne pas saisir manuellement</span>':'')+
       '</label>'+
       buildSF('nsf',NSF,f.nsf||[],3)+'</div>'
     :
@@ -6175,14 +6175,50 @@ function fetchRncpVae(offset){
             '</div>';
         });
       });
-      // Bouton Voir plus si résultats supplémentaires
-      if(data.total > curSize){
-        html+='<div style="padding:6px;text-align:center">'+
-          '<button type="button" onclick="fetchRncpVae('+(curSize+50)+')" '+
-          'style="font-size:11px;background:var(--g1);border:1px solid var(--g3);padding:4px 12px;border-radius:4px;cursor:pointer">'+
-          '▼ Voir plus ('+(data.total-curSize)+' restants)</button></div>';
+      // Si "Voir plus" : ne remplacer que les éléments nouveaux (à partir de offset-200)
+      var startIdx=(offset&&offset>200)?offset-200:0;
+      if(startIdx>0){
+        // Conserver les items déjà affichés, juste ajouter les nouveaux
+        // Supprimer l'ancien bouton "Voir plus" s'il existe
+        var oldBtn=resEl.querySelector('.voir-plus-btn');
+        if(oldBtn) oldBtn.parentNode.removeChild(oldBtn);
+        // Construire seulement les nouveaux items (les résultats sont triés, on prend depuis startIdx)
+        var newHtml='';
+        var prevLevel='';
+        results.slice(startIdx).forEach(function(r){
+          var lv=r.NOMENCLATURE_EUROPE_NIVEAU||'?';
+          if(lv!==prevLevel){
+            newHtml+='<div style="padding:3px 8px;background:var(--g1);font-size:10px;font-weight:600;color:var(--g5)">Niveau '+lv.replace('NIV','')+'</div>';
+            prevLevel=lv;
+          }
+          var cert=r.CERTIFICATEURS?r.CERTIFICATEURS.split(';')[0].trim():'';
+          newHtml+='<div class="vae-rncp-result" data-rncp="'+r.NUMERO_FICHE+'" style="padding:5px 10px;cursor:pointer;border-bottom:1px solid var(--g2);font-size:12px" '+
+            'onmouseover="this.style.background=\'var(--g1)\';" onmouseout="this.style.background=\'\';" '+
+            'onclick="selectRncpVae(\''+r.NUMERO_FICHE+'\',\''+r.INTITULE.replace(/'/g,"\'\'\"").replace(/"/g,'&quot;')+'\')">' +
+            '<strong>'+r.NUMERO_FICHE+'</strong> — '+r.INTITULE+
+            (cert?'<br><span style="color:var(--g5);font-size:10px">'+cert+'</span>':'')+
+            '</div>';
+        });
+        if(data.total > curSize){
+          newHtml+='<div class="voir-plus-btn" style="padding:6px;text-align:center">'+
+            '<button type="button" onclick="fetchRncpVae('+(curSize+200)+')" '+
+            'style="font-size:11px;background:var(--g1);border:1px solid var(--g3);padding:4px 12px;border-radius:4px;cursor:pointer">'+
+            '▼ Voir plus ('+(data.total-curSize)+' restants)</button></div>';
+        }
+        resEl.insertAdjacentHTML('beforeend', newHtml);
+        // Mettre à jour le compteur en haut
+        var counter=resEl.querySelector('div:first-child');
+        if(counter) counter.textContent=curSize+' résultat(s) affichés sur '+data.total+' — cliquer pour ajouter';
+      } else {
+        // Premier chargement : remplacer tout
+        if(data.total > curSize){
+          html+='<div class="voir-plus-btn" style="padding:6px;text-align:center">'+
+            '<button type="button" onclick="fetchRncpVae('+(curSize+200)+')" '+
+            'style="font-size:11px;background:var(--g1);border:1px solid var(--g3);padding:4px 12px;border-radius:4px;cursor:pointer">'+
+            '▼ Voir plus ('+(data.total-curSize)+' restants)</button></div>';
+        }
+        resEl.innerHTML=html;
       }
-      resEl.innerHTML=html;
     })
     .catch(function(e){
       resEl.innerHTML='<div style="padding:8px;color:#c62828;font-size:12px">Erreur: '+e.message+'</div>';
