@@ -50,7 +50,7 @@
 
 Ouvrir directement : [https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html](https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html)
 
-> ⚠️ La vérification SIRET et la recherche RNCP nécessitent le serveur proxy local (Option 2).
+
 
 ---
 
