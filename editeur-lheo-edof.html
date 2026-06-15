@@ -4061,13 +4061,11 @@ function renderEditor(f){
           nsfBar.querySelectorAll('.tp').forEach(function(t){t.remove();});
           // Ajouter les NSF correspondants (max 3)
           nsfCodes.slice(0,3).forEach(function(nsfCode){
-            // Trouver le libellé dans sf_s_nsf
+            // Trouver le libellé depuis la variable globale NSF
             var label=nsfCode;
-            if(nsfSel){
-              for(var i=0;i<nsfSel.options.length;i++){
-                if(nsfSel.options[i].value&&nsfSel.options[i].value.indexOf(nsfCode)===0){
-                  label=nsfSel.options[i].value; break;
-                }
+            if(typeof NSF !== 'undefined'){
+              for(var ni=0;ni<NSF.length;ni++){
+                if(NSF[ni][0]===nsfCode){ label=NSF[ni][1]; break; }
               }
             }
             addTag(nsfBar, label, 3);
@@ -6139,7 +6137,7 @@ function fetchRncpVae(offset){
   // Filtre NSF : CODES_NSF contient le code NSF (ex: "411")
   if(nsfCodes.length) qsParts.push('CODES_NSF:('+nsfCodes.join(' OR ')+')');
   var qs=qsParts.join(' AND ');
-  var params='qs='+encodeURIComponent(qs)+'&size='+(offset||50)+'&select=NUMERO_FICHE,INTITULE,NOMENCLATURE_EUROPE_NIVEAU,CODES_NSF,CERTIFICATEURS';
+  var params='qs='+encodeURIComponent(qs)+'&size='+(offset||200)+'&select=NUMERO_FICHE,INTITULE,NOMENCLATURE_EUROPE_NIVEAU,CODES_NSF,CERTIFICATEURS';
   if(q) params+='&q='+encodeURIComponent(q);
   params+='&sort=NOMENCLATURE_EUROPE_NIVEAU';
 
