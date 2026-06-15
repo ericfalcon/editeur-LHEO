@@ -4246,7 +4246,7 @@ function buildIdent(f){
     '<div class="fitem"><label>SIRET organisme <span class="req">*</span></label>'+
     '<input type="text" id="E_siret" maxlength="14" value="'+esc(f.siret||'')+'" placeholder="14 chiffres">'+
     '<div id="E_siret_status"></div></div>'+
-    (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'4':isVae?'6':'3')+'">')+
+    (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'9':isVae?'6':'3')+'">')+
     '<div class="fitem"><label>Type de parcours</label>'+
     '<select id="E_parcours" onchange="">'+sOpts(PARCOURS,f.parcours)+'</select>'+
     '<span class="hint" id="parcours_hint"></span></div>'+
@@ -4477,7 +4477,18 @@ function buildCertif(f){
 
 function buildDesc(f){
   var isVaeBD=(f.typeOffre==='vae');
+  var isBilanBD=(f.typeOffre==='bilan');
   return fg(2)+
+    (isBilanBD?
+      '<div class="fitem full"><div style="background:#fff3e0;border:1px solid #ffb300;border-radius:5px;padding:8px 12px;font-size:11px;color:#e65100">'+
+      '⚠ <strong>Bilan de compétences — règles légales :</strong> '+
+      '<ul style="margin:4px 0 0 16px;padding:0">'+
+      '<li>Durée maximale : <strong>24 heures</strong> (art. R6313-4 du Code du travail)</li>'+
+      '<li>3 phases obligatoires : phase préliminaire, phase d\'investigation, phase de conclusion</li>'+
+      '<li>Non certifiant — résultat : document de synthèse remis au bénéficiaire</li>'+
+      '<li>Qualiopi mention <em>bilan de compétences</em> obligatoire</li>'+
+      '</ul></div></div>'
+    :'')+
     fta('Objectif pédagogique <span class="req">*</span>','E_obj',f.objectif,3000,true)+
     fta('Contenu <span class="req">*</span>','E_cont',f.contenu,3000,true)+
     // Résultats attendus : généré automatiquement pour VAE, libre sinon
