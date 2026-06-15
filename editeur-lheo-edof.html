@@ -4015,26 +4015,63 @@ function renderEditor(f){
     var fcSel   = $('sf_s_fc');
 
     // Fonction centrale : appliquer filtres + présélections depuis un préfixe 3ch
+    // Table NSF multi pour VAE (même que fetchRncpVae)
+    var CAT_TO_NSF_MULTI={
+      '154':['411','335'],'125':['343','341'],'115':['222','111','116'],
+      '120':['118','112'],'150':['412','413','415'],'210':['211','212','210'],
+      '213':['213','212'],'224':['233','232'],'228':['222','224'],
+      '230':['254','251'],'236':['252','251'],'320':['310','314'],
+      '321':['310','300'],'420':['336','330','312'],'440':['332','330'],
+      '450':['133','132'],'455':['234','134'],'463':['321','320','325'],
+      '427':['334','221'],'132':['128','313'],'434':['331','330'],'445':['333','315']
+    };
+
     function applyPrefix(prefix3, source){
       // Filtrer FORMACODE par préfixe 3ch
       filterFormacodeByPrefix(prefix3);
       // Filtrer ROME par familles correspondantes
       filterRomeByFormacode(prefix3);
-      // Filtrer NSF : utiliser SEMANTIQUE_TO_NSF pour trouver le NSF correspondant
-      if(prefix3 && source!=='nsf'){
-        var nsfCode = SEMANTIQUE_TO_NSF[prefix3] || null;
-        if(nsfCode){
-          // Filtrer la liste NSF sur ce code
-          var nsfSel = document.getElementById('sf_s_nsf');
-          if(nsfSel){
-            var opts = nsfSel.options;
-            for(var i=0;i<opts.length;i++){
-              opts[i].hidden = opts[i].value && opts[i].value.indexOf(nsfCode) < 0;
-            }
-            // Mettre à jour le bandeau de filtre
-            var nsfBand = document.getElementById('sf_band_nsf');
-            if(nsfBand) nsfBand.textContent = 'Filtré sur NSF ' + nsfCode;
+
+      // Déterminer les codes NSF correspondants
+      var nsfCodes=[];
+      if(prefix3){
+        var multi=CAT_TO_NSF_MULTI[prefix3];
+        if(multi) nsfCodes=multi;
+        else{ var s=SEMANTIQUE_TO_NSF[prefix3]; if(s) nsfCodes=[s]; }
+      }
+
+      if(nsfCodes.length && source!=='nsf'){
+        var nsfSel=document.getElementById('sf_s_nsf');
+        var nsfBar=document.getElementById('sf_t_nsf');
+
+        // Filtrer la liste NSF (afficher seulement les NSF pertinents)
+        if(nsfSel){
+          var opts=nsfSel.options;
+          for(var i=0;i<opts.length;i++){
+            var match=nsfCodes.some(function(c){return opts[i].value&&opts[i].value.indexOf(c)===0;});
+            opts[i].hidden=opts[i].value&&!match;
           }
+          var nsfBand=document.getElementById('sf_band_nsf');
+          if(nsfBand) nsfBand.textContent='Filtré sur NSF '+nsfCodes.join(', ');
+        }
+
+        // Pré-remplir les tags NSF si source=cat (changement catégorisation VAE)
+        if(source==='cat' && nsfBar){
+          // Vider les tags existants
+          nsfBar.querySelectorAll('.tp').forEach(function(t){t.remove();});
+          // Ajouter les NSF correspondants (max 3)
+          nsfCodes.slice(0,3).forEach(function(nsfCode){
+            // Trouver le libellé dans sf_s_nsf
+            var label=nsfCode;
+            if(nsfSel){
+              for(var i=0;i<nsfSel.options.length;i++){
+                if(nsfSel.options[i].value&&nsfSel.options[i].value.indexOf(nsfCode)===0){
+                  label=nsfSel.options[i].value; break;
+                }
+              }
+            }
+            addTag(nsfBar, label, 3);
+          });
         }
       }
     }
