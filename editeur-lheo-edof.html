@@ -87,6 +87,12 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
 .val-banner ul{margin:6px 0 0 18px;}
 .val-banner li{margin-bottom:3px;color:var(--err);}
 .val-banner strong{color:var(--err);}
+.val-warn{background:#fffbe6;border:1px solid #e6a817;border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;}
+.val-warn ul{margin:6px 0 0 18px;}
+.val-warn li{margin-bottom:3px;color:#b07800;}
+.val-warn strong{color:#b07800;}
+.val-ok{background:#f0fff4;border:1px solid #2ecc71;border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;color:#1a7a40;}
+.btn-warn{background:#e6a817;color:#fff;border:none;}
 .siret-ok{font-size:10px;color:var(--ok);margin-top:2px;}
 .siret-err{font-size:10px;color:var(--err);margin-top:2px;}
 .rs-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:11px;font-weight:500;border-radius:5px;cursor:pointer;border:1px solid var(--pri);background:var(--prl);color:var(--pri);margin-top:4px;}
@@ -4039,6 +4045,7 @@ function renderEditor(f){
     '<div class="ed-head"><h2>Fiche formation</h2>'+
     '<div style="display:flex;gap:5px">'+
     '<button class="btn" id="E_prev">XML</button>'+
+    '<button class="btn btn-warn" id="E_valid" title="Vérifier les champs avant export">✔ Valider</button>'+
     '<button class="btn btn-ok" id="E_exp">Exporter</button>'+
     '<button class="btn" id="E_apercu">👁 Aperçu MCF</button>'+
     '<button class="btn" onclick="dupFiche(\''+f.id+'\')">⧉ Dupliquer</button>'+
@@ -4247,6 +4254,7 @@ function renderEditor(f){
   if(aperBtn) aperBtn.addEventListener('click',function(){doSave(f.id,true);doApercu(f.id);});
   $('E_prev').addEventListener('click',function(){doPreview(f.id);});
   $('E_prev2').addEventListener('click',function(){doPreview(f.id);});
+  $('E_valid').addEventListener('click',function(){var errs=validateFiche(f);showValidation(errs);if(!errs.length)toast('Fiche valide ✓');else if(errs.filter(function(e){return !e.warn;}).length===0)toast(errs.length+' avertissement(s) — export possible');else toast(errs.filter(function(e){return !e.warn;}).length+' erreur(s) bloquante(s)',true);});
   $('E_exp').addEventListener('click',function(){doExport1(f.id);});
   // E_addAct géré par délégation permanente sur J_main
   // Binder la zone d'import habilitations
@@ -5073,9 +5081,9 @@ function validateFiche(f){
     if(code){
       var hab=isHabilite(code);
       if(hab===false)
-        errs.push({field:'E_rncp',msg:'⚠ '+code+' : habilitation non trouvée dans votre liste EDOF'});
+        errs.push({field:'E_rncp',msg:'⚠ '+code+' : habilitation non trouvée dans votre liste EDOF',warn:true});
       else if(hab&&hab.dateFin&&new Date(hab.dateFin)<new Date())
-        errs.push({field:'E_rncp',msg:'⚠ '+code+' : habilitation expirée le '+hab.dateFin});
+        errs.push({field:'E_rncp',msg:'⚠ '+code+' : habilitation expirée le '+hab.dateFin,warn:true});
     }
   }
   if((to==='bilan')&&f.cpf!=='CPF202')
@@ -5106,7 +5114,7 @@ function validateFiche(f){
       if(a.modEns===b.modEns&&a.cp===b.cp&&a.lang===b.lang&&a.prix===b.prix){
         var da=parseFloat(a.duree||0),db=parseFloat(b.duree||0);
         if(Math.abs(da-db)<10) errs.push({field:null,
-          msg:'Actions '+(i+1)+' et '+(j+1)+' trop similaires (EDOF erreur 30056/30057) - vérifiez modalités, lieu, durée'});
+          msg:'Actions '+(i+1)+' et '+(j+1)+' trop similaires (EDOF erreur 30056/30057) - vérifiez modalités, lieu, durée',warn:true});
       }
     });
   });
@@ -5114,23 +5122,42 @@ function validateFiche(f){
 }
 
 // Afficher/masquer les erreurs dans le formulaire
+// errs : tableau {field, msg, warn?} — warn:true = avertissement non bloquant
 function showValidation(errs){
-  // Nettoyer les erreurs précédentes
   document.querySelectorAll('.field-err').forEach(function(el){el.classList.remove('field-err');});
-  var old=$('val-banner');if(old)old.remove();
+  ['val-banner','val-warn-banner','val-ok-banner'].forEach(function(id){var o=$(id);if(o)o.remove();});
 
-  if(!errs||!errs.length) return true;
+  var edHead=document.querySelector('.ed-head');
+  if(!edHead) return (!errs||!errs.length);
 
-  // Banner en haut de l'éditeur
-  var banner=document.createElement('div');
-  banner.id='val-banner';
-  banner.className='val-banner';
-  banner.innerHTML='<strong>'+errs.length+' erreur(s) à corriger avant export :</strong><ul>'+
-    errs.map(function(e){return '<li>'+e.msg+'</li>';}).join('')+'</ul>';
-  var edHead=$('.ed-head')||document.querySelector('.ed-head');
-  if(edHead) edHead.parentNode.insertBefore(banner,edHead.nextSibling);
+  if(!errs||!errs.length){
+    var ok=document.createElement('div');
+    ok.id='val-ok-banner';ok.className='val-ok';
+    ok.innerHTML='<strong>\u2714 Fiche valide</strong> \u2014 aucune erreur d\u00e9tect\u00e9e, vous pouvez exporter.';
+    edHead.parentNode.insertBefore(ok,edHead.nextSibling);
+    setTimeout(function(){try{var o=$('val-ok-banner');if(o)o.remove();}catch(e){}},4000);
+    return true;
+  }
 
-  // Surligner les champs en rouge
+  var bloquantes=errs.filter(function(e){return !e.warn;});
+  var warnings=errs.filter(function(e){return e.warn;});
+
+  if(bloquantes.length){
+    var banner=document.createElement('div');
+    banner.id='val-banner';banner.className='val-banner';
+    banner.innerHTML='<strong>\u26d4 '+bloquantes.length+' erreur(s) bloquante(s) :</strong><ul>'+
+      bloquantes.map(function(e){return '<li>'+e.msg+'</li>';}).join('')+'</ul>';
+    edHead.parentNode.insertBefore(banner,edHead.nextSibling);
+  }
+
+  if(warnings.length){
+    var wbanner=document.createElement('div');
+    wbanner.id='val-warn-banner';wbanner.className='val-warn';
+    wbanner.innerHTML='<strong>\u26a0 '+warnings.length+' avertissement(s) :</strong><ul>'+
+      warnings.map(function(e){return '<li>'+e.msg+'</li>';}).join('')+'</ul>';
+    edHead.parentNode.insertBefore(wbanner,edHead.nextSibling);
+  }
+
   errs.forEach(function(e){
     if(!e.field) return;
     var el=$(e.field);
@@ -5139,7 +5166,7 @@ function showValidation(errs){
       if(parent) parent.classList.add('field-err');
     }
   });
-  return false;
+  return (bloquantes.length===0);
 }
 
 /* ==============================================================
@@ -5524,10 +5551,17 @@ function doExport1(fid){
   doSave(fid,true);
   var f=cat.find(function(x){return x.id===fid;});
   var errs=validateFiche(f);
-  if(errs.length){
-    showValidation(errs);
-    toast(errs.length+' erreur(s) — corrigez avant export',true);
+  var ok=showValidation(errs);
+  if(!ok){
+    // Erreurs bloquantes : on stoppe
+    toast(errs.filter(function(e){return !e.warn;}).length+' erreur(s) bloquante(s) — corrigez avant export',true);
     return;
+  }
+  var warns=errs.filter(function(e){return e.warn;});
+  if(warns.length){
+    // Avertissements : on demande confirmation
+    var msg='Avertissements :\n'+warns.map(function(e){return '\u2022 '+e.msg;}).join('\n')+'\n\nExporter quand m\u00eame ?';
+    if(!confirm(msg)) return;
   }
   dl(toXML([f]),(f.siret||'SIRET')+'_'+(f.numIntOf||'formation')+'.xml');
   toast('XML exporté ✓');
@@ -5739,6 +5773,7 @@ function doExportExcel(){
 
 
 $('J_mc').addEventListener('click',function(){$('J_modal').classList.remove('open');});
+$('J_apercu_close').addEventListener('click',function(){$('J_apercu_modal').classList.remove('open');});
 $('J_copy').addEventListener('click',function(){navigator.clipboard.writeText(xmlBuf).then(function(){toast('Copie');});});
 $('J_dlXml').addEventListener('click',function(){dl(xmlBuf,xmlName);});
 
