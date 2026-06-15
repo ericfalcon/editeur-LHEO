@@ -3843,7 +3843,7 @@ function filterFormacodeByPrefix(prefix3){
   }
 }
 
-function addTag(bar,val,max){
+function addTag(bar,val,max,onRemove){
   var existing=Array.from(bar.querySelectorAll('.tp')).map(function(p){return p.dataset.v;});
   if(existing.indexOf(val)>=0)return;
   if(max&&existing.length>=max){toast('Maximum '+max+' codes',true);return;}
@@ -3852,8 +3852,73 @@ function addTag(bar,val,max){
   // afficher seulement le code (avant " - ")
   var label=val.indexOf(' - ')>=0?val.split(' - ').slice(0,2).join(' - '):val;
   sp.innerHTML=esc(label)+' <button type="button">x</button>';
-  sp.querySelector('button').addEventListener('click',function(){sp.remove();});
+  sp.querySelector('button').addEventListener('click',function(){
+    sp.remove();
+    if(onRemove) onRemove();
+    // Si c'est un tag NSF (sf_t_nsf), actualiser diplômes et ROME
+    if(bar.id==='sf_t_nsf'){
+      if(typeof fetchRncpVae==='function') setTimeout(fetchRncpVae,100);
+      if(typeof refreshRomeByNsf==='function') setTimeout(refreshRomeByNsf,100);
+    }
+  });
   bar.appendChild(sp);
+}
+
+// Rafraîchir le filtre ROME en fonction des NSF sélectionnés dans sf_t_nsf
+function refreshRomeByNsf(){
+  var nsfBar=document.getElementById('sf_t_nsf');
+  if(!nsfBar) return;
+  var tags=Array.from(nsfBar.querySelectorAll('.tp')).map(function(t){
+    return (t.dataset.v||'').split(' ')[0];
+  });
+  if(!tags.length){
+    // Pas de NSF sélectionné -> filtrer selon le catoffre courant
+    var catEl=document.getElementById('E_catoffre');
+    if(catEl&&catEl.value) filterRomeByFormacode(catEl.value.split(' ')[0]);
+    return;
+  }
+  // Trouver les familles ROME pour chaque NSF sélectionné
+  // via SEMANTIQUE_TO_NSF inverse + FORMACODE_ROME_MAP
+  var families=new Set();
+  // Parcourir FORMACODE_ROME_MAP et SEMANTIQUE_TO_NSF
+  Object.keys(SEMANTIQUE_TO_NSF).forEach(function(sem){
+    var nsf=SEMANTIQUE_TO_NSF[sem];
+    if(tags.indexOf(nsf)>=0&&FORMACODE_ROME_MAP[sem]){
+      FORMACODE_ROME_MAP[sem].forEach(function(f){families.add(f);});
+    }
+  });
+  // Aussi chercher dans FORMACODE_TO_NSF_MULTI
+  var multi={'114':['115','111'],'115':['222','111','116'],'120':['118','112','113'],
+    '125':['343','341'],'130':['128','340'],'132':['128','313','345'],
+    '142':['123','126','120','125','127','130','131'],'150':['412','413','415','100'],
+    '152':['136','135'],'154':['411','335'],'210':['211','212','210','214'],
+    '213':['213','212'],'223':['232','342'],'224':['233','232'],'226':['227','233'],
+    '228':['222','224','226'],'230':['254','251','220','223','225'],
+    '236':['252','251','250','253'],'320':['310','314'],'321':['310','300'],
+    '420':['336','330','212','240'],'427':['334','221'],'428':['344','346'],
+    '434':['331','330'],'440':['332','335','330'],'445':['333','315'],
+    '450':['133','132'],'455':['234','134'],'463':['321','320','325']};
+  Object.keys(multi).forEach(function(sem){
+    var nsfs=multi[sem];
+    var match=nsfs.some(function(n){return tags.indexOf(n)>=0;});
+    if(match&&FORMACODE_ROME_MAP[sem]){
+      FORMACODE_ROME_MAP[sem].forEach(function(f){families.add(f);});
+    }
+  });
+  // Appliquer le filtre ROME avec ces familles
+  var sel=document.getElementById('sf_s_rome');
+  if(!sel) return;
+  var familiesArr=Array.from(families);
+  var banner=document.getElementById('rome_filter_banner');
+  var nShown=0;
+  for(var i=0;i<sel.options.length;i++){
+    var opt=sel.options[i];
+    var fam=opt.value?opt.value.charAt(0):'';
+    var show=!familiesArr.length||familiesArr.indexOf(fam)>=0;
+    opt.hidden=opt.value&&!show;
+    if(!opt.hidden) nShown++;
+  }
+  if(banner) banner.textContent='Filtré : familles ROME '+familiesArr.sort().join(', ')+' ('+nShown+' codes).';
 }
 function getTags(tagBarId){
   var b=$(tagBarId);
@@ -4017,7 +4082,9 @@ function renderEditor(f){
     // Fonction centrale : appliquer filtres + présélections depuis un préfixe 3ch
     // Table NSF multi pour VAE (même que fetchRncpVae)
     var CAT_TO_NSF_MULTI={
-      '115':['222','111','116'],
+      '114':['115','111'],
+      '114':['115','111'],
+    '115':['222','111','116'],
       '120':['118','112','113'],
       '125':['343','341'],
       '130':['128','340'],
@@ -6134,6 +6201,7 @@ function fetchRncpVae(offset, forceCat){
   // Récupérer les NSF depuis la catégorisation VAE (Formacode 3 chiffres -> NSF)
   // Table étendue: un Formacode peut mapper vers plusieurs NSF (ex: sport = 411 + 335)
   var FORMACODE_TO_NSF_MULTI={
+    '114':['115','111'],
     '115':['222','111','116'],
     '120':['118','112','113'],
     '125':['343','341'],
@@ -6164,15 +6232,28 @@ function fetchRncpVae(offset, forceCat){
     '463':['321','320','325']
   };;
   var nsfCodes=[];
-  var catEl=document.getElementById('E_catoffre');
-  var catVal=forceCat||(catEl?catEl.value:'');
-  if(catVal){
-    var formacode3=catVal.split(' ')[0];
-    var nsfMulti=FORMACODE_TO_NSF_MULTI[formacode3];
-    if(nsfMulti) nsfCodes=nsfMulti;
-    else{
-      var nsf=SEMANTIQUE_TO_NSF[formacode3];
-      if(nsf) nsfCodes=[nsf];
+  // Lire les NSF depuis les tags actuellement sélectionnés (sf_t_nsf)
+  // -> dynamique : si l'utilisateur a modifié les tags, on respecte sa sélection
+  var nsfBar=document.getElementById('sf_t_nsf');
+  if(nsfBar){
+    nsfBar.querySelectorAll('.tp').forEach(function(t){
+      var v=t.dataset.v||'';
+      var code=v.split(' ')[0];
+      if(code) nsfCodes.push(code);
+    });
+  }
+  // Fallback : si aucun tag NSF, calculer depuis E_catoffre
+  if(!nsfCodes.length){
+    var catEl=document.getElementById('E_catoffre');
+    var catVal=forceCat||(catEl?catEl.value:'');
+    if(catVal){
+      var formacode3=catVal.split(' ')[0];
+      var nsfMulti=FORMACODE_TO_NSF_MULTI[formacode3];
+      if(nsfMulti) nsfCodes=nsfMulti;
+      else{
+        var nsf=SEMANTIQUE_TO_NSF[formacode3];
+        if(nsf) nsfCodes=[nsf];
+      }
     }
   }
 
@@ -6301,6 +6382,7 @@ function selectRncpVae(code, intitule){
 window.fetchBlocs=fetchBlocs;
 window.fetchRncpVae=fetchRncpVae;
 window.selectRncpVae=selectRncpVae;
+window.refreshRomeByNsf=refreshRomeByNsf;
 window.fetchRS=fetchRS;
 window.onTypeOffreChange=onTypeOffreChange;
 window.calcDureeAuto=calcDureeAuto;
