@@ -4107,7 +4107,12 @@ function renderEditor(f){
     // Changement catégorisation VAE
     if(catEl){
       catEl.addEventListener('change', function(){
-        applyPrefix(catEl.value||'', 'cat');
+        var val=catEl.value||'';
+        applyPrefix(val, 'cat');
+        // Relancer la recherche de certifications automatiquement
+        if(val && typeof fetchRncpVae==='function'){
+          setTimeout(function(){ fetchRncpVae(undefined, val); }, 200);
+        }
       });
     }
 
