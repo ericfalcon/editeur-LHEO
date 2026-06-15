@@ -3750,17 +3750,17 @@ function bindSF(uid,data,maxSel,initVals){
 
 // Table de correspondance champs sémantiques Formacode (VAE) -> codes NSF valides
 var SEMANTIQUE_TO_NSF={
-  '110':'114','114':'114','115':'116','120':'113','122':'117','125':'341',
+  '110':'114','114':'115','115':'222','120':'118','122':'117','125':'343',
   '130':'128','131':'122','132':'128','133':'128','142':'123','144':'124',
-  '150':'315','152':'136','154':'411','210':'211','213':'213','215':'221',
+  '150':'412','152':'136','154':'411','210':'211','213':'213','215':'221',
   '216':'241','217':'242','218':'243','220':'231','222':'230','223':'232',
-  '224':'233','226':'227','228':'222','230':'250','235':'250','236':'251',
-  '240':'255','241':'227','242':'255','243':'255','244':'255','308':'326',
-  '310':'326','313':'200','314':'314','316':'200','317':'311','318':'311',
-  '320':'310','321':'315','326':'314','330':'315','340':'312','342':'312',
-  '345':'312','350':'324','410':'313','420':'312','421':'313','426':'334',
+  '224':'233','226':'227','228':'222','230':'254','235':'115','236':'252',
+  '240':'255','241':'227','242':'326','243':'255','244':'201','308':'326',
+  '310':'326','313':'200','314':'200','316':'200','317':'311','318':'311',
+  '320':'310','321':'310','326':'314','330':'315','340':'312','342':'312',
+  '345':'312','350':'324','410':'313','420':'336','421':'313','426':'334',
   '427':'334','428':'344','430':'331','434':'331','440':'332','445':'333',
-  '450':'133','455':'134','460':'322','462':'323','463':'320'
+  '450':'133','455':'234','460':'322','462':'323','463':'321'
 };
 
 // Table de correspondance FORMACODE 3ch -> familles ROME
@@ -4157,8 +4157,11 @@ function renderEditor(f){
       doSave(f.id,true);var ff=cat.find(function(x){return x.id===f.id;});
       ff.actions[parseInt(b.dataset.ai)].sessions.splice(parseInt(b.dataset.si),1);persist();openEditor(f.id);});})
 
-  // Auto-lancer la recherche VAE
-  if(f.typeOffre==='vae'){setTimeout(function(){if(typeof fetchRncpVae==='function')fetchRncpVae();},400);}
+  // Auto-lancer la recherche VAE - passer catoffre directement pour éviter timing DOM
+  if(f.typeOffre==='vae'){
+    var _cat=f.categorisationOffre||'';
+    setTimeout(function(){if(typeof fetchRncpVae==='function')fetchRncpVae(undefined,_cat);},400);
+  }
 }
 
 function ccBind(id,ccId,max){
@@ -6085,7 +6088,7 @@ function removeBloc(i){
   ff.blocsCompetences.splice(i,1);L.persist();L.openEditor(L.curId);}
 
 // ─── Recherche RNCP pour la VAE via Koumoul (France Compétences) ───
-function fetchRncpVae(offset){
+function fetchRncpVae(offset, forceCat){
   var qEl=document.getElementById('vae_search_q');
   var resEl=document.getElementById('vae_search_results');
   if(!resEl) return;
@@ -6119,8 +6122,9 @@ function fetchRncpVae(offset){
   };;
   var nsfCodes=[];
   var catEl=document.getElementById('E_catoffre');
-  if(catEl && catEl.value){
-    var formacode3=catEl.value.split(' ')[0];
+  var catVal=forceCat||(catEl?catEl.value:'');
+  if(catVal){
+    var formacode3=catVal.split(' ')[0];
     var nsfMulti=FORMACODE_TO_NSF_MULTI[formacode3];
     if(nsfMulti) nsfCodes=nsfMulti;
     else{
