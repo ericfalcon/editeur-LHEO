@@ -4021,7 +4021,7 @@ function renderEditor(f){
       '120':['118','112'],'150':['412','413','415'],'210':['211','212','210'],
       '213':['213','212'],'224':['233','232'],'228':['222','224'],
       '230':['254','251'],'236':['252','251'],'320':['310','314'],
-      '321':['310','300'],'420':['336','330','312'],'440':['332','330'],
+      '321':['310','300'],'420':['336','330','312'],'440':['332','335','330'],
       '450':['133','132'],'455':['234','134'],'463':['321','320','325'],
       '427':['334','221'],'132':['128','313'],'434':['331','330'],'445':['333','315']
     };
@@ -6087,7 +6087,7 @@ function removeBloc(i){
   ff.blocsCompetences.splice(i,1);L.persist();L.openEditor(L.curId);}
 
 // ─── Recherche RNCP pour la VAE via Koumoul (France Compétences) ───
-function fetchRncpVae(){
+function fetchRncpVae(offset){
   var qEl=document.getElementById('vae_search_q');
   var resEl=document.getElementById('vae_search_results');
   if(!resEl) return;
@@ -6110,7 +6110,7 @@ function fetchRncpVae(){
     '320':['310','314'],
     '321':['310','300'],
     '420':['336','330','312'],
-    '440':['332','330'],
+    '440':['332','335','330'],
     '450':['133','132'],
     '455':['234','134'],
     '463':['321','320','325'],
@@ -6139,7 +6139,7 @@ function fetchRncpVae(){
   // Filtre NSF : CODES_NSF contient le code NSF (ex: "411")
   if(nsfCodes.length) qsParts.push('CODES_NSF:('+nsfCodes.join(' OR ')+')');
   var qs=qsParts.join(' AND ');
-  var params='qs='+encodeURIComponent(qs)+'&size=50&select=NUMERO_FICHE,INTITULE,NOMENCLATURE_EUROPE_NIVEAU,CODES_NSF,CERTIFICATEURS';
+  var params='qs='+encodeURIComponent(qs)+'&size='+(offset||50)+'&select=NUMERO_FICHE,INTITULE,NOMENCLATURE_EUROPE_NIVEAU,CODES_NSF,CERTIFICATEURS';
   if(q) params+='&q='+encodeURIComponent(q);
   params+='&sort=NOMENCLATURE_EUROPE_NIVEAU';
 
@@ -6156,7 +6156,8 @@ function fetchRncpVae(){
         resEl.innerHTML='<div style="padding:8px;color:var(--g5);font-size:12px">Aucune certification VAE trouvée' +(nsfCodes.length?' pour NSF '+nsfCodes.join(','):'')+'. Essayez un mot-clé.</div>';
         return;
       }
-      var html='<div style="padding:4px 8px;font-size:11px;color:var(--g5);border-bottom:1px solid var(--g3)">'+results.length+' résultat(s)'+( data.total>results.length?' sur '+data.total:'')+' — cliquer pour pré-remplir le code RNCP</div>';
+      var curSize=(offset||50);
+      var html='<div style="padding:4px 8px;font-size:11px;color:var(--g5);border-bottom:1px solid var(--g3)">'+results.length+' résultat(s) affichés sur '+data.total+' — cliquer pour ajouter</div>';
       // Grouper par niveau
       var byLevel={};
       results.forEach(function(r){
@@ -6176,6 +6177,13 @@ function fetchRncpVae(){
             '</div>';
         });
       });
+      // Bouton Voir plus si résultats supplémentaires
+      if(data.total > curSize){
+        html+='<div style="padding:6px;text-align:center">'+
+          '<button type="button" onclick="fetchRncpVae('+(curSize+50)+')" '+
+          'style="font-size:11px;background:var(--g1);border:1px solid var(--g3);padding:4px 12px;border-radius:4px;cursor:pointer">'+
+          '▼ Voir plus ('+(data.total-curSize)+' restants)</button></div>';
+      }
       resEl.innerHTML=html;
     })
     .catch(function(e){
