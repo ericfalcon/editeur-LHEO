@@ -5101,6 +5101,8 @@ function collect(fid){
   f.formacode=getTags('sf_t_fc');
   f.nsf=getTags('sf_t_nsf');
   f.rome=getTags('sf_t_rome');
+  // Pour le bilan : formacode et nsf sont fixes — les forcer si les champs hidden n'existent pas
+  if(f.typeOffre==='bilan'){if(!f.formacode||!f.formacode.length)f.formacode=['22252'];if(!f.nsf||!f.nsf.length)f.nsf=['315'];f.rome=[];}
   $('J_main').querySelectorAll('[data-ai][data-f]').forEach(function(el){
     var ai=parseInt(el.dataset.ai);if(!f.actions[ai])return;
     var field=el.dataset.f;
