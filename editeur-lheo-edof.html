@@ -5384,7 +5384,7 @@ function toXML(formations){
     o+='      <domaine-formation>\n';
     if(!isVaeX&&!isPermisX){
       (f.formacode||[]).forEach(function(c,ci){
-        o+='        <code-FORMACODE ref="V13"'+(ci===0?' tag="principal"':'')+'>'+escX(c)+'</code-FORMACODE>\n';});
+        o+='        <code-FORMACODE ref="V14"'+(ci===0?' tag="principal"':'')+'>'+escX(c)+'</code-FORMACODE>\n';});
     }
     if(!isPermisX){
       (f.nsf||[]).forEach(function(c){o+='        <code-NSF>'+escX(c)+'</code-NSF>\n';});
