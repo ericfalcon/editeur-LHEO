@@ -5159,11 +5159,15 @@ function validateFiche(f){
   var to=f.typeOffre||'certification';
   var isVaeV=(to==='vae');
   var isPermisV=(to==='permis');
-  // FORMACODE obligatoire sauf VAE (remplacé par categorisation) et Permis
-  if(!isVaeV&&!isPermisV&&(!f.formacode||!f.formacode.length))
+  var isBilanV=(to==='bilan');
+  // Pour le bilan, formacode et nsf sont fixés auto — on les force si absents
+  if(isBilanV&&(!f.formacode||!f.formacode.length)) f.formacode=['22252'];
+  if(isBilanV&&(!f.nsf||!f.nsf.length)) f.nsf=['315'];
+  // FORMACODE obligatoire sauf VAE (remplacé par categorisation), Permis et Bilan (fixe)
+  if(!isVaeV&&!isPermisV&&!isBilanV&&(!f.formacode||!f.formacode.length))
     errs.push({field:'sf_t_fc',msg:'Au moins 1 code FORMACODE requis'});
-  // NSF obligatoire sauf Permis
-  if(!isPermisV&&(!f.nsf||!f.nsf.length))
+  // NSF obligatoire sauf Permis et Bilan (fixe)
+  if(!isPermisV&&!isBilanV&&(!f.nsf||!f.nsf.length))
     errs.push({field:'sf_t_nsf',msg:'Au moins 1 code NSF requis'});
   // Certification : RNCP/RS pour formation certifiante, CPF pour les autres
   if(to==='certification'&&!f.rncp&&!f.rs)
