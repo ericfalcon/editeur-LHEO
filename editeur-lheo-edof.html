@@ -5593,7 +5593,9 @@ function doImport(e){
   var r=new FileReader();
   r.onload=function(ev){
     try{
-      var doc=new DOMParser().parseFromString(ev.target.result,'application/xml');
+      // Supprimer le namespace pour que querySelector fonctionne sans préfixe
+      var xmlStr=ev.target.result.replace(/xmlns="[^"]*"/g,'').replace(/xmlns:[a-z]+="[^"]*"/g,'');
+      var doc=new DOMParser().parseFromString(xmlStr,'application/xml');
       if(doc.querySelector('parsererror')){toast('XML invalide',true);return;}
       function tx(p,t){var e=p.querySelector(t);return e?e.textContent.trim():'';}
       var n=0,last=null;
