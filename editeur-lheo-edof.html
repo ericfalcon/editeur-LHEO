@@ -3633,9 +3633,15 @@ window.applySiretData=function(data){
           if(!etab&&r.siege) etab=r.siege;
         });
         if(!etab) return;
-        var adr=etab.adresse||[etab.numero_voie,etab.type_voie,etab.libelle_voie].filter(Boolean).join(' ')||'';
-        var cp=etab.code_postal||'';
-        var ville=etab.libelle_commune||'';
+        // siege.adresse contient l'adresse complète avec CP et ville — on extrait juste la rue
+        var cpRaw=etab.code_postal||'';
+        var villeRaw=etab.libelle_commune||'';
+        var adrFull=etab.adresse||'';
+        // Supprimer le CP et la ville de la fin de l'adresse complète
+        var adr=adrFull.replace(new RegExp('\\s*'+cpRaw+'\\s*'+villeRaw+'\\s*$','i'),'').trim();
+        if(!adr) adr=[etab.numero_voie,etab.type_voie,etab.libelle_voie].filter(Boolean).join(' ');
+        var cp=cpRaw;
+        var ville=villeRaw;
         if(!adr&&!cp&&!ville) return;
         // Pré-remplir la première action si les champs sont vides
         var L=window._lheo;if(!L)return;
