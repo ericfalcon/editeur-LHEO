@@ -4383,7 +4383,7 @@ function buildIdent(f){
 
   // Pré-remplissage automatique selon le type (si champs encore vides ou valeur par défaut)
   // Note : on pré-remplit en mémoire, le formulaire affichera les valeurs mises à jour
-  if(isBilan&&(f.objGen==='7')){f.objGen='9';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';}
+  if(isBilan&&(f.objGen==='7')){f.objGen='9';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';f.formacode=['22252'];f.nsf=['315'];f.rome=[];}
   if(isVae&&(f.objGen==='7')){f.objGen='6';f.certif='O';f.cpf='CPF200';f.rncp='';f.rs='';}
   if(isPermis&&(f.objGen==='7')){f.objGen='3';f.certif='N';if(!f.cpf||f.cpf==='')f.cpf='CPF206';}
   // Pour une formation certifiante, f.cpf doit être vide (code RNCP/RS suffit)
@@ -4572,13 +4572,16 @@ function buildCertif(f){
     
     fsel('Niveau a l entree','E_nive',sOpts(NIVEAUX,f.nivE),true)+
     fsel('Niveau a la sortie','E_nivs',sOpts(NIVEAUX,f.nivS))+
-    // FORMACODE 5 chiffres : masqué pour VAE (remplacé par categorisation-offre 3 chiffres)
-    //                          masqué pour Permis (pas de domaine de formation applicable)
-    (!isVae&&!isPermis?
+    // FORMACODE 5 chiffres
+    (!isVae&&!isPermis&&!isBilan?
       '<div class="fitem full">'+
-    '<label>FORMACODE <span class="req">*</span> <span class="bdg b-o">max 5 - 1er = principal</span></label>'+
-    '<div id="fc_filter_banner" style="display:none;font-size:11px;color:var(--pri);background:var(--prl);padding:4px 8px;border-radius:4px;margin-bottom:5px"></div>'+
+      '<label>FORMACODE <span class="req">*</span> <span class="bdg b-o">max 5 - 1er = principal</span></label>'+
+      '<div id="fc_filter_banner" style="display:none;font-size:11px;color:var(--pri);background:var(--prl);padding:4px 8px;border-radius:4px;margin-bottom:5px"></div>'+
       buildSF('fc',FORMACODE,f.formacode||[],5)+'</div>'
+    : isBilan?
+      '<input type="hidden" id="fc_hidden" value="22252">'+
+      '<div class="fitem full"><p style="font-size:11px;color:var(--ok);background:#f0fff4;padding:6px 9px;border-radius:5px;border:1px solid var(--ok)">'+
+      '✓ FORMACODE fixé à <strong>22252 — Bilan de compétences</strong> (non modifiable).</p></div>'
     : isVae?
       '<div class="fitem full"><p style="font-size:11px;color:var(--ok);background:#f0fff4;padding:6px 9px;border-radius:5px;border:1px solid var(--ok)">'+
       '✓ Pour la VAE, le domaine de formation est le champ sémantique (catégorisation ci-dessus - 3 chiffres). '+
@@ -4587,23 +4590,32 @@ function buildCertif(f){
       '<div class="fitem full"><p style="font-size:11px;color:var(--g5);background:var(--g1);padding:6px 9px;border-radius:5px">'+
       'FORMACODE non applicable pour le permis de conduire.</p></div>'
     )+
-    // NSF : masqué pour Permis uniquement
+    // NSF
     (!isPermis?
-      '<div class="fitem full">'+
-      '<label>Code NSF <span class="req">*</span> <span class="bdg b-o">max 3</span>'+
-      (isVae?' <span class="bdg b-o" style="background:#e3f2fd;color:#1565c0">ℹ Fourni par la catégorisation VAE — ne pas saisir manuellement</span>':'')+
-      '</label>'+
-      buildSF('nsf',NSF,f.nsf||[],3)+'</div>'
+      (isBilan?
+        '<input type="hidden" id="nsf_hidden" value="315">'+
+        '<div class="fitem full"><p style="font-size:11px;color:var(--ok);background:#f0fff4;padding:6px 9px;border-radius:5px;border:1px solid var(--ok)">'+
+        '✓ Code NSF fixé à <strong>315 — Ressources humaines, gestion du personnel</strong> (non modifiable).</p></div>'
+      :
+        '<div class="fitem full">'+
+        '<label>Code NSF <span class="req">*</span> <span class="bdg b-o">max 3</span>'+
+        (isVae?' <span class="bdg b-o" style="background:#e3f2fd;color:#1565c0">ℹ Fourni par la catégorisation VAE — ne pas saisir manuellement</span>':'')+
+        '</label>'+
+        buildSF('nsf',NSF,f.nsf||[],3)+'</div>'
+      )
     :
       '<div class="fitem full"><p style="font-size:11px;color:var(--g5);background:var(--g1);padding:6px 9px;border-radius:5px">'+
       'Code NSF non applicable pour le permis de conduire.</p></div>'
     )+
-    // ROME : optionnel pour tous sauf permis
-    (!isPermis?
+    // ROME : masqué pour bilan et permis
+    (!isPermis&&!isBilan?
       '<div class="fitem full">'+
       '<label>Code ROME <span class="bdg b-o">optionnel - max 5</span></label>'+
       '<div id="rome_filter_banner" style="display:none;font-size:11px;color:var(--pri);background:var(--prl);padding:4px 8px;border-radius:4px;margin-bottom:5px"></div>'+
       buildSF('rome',ROME,f.rome||[],5)+'</div>'
+    : isBilan?
+      '<div class="fitem full"><p style="font-size:11px;color:var(--g5);background:var(--g1);padding:6px 9px;border-radius:5px">'+
+      'Code ROME non applicable pour un bilan de compétences.</p></div>'
     :'')+
     (showRncp&&f.rncp?
       '<div class="fitem full" style="margin-top:12px">'+
@@ -6191,6 +6203,7 @@ function onTypeOffreChange(val){
   // Pré-remplir les champs selon le type
   if(val==='bilan'){
     ff.objGen='9';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';
+    ff.formacode=['22252'];ff.nsf=['315'];ff.rome=[];
     ff.parcours='6'; // Bilan de compétences
   }
   else if(val==='vae'){
