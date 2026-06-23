@@ -3603,6 +3603,60 @@ window.applySiretData=function(data){
     if(ndaEl) ndaEl.value=nda;
     changed.push('NDA');
   }
+  // Récupérer l'adresse depuis l'API Recherche Entreprises
+  if(data.siret){
+    fetch('https://recherche-entreprises.api.gouv.fr/search?q='+data.siret+'&limit=1')
+      .then(function(r){return r.json();})
+      .then(function(res){
+        var results=res.results;
+        if(!results||!results.length) return;
+        var etab=null;
+        // Chercher l'établissement avec le bon SIRET
+        var siren=data.siret.substring(0,9);
+        results.forEach(function(r){
+          if(r.siege&&r.siege.siret===data.siret) etab=r.siege;
+          if(!etab&&r.matching_etablissements){
+            r.matching_etablissements.forEach(function(e){
+              if(e.siret===data.siret) etab=e;
+            });
+          }
+          if(!etab&&r.siege) etab=r.siege;
+        });
+        if(!etab) return;
+        var adr=[etab.numero_voie,etab.type_voie,etab.libelle_voie].filter(Boolean).join(' ');
+        var cp=etab.code_postal||'';
+        var ville=etab.libelle_commune||'';
+        if(!adr&&!cp&&!ville) return;
+        // Pré-remplir la première action si les champs sont vides
+        var L=window._lheo;if(!L)return;
+        var ff2=L.cat.find(function(x){return x.id===L.curId;});
+        if(!ff2||!ff2.actions||!ff2.actions.length) return;
+        var aChanged=[];
+        ff2.actions.forEach(function(a,i){
+          var idx=i;
+          if(adr&&!a.adr){
+            a.adr=adr;
+            var el=document.getElementById('adr_'+idx);
+            if(el) el.value=adr;
+            if(i===0) aChanged.push('adresse');
+          }
+          if(cp&&!a.cp){
+            a.cp=cp;
+            var el2=document.getElementById('cp_'+idx);
+            if(el2) el2.value=cp;
+            if(i===0) aChanged.push('CP');
+          }
+          if(ville&&!a.ville){
+            a.ville=ville;
+            var el3=document.getElementById('ville_'+idx);
+            if(el3) el3.value=ville.toUpperCase();
+            if(i===0) aChanged.push('ville');
+          }
+        });
+        if(aChanged.length) toast('Adresse pré-remplie depuis SIRET : '+aChanged.join(', '));
+      })
+      .catch(function(){});
+  }
   if(changed.length) toast('Pré-rempli depuis SIRET : '+changed.join(', '));
 };
 
@@ -5210,7 +5264,7 @@ function checkSiretField(val,statusEl){
       '<span class="siret-ok">\u2713 '+escEl(nom)+label+'</span>'+qBadge+
       (nda?'<br><span style="font-size:10px;color:var(--g5)">NDA'+ndaLabel+' : <strong>'+escEl(nda)+'</strong></span>'
           :'<br><span style="font-size:10px;color:var(--err)">Aucun NDA trouv\u00e9 dans le r\u00e9pertoire DGEFP</span>');
-    window.applySiretData&&window.applySiretData({nom_raison_sociale:nom,nda:nda});
+    window.applySiretData&&window.applySiretData({nom_raison_sociale:nom,nda:nda,siret:siret});
   }
 
   function parseDGEFP(res,secondaire){
