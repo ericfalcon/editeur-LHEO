@@ -3504,11 +3504,21 @@ window._lheo={get cat(){return cat;},set cat(v){cat=v;},
 // Exposer aussi les fonctions appelées via onclick= dans le HTML généré
 // Calcul auto durée totale = centre + entreprise
 window.calcDureeAuto=function(ai){
-  var centre=parseFloat(document.getElementById('duree_'+ai)&&document.getElementById('duree_'+ai).value||'0');
-  var entr=parseFloat(document.getElementById('dureeEnt_'+ai)&&document.getElementById('dureeEnt_'+ai).value||'0');
+  var centreEl=document.getElementById('duree_'+ai);
+  var entrEl=document.getElementById('dureeEnt_'+ai);
+  var centre=parseFloat((centreEl&&centreEl.value)||'0');
+  var entr=parseFloat((entrEl&&entrEl.value)||'0');
   var total=centre+entr;
   var totEl=document.getElementById('dureeTotal_'+ai);
-  if(totEl&&total>0) totEl.value=total;
+  if(totEl) totEl.value=total>0?total:'';
+  // Mettre à jour le modèle
+  var L=window._lheo;
+  if(L){
+    var ff=L.cat.find(function(x){return x.id===L.curId;});
+    if(ff&&ff.actions&&ff.actions[ai]){
+      if(total>0) ff.actions[ai].dureeTotal=String(total);
+    }
+  }
 };
 window.checkHabilitation=function(code,statusId){
   var el=document.getElementById(statusId);
@@ -4838,9 +4848,9 @@ function buildAction(a,i,f){
     afsel(i,'modEns','Modalité enseignement <span class="req">*</span>',
       so('0','Présentiel',a.modEns)+so('1','À distance',a.modEns)+so('2','Mixte/hybride',a.modEns))+
     '<div class="fitem"><label>Durée totale (heures) <span class="req">*</span></label>'+
-    '<input type="number" data-ai="'+i+'" data-f="dureeTotal" id="dureeTotal_'+i+'" value="'+esc(a.dureeTotal||'')+'" placeholder="60" oninput="calcDureeAuto('+i+')"></div>'+
+    '<input type="number" data-ai="'+i+'" data-f="dureeTotal" id="dureeTotal_'+i+'" value="'+esc(a.dureeTotal||'')+'" placeholder="60" readonly style="background:#f5f5f5;color:var(--g5)"></div>'+
     '<div class="fitem"><label>Dont heures en centre</label>'+
-    '<input type="number" data-ai="'+i+'" data-f="duree" id="duree_'+i+'" value="'+esc(a.duree||'')+'" oninput="calcDureeAuto('+i+');calcPrix('+i+')" placeholder="21" oninput="calcDureeAuto('+i+')"></div>'+
+    '<input type="number" data-ai="'+i+'" data-f="duree" id="duree_'+i+'" value="'+esc(a.duree||'')+'" oninput="calcDureeAuto('+i+');calcPrix('+i+')" placeholder="21"></div>'+
     '<div class="fitem"><label>Dont heures en entreprise</label>'+
     '<input type="number" data-ai="'+i+'" data-f="dureeEntreprise" id="dureeEnt_'+i+'" value="'+esc(a.dureeEntreprise||'')+'" placeholder="0" oninput="calcDureeAuto('+i+')"></div>'+
     '<div class="fitem full"><label>Frais pédagogiques <span class="req">*</span></label>'+
