@@ -3643,22 +3643,21 @@ window.applySiretData=function(data){
         if(!ff2||!ff2.actions||!ff2.actions.length) return;
         var aChanged=[];
         ff2.actions.forEach(function(a,i){
-          var idx=i;
           if(adr&&!a.adr){
             a.adr=adr;
-            var el=document.getElementById('adr_'+idx);
+            var el=document.querySelector('[data-ai="'+i+'"][data-f="adr"]');
             if(el) el.value=adr;
             if(i===0) aChanged.push('adresse');
           }
           if(cp&&!a.cp){
             a.cp=cp;
-            var el2=document.getElementById('cp_'+idx);
+            var el2=document.querySelector('[data-ai="'+i+'"][data-f="cp"]');
             if(el2) el2.value=cp;
             if(i===0) aChanged.push('CP');
           }
           if(ville&&!a.ville){
-            a.ville=ville;
-            var el3=document.getElementById('ville_'+idx);
+            a.ville=ville.toUpperCase();
+            var el3=document.querySelector('[data-ai="'+i+'"][data-f="ville"]');
             if(el3) el3.value=ville.toUpperCase();
             if(i===0) aChanged.push('ville');
           }
