@@ -4383,7 +4383,7 @@ function buildIdent(f){
 
   // Pré-remplissage automatique selon le type (si champs encore vides ou valeur par défaut)
   // Note : on pré-remplit en mémoire, le formulaire affichera les valeurs mises à jour
-  if(isBilan&&(f.objGen==='7')){f.objGen='9';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';f.formacode=['22252'];f.nsf=['315'];f.rome=[];}
+  if(isBilan&&(f.objGen==='7')){f.objGen='9';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';f.formacode=['22252'];f.nsf=['315'];f.rome=[];f.nivE='0';f.nivS='0';f.parcours='I';}
   if(isVae&&(f.objGen==='7')){f.objGen='6';f.certif='O';f.cpf='CPF200';f.rncp='';f.rs='';}
   if(isPermis&&(f.objGen==='7')){f.objGen='3';f.certif='N';if(!f.cpf||f.cpf==='')f.cpf='CPF206';}
   // Pour une formation certifiante, f.cpf doit être vide (code RNCP/RS suffit)
@@ -4408,7 +4408,12 @@ function buildIdent(f){
     '<div id="E_siret_status"></div></div>'+
     (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'9':isVae?'6':'3')+'">')+
     '<div class="fitem"><label>Type de parcours</label>'+
-    '<select id="E_parcours" onchange="">'+sOpts(PARCOURS,f.parcours)+'</select>'+
+    (isBilan?
+      '<input type="hidden" id="E_parcours" value="I">'+
+      '<div style="padding:6px 10px;background:var(--g1);border:1px solid var(--g2);border-radius:5px;font-size:12px;color:var(--g7)">Individualisé — fixe pour un bilan de compétences</div>'
+    :
+      '<select id="E_parcours" onchange="">'+sOpts(PARCOURS,f.parcours)+'</select>'
+    )+
     '<span class="hint" id="parcours_hint"></span></div>'+
     (!isBilan&&!isPermis?
       '<input type="hidden" id="E_certif" value="'+(f.typeOffre==="certification"||f.typeOffre==="vae"?'O':'N')+'">'+
@@ -4570,8 +4575,14 @@ function buildCertif(f){
       ,true)
     :'')+
     
-    fsel('Niveau a l entree','E_nive',sOpts(NIVEAUX,f.nivE),true)+
-    fsel('Niveau a la sortie','E_nivs',sOpts(NIVEAUX,f.nivS))+
+    (isBilan?
+      '<input type="hidden" id="E_nive" value="0"><input type="hidden" id="E_nivs" value="0">'+
+      '<div class="fitem full"><p style="font-size:11px;color:var(--ok);background:#f0fff4;padding:6px 9px;border-radius:5px;border:1px solid var(--ok)">'+
+      '✓ Niveaux entrée/sortie fixés à <strong>0 — Non communiqué</strong> (bilan de compétences).</p></div>'
+    :
+      fsel('Niveau a l entree','E_nive',sOpts(NIVEAUX,f.nivE),true)+
+      fsel('Niveau a la sortie','E_nivs',sOpts(NIVEAUX,f.nivS))
+    )+
     // FORMACODE 5 chiffres
     (!isVae&&!isPermis&&!isBilan?
       '<div class="fitem full">'+
@@ -6203,7 +6214,7 @@ function onTypeOffreChange(val){
   // Pré-remplir les champs selon le type
   if(val==='bilan'){
     ff.objGen='9';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';
-    ff.formacode=['22252'];ff.nsf=['315'];ff.rome=[];
+    ff.formacode=['22252'];ff.nsf=['315'];ff.rome=[];ff.nivE='0';ff.nivS='0';ff.parcours='I';
     ff.parcours='6'; // Bilan de compétences
   }
   else if(val==='vae'){
