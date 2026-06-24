@@ -165,7 +165,10 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
 <body>
 <div class="app">
   <div class="sb">
-    <div class="sb-head"><h1>Editeur LHEO / EDOF</h1><p>Format XML LHEO 2.4 · compatible EDOF 2026</p></div>
+    <div class="sb-head" style="display:flex;align-items:center;gap:10px">
+      <img id="sb_logo" src="" alt="" style="max-height:36px;max-width:80px;display:none;object-fit:contain;flex-shrink:0">
+      <div><h1>Editeur LHEO / EDOF</h1><p>Format XML LHEO 2.4 · compatible EDOF 2026</p></div>
+    </div>
     <div class="sb-bar"><button class="btn btn-p btn-full" id="J_new">+ Nouvelle fiche</button></div>
     <div class="sb-list" id="J_list"></div>
     <div class="sb-foot" style="flex-direction:column;gap:5px">
@@ -6640,6 +6643,18 @@ var PDF_THEME = {
   footer: ''
 };
 
+function applyThemeToUI(){
+  // Couleur primaire
+  document.documentElement.style.setProperty('--pri', PDF_THEME.color);
+  // Couleur dérivée foncée (pour hover etc.)
+  document.documentElement.style.setProperty('--prd', PDF_THEME.color);
+  // Logo dans sidebar
+  var sbLogo=$('sb_logo');
+  if(sbLogo){
+    if(PDF_THEME.logo){sbLogo.src=PDF_THEME.logo;sbLogo.style.display='block';}
+    else{sbLogo.style.display='none';sbLogo.src='';}
+  }
+}
 function loadTheme(){
   try{
     var t=JSON.parse(localStorage.getItem('lheo_pdf_theme')||'{}');
@@ -6648,15 +6663,18 @@ function loadTheme(){
     if(t.org) PDF_THEME.org=t.org;
     if(t.footer) PDF_THEME.footer=t.footer;
   }catch(e){}
+  applyThemeToUI();
 }
 function saveTheme(){
   localStorage.setItem('lheo_pdf_theme',JSON.stringify(PDF_THEME));
+  applyThemeToUI();
   toast('Personnalisation enregistrée ✓');
 }
 function resetTheme(){
   PDF_THEME={color:'#1a56db',logo:null,org:'INFREP Puy-de-Dôme',footer:''};
   localStorage.removeItem('lheo_pdf_theme');
   initThemeModal();
+  applyThemeToUI();
   toast('Personnalisation réinitialisée');
 }
 function initThemeModal(){
