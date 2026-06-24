@@ -6313,188 +6313,266 @@ $('J_expAll').addEventListener('click',doExportAll);
 // EXPORT PDF CATALOGUE
 // =============================================
 function exportPDF(ficheId){
+  if(!window.jspdf){toast('jsPDF non chargé — utilisez la version GitHub Pages',true);return;}
   var { jsPDF } = window.jspdf;
   var doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   var fiches = ficheId ? cat.filter(function(f){return f.id===ficheId;}) : cat;
   if(!fiches.length){toast('Aucune fiche à exporter',true);return;}
 
-  var PRI='#1a56db', GREY='#444444', LGREY='#888888', BG='#f0f4ff';
-  var W=210, M=15, CW=W-2*M;
-  var y=0, pageH=297;
+  var W=210, M=12, CW=W-2*M, pageH=297, y=0;
 
   function newPage(){doc.addPage();y=15;}
-  function checkY(need){if(y+need>pageH-15)newPage();}
+  function checkY(need){if(y+(need||6)>pageH-12)newPage();}
 
-  function addTitle(text){
-    checkY(14);
+  function hdr1(text){
+    checkY(10);
     doc.setFillColor(26,86,219);
-    doc.rect(M,y,CW,10,'F');
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(11);
+    doc.rect(M,y,CW,8,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);
     doc.setTextColor(255,255,255);
-    doc.text(text,M+3,y+7);
-    doc.setTextColor(0,0,0);
-    y+=13;
+    doc.text(text,M+2,y+5.5);
+    doc.setTextColor(0,0,0);y+=11;
   }
-
-  function addSection(label,value){
-    if(!value||!String(value).trim()) return;
+  function hdr2(text){
     checkY(8);
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(8);
+    doc.setFillColor(230,237,255);
+    doc.rect(M,y,CW,6,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);
     doc.setTextColor(26,86,219);
-    doc.text(label+' :',M,y);
+    doc.text(text,M+2,y+4.2);
+    doc.setTextColor(0,0,0);y+=8;
+  }
+  function hdr3(text){
+    checkY(7);
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    doc.setTextColor(80,80,80);
+    doc.text(text,M,y+4);
+    doc.setDrawColor(180,180,180);
+    doc.line(M,y+5.5,M+CW,y+5.5);
+    doc.setTextColor(0,0,0);y+=8;
+  }
+  function row(label,value){
+    if(value===undefined||value===null||String(value).trim()==='')return;
+    var val=String(value).trim();
+    checkY(6);
+    var lblW=50;
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+    doc.setTextColor(60,60,60);
+    doc.text(label,M,y);
     doc.setFont('helvetica','normal');
-    doc.setTextColor(68,68,68);
-    var lines=doc.splitTextToSize(String(value),CW-2);
-    var lh=4.5;
-    checkY(lines.length*lh+2);
-    doc.text(lines,M,y+4.5);
-    y+=lines.length*lh+6;
+    doc.setTextColor(30,30,30);
+    var lines=doc.splitTextToSize(val,CW-lblW-2);
+    checkY(lines.length*4+1);
+    doc.text(lines,M+lblW,y);
+    y+=Math.max(5,lines.length*4+1);
   }
+  function sep(){checkY(3);doc.setDrawColor(220,220,220);doc.line(M,y,W-M,y);y+=3;}
+  function space(n){y+=(n||3);}
 
-  function addSeparator(){
-    checkY(4);
-    doc.setDrawColor(200,200,200);
-    doc.line(M,y,W-M,y);
-    y+=4;
-  }
+  // Correspondances lisibles
+  var TYPE_OFFRE={'certification':'Formation préparant à une certification','bilan':'Bilan de compétences','vae':'Accompagnement à la VAE','permis':'Permis de conduire'};
+  var OBJ_GEN_L={'2':'Perfectionnement','4':'Création entreprise','5':'Remise à niveau','6':'Certification','7':'Professionnalisation','8':'Préparation qualification','9':'Mobilisation / aide au projet'};
+  var PARCOURS_L={'1':'Formation initiale','2':'Formation continue','3':'Apprentissage','4':'Contrat de professionnalisation','5':'VAE','6':'Bilan de compétences','7':'Autre'};
+  var MOD_ENS={'0':'Présentiel','1':'À distance','2':'Mixte/hybride'};
+  var ENTSOR={'0':'Dates fixes','1':'Permanentes'};
+  var PERIM_L={'0':'Sans contrainte','1':'Région','2':'Inter-régional','3':'Département','4':'Local','5':'International','6':'Intra-entreprise'};
+  var NIVEAUX_L={'0':'Non communiqué','1':'Sans niveau','2':'Niveau VI','3':'Niveau V bis','4':'Niveau V (CAP)','5':'Niveau IV (Bac)','6':'Niveau III (Bac+2)','7':'Niveau II (Bac+3/4)','8':'Niveau I (Bac+5+)'};
+  var ETAT_REC={'1':'Ouvert','2':'Fermé','3':'Suspendu'};
+  var IND_COLL={'0':'Individuelle','1':'Collective'};
+  var GARANTIE={'0':'Non garantie','1':'Garantie'};
+  var GFE_L={'A':'Agriculture','B':'Arts','C':'Banque/Assurance','D':'Commerce/Vente','E':'Communication','F':'Construction/BTP','G':'Hôtellerie/Tourisme','H':'Industrie','I':'Installation/Maintenance','J':'Santé','K':'Services à la personne','L':'Spectacle','M':'Support entreprise','N':'Transport/Logistique','Q':'Commerce','R':'Santé/Social','S':'Sport','T':'Tourisme/Restauration','U':'Sécurité','V':'Agriculture/Pêche'};
 
-  function addBadge(text,r,g,b){
-    doc.setFillColor(r,g,b);
-    var tw=doc.getTextWidth(text)+4;
-    doc.roundedRect(M,y-3.5,tw,5,1,1,'F');
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(7);
-    doc.setTextColor(255,255,255);
-    doc.text(text,M+2,y);
-    doc.setTextColor(0,0,0);
-    return tw+3;
-  }
-
-  // Page de garde
+  // PAGE DE GARDE
   doc.setFillColor(26,86,219);
-  doc.rect(0,0,210,60,'F');
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(22);
+  doc.rect(0,0,210,55,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(20);
   doc.setTextColor(255,255,255);
-  doc.text('Catalogue des formations',M,30);
-  doc.setFontSize(12);
-  doc.setFont('helvetica','normal');
-  doc.text('INFREP — Puy-de-Dôme',M,42);
-  doc.setFontSize(9);
-  doc.text('Généré le '+new Date().toLocaleDateString('fr-FR'),M,52);
+  doc.text('Catalogue des formations EDOF',M,22);
+  doc.setFontSize(11);doc.setFont('helvetica','normal');
+  doc.text('INFREP — Puy-de-Dôme (63)',M,34);
+  doc.setFontSize(8);
+  doc.text('Généré le '+new Date().toLocaleDateString('fr-FR')+' — '+fiches.length+' formation(s)',M,44);
   doc.setTextColor(0,0,0);
-  y=75;
-  // Résumé
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(10);
-  doc.text(fiches.length+' formation(s) dans ce catalogue',M,y);
-  y+=8;
-  fiches.forEach(function(f,idx){
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(9);
-    doc.setTextColor(68,68,68);
-    doc.text((idx+1)+'. '+f.intitule,M+3,y);
-    y+=6;
-    if(y>270){newPage();}
+  y=62;
+  doc.setFont('helvetica','bold');doc.setFontSize(9);
+  doc.setTextColor(26,86,219);
+  doc.text('SOMMAIRE',M,y);y+=6;
+  fiches.forEach(function(f,i){
+    checkY(5);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);
+    doc.setTextColor(30,30,30);
+    var line=(i+1)+'. '+f.intitule+(f.numIntOf?' ['+f.numIntOf+']':'');
+    var lines=doc.splitTextToSize(line,CW);
+    doc.text(lines,M+3,y);y+=lines.length*4.5+1;
   });
 
-  // Fiches
+  // UNE PAGE PAR FICHE
   fiches.forEach(function(f,idx){
-    doc.addPage();
-    y=15;
+    doc.addPage();y=0;
 
-    // En-tête fiche
+    // EN-TÊTE FICHE
     doc.setFillColor(26,86,219);
-    doc.rect(0,0,210,18,'F');
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(13);
+    doc.rect(0,0,210,20,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(13);
     doc.setTextColor(255,255,255);
-    var titre=doc.splitTextToSize(f.intitule||'Sans titre',CW);
-    doc.text(titre,M,10);
-    doc.setFontSize(8);
-    doc.setFont('helvetica','normal');
-    doc.text('N° '+(f.numIntOf||f.id),M,16);
-    doc.setTextColor(0,0,0);
-    y=24;
+    var titreLines=doc.splitTextToSize(f.intitule||'Sans titre',CW);
+    doc.text(titreLines,M,9);
+    doc.setFontSize(7.5);doc.setFont('helvetica','normal');
+    doc.text('Fiche '+(idx+1)+'/'+fiches.length+(f.numIntOf?' — N° '+f.numIntOf:''),M,17);
+    doc.setTextColor(0,0,0);y=24;
 
-    // Badges type/certif
-    var typeLabel={'certification':'Formation certifiante','bilan':'Bilan de compétences','vae':'Accompagnement VAE','permis':'Permis de conduire'};
-    var tl=typeLabel[f.typeOffre]||f.typeOffre||'Formation';
-    addBadge(tl,26,86,219);
-    if(f.certif==='O') {var bx=addBadge(tl,26,86,219);addBadge('Certifiante',14,122,78);}
-    y+=8;
+    // ===== IDENTIFICATION =====
+    hdr1('IDENTIFICATION');
+    row('Type d'offre',TYPE_OFFRE[f.typeOffre]||f.typeOffre);
+    row('N° interne OF',f.numIntOf);
+    row('SIRET',f.siret);
+    row('Raison sociale',f.raisonSociale);
+    row('NDA',f.numActivite);
+    row('Code UAI',f.codeUAI);
+    row('Type de parcours',PARCOURS_L[f.parcours]||f.parcours);
+    row('Certifiante',f.certif==='O'?'Oui':'Non');
+    row('Objectif général',OBJ_GEN_L[f.objGen]||f.objGen);
+    space();
 
-    // SIRET / NDA
-    if(f.siret) addSection('SIRET',f.siret+(f.raisonSociale?' — '+f.raisonSociale:''));
-    if(f.numActivite) addSection('NDA',f.numActivite);
-    addSeparator();
+    // ===== CERTIFICATION =====
+    hdr1('CERTIFICATION ET CODES');
+    row('Code RNCP',f.rncp);
+    row('Code RS',f.rs);
+    row('Dispositif CPF',f.cpf);
+    row('Certifinfo',f.certifinfo);
+    if(f.typeOffre==='vae'){
+      row('Catégorisation VAE',f.categorisationOffre);
+      if(f.vaeRncpList&&f.vaeRncpList.length)
+        row('Certifications visées',f.vaeRncpList.map(function(r){return r.code+(r.titre?' — '+r.titre:'');}).join('
+'));
+    }
+    row('Formacode(s)',f.formacode&&f.formacode.length?f.formacode.join(', '):'');
+    row('Code(s) NSF',f.nsf&&f.nsf.length?f.nsf.join(', '):'');
+    row('Code(s) ROME',f.rome&&f.rome.length?f.rome.join(', '):'');
+    row('Niveau entrée',NIVEAUX_L[f.nivE]||f.nivE);
+    row('Niveau sortie',NIVEAUX_L[f.nivS]||f.nivS);
+    if(f.blocsCompetences&&f.blocsCompetences.length)
+      row('Blocs de compétences',f.blocsCompetences.map(function(b){return b.code+(b.titre?' — '+b.titre:'');}).join('
+'));
+    space();
 
-    // Codes
-    var codes=[];
-    if(f.rncp) codes.push('RNCP : '+f.rncp);
-    if(f.rs) codes.push('RS : '+f.rs);
-    if(f.cpf) codes.push('CPF : '+f.cpf);
-    if(f.formacode&&f.formacode.length) codes.push('FORMACODE : '+f.formacode.join(', '));
-    if(f.nsf&&f.nsf.length) codes.push('NSF : '+f.nsf.join(', '));
-    if(f.rome&&f.rome.length) codes.push('ROME : '+f.rome.join(', '));
-    if(codes.length) addSection('Codes',codes.join(' | '));
+    // ===== DESCRIPTION PEDAGOGIQUE =====
+    hdr1('DESCRIPTION PÉDAGOGIQUE');
+    row('Objectif pédagogique',f.objectif);
+    sep();
+    row('Résultats attendus',f.resultats);
+    sep();
+    row('Contenu',f.contenu);
+    sep();
+    row('Points forts (255 car.)',f.resumeContenu);
+    row('Rythme de formation',f.rythme);
+    row('URL formation',f.url);
+    space();
 
-    // Description
-    addSection('Objectif pédagogique',f.objectif);
-    addSection('Résultats attendus',f.resultats);
-    addSection('Contenu',f.contenu);
-    addSection('Points forts',f.resumeContenu);
+    // ===== ORGANISME =====
+    hdr1('ORGANISME DE FORMATION');
+    row('Raison sociale',f.raisonSociale);
+    row('SIRET',f.siret);
+    row('NDA',f.numActivite);
+    row('Code UAI',f.codeUAI);
+    space();
 
-    // Actions
+    // ===== ACTIONS =====
     (f.actions||[]).forEach(function(a,ai){
-      addSeparator();
-      checkY(8);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(9);
-      doc.setTextColor(26,86,219);
-      doc.text('Action '+(ai+1)+(a.num?' — '+a.num:''),M,y);
-      doc.setTextColor(0,0,0);
-      y+=6;
+      hdr2('ACTION '+(ai+1)+(a.num?' — '+a.num:''));
 
-      var infos=[];
-      if(a.dureeTotal) infos.push('Durée : '+a.dureeTotal+'h');
-      else if(a.duree) infos.push('Durée centre : '+a.duree+'h');
-      if(a.prixTTC) infos.push('Prix TTC : '+a.prixTTC+' €');
-      if(a.lang) infos.push('Langue : '+a.lang);
-      if(infos.length) addSection('Informations',infos.join(' | '));
+      row('N° interne action',a.num);
+      row('Modalité enseignement',MOD_ENS[a.modEns]||a.modEns);
+      row('Niveau requis à l'entrée',a.niveauEntreeObl==='1'?'Oui':'Non');
+      row('Conditions spécifiques',a.aPrereq==='1'?'Oui':'Non');
+      row('Détail prérequis',a.prereq);
+      sep();
 
-      if(a.adr||a.cp||a.ville){
-        addSection('Lieu',[a.adr,a.cp,a.ville].filter(Boolean).join(' '));
+      hdr3('Durée et tarification');
+      row('Durée totale (h)',a.dureeTotal);
+      row('Dont heures en centre (h)',a.duree);
+      row('Dont heures en entreprise (h)',a.dureeEntreprise);
+      row('Taux TVA',a.tva?a.tva+' %':'');
+      row('Prix TTC (€)',a.prixTTC||a.prix);
+      row('Prix horaire HT (€)',a.prixHoraire);
+      row('Frais certif inclus',a.certifInclus==='1'?'Oui':a.certifInclus==='2'?'Aucuns frais':'Non');
+      row('Montant frais jury (€)',a.fraisJury);
+      if(a.vaeRecevab||a.vaeJury||a.vaePostJury||a.vaeFormOb){
+        row('Frais VAE — recevabilité (€)',a.vaeRecevab);
+        row('Frais VAE — jury (€)',a.vaeJury);
+        row('Frais VAE — post-jury (€)',a.vaePostJury);
+        row('Frais VAE — formation oblig. (€)',a.vaeFormOb);
       }
-      if(a.tel||a.email) addSection('Contact',[a.tel,a.email].filter(Boolean).join(' — '));
-      if(a.modPed) addSection('Modalités pédagogiques',a.modPed);
-      if(a.handicap) addSection('Accessibilité',a.handicap);
+      sep();
 
-      // Sessions
+      hdr3('Organisation');
+      row('Langue',a.lang);
+      row('Groupe Formation Emploi',a.gfe?a.gfe+' — '+(GFE_L[a.gfe]||''):'');
+      row('Entrées / sorties',ENTSOR[a.entSor]||a.entSor);
+      row('Modalités d'admission',a.codesAdm&&a.codesAdm.join(', '));
+      row('Rythme de formation',a.codesRythme&&a.codesRythme.join(', '));
+      row('Périmètre recrutement',PERIM_L[a.perim]||a.perim);
+      row('Infos périmètre',a.infoPerim);
+      row('Infos recrutement',a.infoRecrutement);
+      row('Modalités pédagogiques',a.modPed);
+      row('Modalités handicap',a.modHandicap);
+      row('Accessibilité handicap',a.handicap);
+      row('Prise en charge handicap',a.priseCharge);
+      row('Conditions spécifiques',a.prereq);
+      sep();
+
+      hdr3('Lieu de formation');
+      row('Adresse',a.adr);
+      row('Code postal',a.cp);
+      row('Ville',a.ville);
+      row('Département',a.dep);
+      row('Région',a.reg);
+      row('Pays',a.pays);
+      row('Latitude / Longitude',a.lat&&a.lon?a.lat+' / '+a.lon:'');
+      sep();
+
+      hdr3('Services annexes');
+      row('URL action',a.urlAct);
+      row('Restauration',a.restauration);
+      row('Hébergement',a.hebergement);
+      row('Transport',a.transport);
+      row('Autres services',a.autresServices);
+      sep();
+
+      hdr3('Coordonnées de contact');
+      row('Téléphone',a.tel);
+      row('Courriel',a.email);
+      space();
+
+      // SESSIONS
       (a.sessions||[]).forEach(function(s,si){
-        if(s.debut||s.fin){
-          checkY(6);
-          doc.setFont('helvetica','italic');
-          doc.setFontSize(8);
-          doc.setTextColor(100,100,100);
-          doc.text('Session '+(si+1)+' : '+(s.debut||'?')+' → '+(s.fin||'?'),M+3,y);
-          doc.setTextColor(0,0,0);
-          y+=5;
-        }
+        hdr3('Session '+(si+1)+(s.num?' — '+s.num:''));
+        row('N° session',s.num);
+        row('Date début',s.debut);
+        row('Date fin',s.fin);
+        row('État recrutement',ETAT_REC[s.etatRecrutement]||s.etatRecrutement);
+        row('Individuelle / Collective',IND_COLL[s.indColl]||s.indColl);
+        row('Garantie session',GARANTIE[s.garantie]||s.garantie);
+        row('Capacité totale',s.placesTotal);
+        row('Places financées',s.placesFinancees);
+        row('Contact — Nom',s.contactNom);
+        row('Contact — Prénom',s.contactPrenom);
+        row('Contact — Email',s.email);
+        row('Contact — Tél.',s.tel);
+        row('URL session',s.urlSess);
+        row('Modalités particulières',s.modParticulieres);
+        space(2);
       });
     });
 
     // Pied de page
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(7);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);
     doc.setTextColor(150,150,150);
-    doc.text('INFREP Puy-de-Dôme — Catalogue EDOF — Page '+(idx+2),W/2,290,{align:'center'});
+    doc.text('INFREP Puy-de-Dôme — Catalogue EDOF — Fiche '+(idx+1)+'/'+fiches.length,W/2,292,{align:'center'});
     doc.setTextColor(0,0,0);
   });
 
-  var fname = ficheId ? (fiches[0].numIntOf||fiches[0].id)+'_fiche.pdf' : 'catalogue_INFREP_EDOF.pdf';
+  var fname=ficheId?(fiches[0].numIntOf||fiches[0].id).replace(/[^a-zA-Z0-9_-]/g,'_')+'_fiche.pdf':'catalogue_INFREP_EDOF_'+new Date().toISOString().slice(0,10)+'.pdf';
   doc.save(fname);
   toast('PDF généré : '+fname);
 }
