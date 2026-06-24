@@ -3476,6 +3476,28 @@ var PARCOURS_ACTION = [
   ['4','Mixte — individualisé et modularisé'],
 ];
 
+var GFE = [
+  ['A','A - Agriculture, marine, pêche, espaces naturels et ruraux'],
+  ['B','B - Arts et façonnage d'ouvrages d'art'],
+  ['C','C - Banque, assurance, immobilier'],
+  ['D','D - Commerce, vente et grande distribution'],
+  ['E','E - Communication, média et multimédia'],
+  ['F','F - Construction, bâtiment et travaux publics'],
+  ['G','G - Hôtellerie, restauration, tourisme, loisirs et animation'],
+  ['H','H - Industrie'],
+  ['I','I - Installation et maintenance'],
+  ['J','J - Santé'],
+  ['K','K - Services à la personne et à la collectivité'],
+  ['L','L - Spectacle'],
+  ['M','M - Support à l'entreprise'],
+  ['N','N - Transport et logistique'],
+  ['Q','Q - Commerce'],
+  ['R','R - Santé, social, soins personnels'],
+  ['S','S - Sport'],
+  ['T','T - Tourisme, hôtellerie, restauration'],
+  ['U','U - Sécurité'],
+  ['V','V - Agriculture, pêche, espaces naturels et ruraux'],
+];
 var PERIM = [
   ['0','0 - Sans contrainte geographique'],
   ['1','1 - Recrutement regional'],['2','2 - Inter-regional'],
@@ -4981,6 +5003,11 @@ function buildAction(a,i,f){
     }).join('')+
     '</div></div>'+
     afsel(i,'entSor','Entrées / sorties',so('0','Dates fixes',a.entSor)+so('1','Permanentes',a.entSor))+
+    '<div class="fitem"><label>Groupe Formation Emploi (GFE) <span class="bdg b-o">optionnel</span></label>'+
+    '<select data-ai="'+i+'" data-f="gfe">'+
+    '<option value="">-- Non renseigné</option>'+
+    GFE.map(function(g){return '<option value="'+g[0]+'"'+(a.gfe===g[0]?' selected':'')+'>'+g[1]+'</option>';}).join('')+
+    '</select></div>'+
     (a.aPrereq==='1'?
       '<div class="fitem full"><label>Détails des conditions spécifiques et prérequis <span class="req">*</span></label>'+
       '<textarea data-ai="'+i+'" data-f="prereq" maxlength="3000">'+esc(a.prereq)+'</textarea></div>'
@@ -5509,7 +5536,7 @@ function emptyAction(){return {
   num:'',modEns:'0',niveauEntreeObl:'0',aPrereq:'0',
   dureeTotal:'',duree:'',dureeEntreprise:'',
   prix:'',prixHoraire:'',lang:'FR',
-  tva:'0.0',certifInclus:'0',tel:'',email:'',
+  tva:'0.0',certifInclus:'0',gfe:'',tel:'',email:'',
   codesAdm:['99999'],codesRythme:['5'],fraisJury:'',
   entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'0',infoPerim:'',infoRecrutement:'',urlAct:'',
   restauration:'',hebergement:'',transport:'',autresServices:'',
@@ -5687,6 +5714,7 @@ function toXML(formations){
         if(a.modHandicap)o+='          <extra info="modalites-handicap">'+escX(a.modHandicap)+'</extra>\n';
         if(a.autresServices)o+='          <extra info="autres-services">'+escX(a.autresServices)+'</extra>\n';
         if(a.dureeTotal)o+='          <extra info="duree-apprentissage">'+escX(a.dureeTotal)+'</extra>\n';
+        if(a.gfe) o+='          <extra info="code-gfe">'+escX(a.gfe)+'</extra>\n';
         o+='        </extras>\n      </action>\n';});
     // Organisme responsable
     o+='      <organisme-formation-responsable>\n';
@@ -5823,6 +5851,7 @@ function doImport(e){
           a.dureeEntreprise=tx(aEl,'nombre-heures-entreprise');
           // extras action
           var extAct=aEl.querySelector('extras[info="action"]');
+            if(extAct) a.gfe=tx(extAct,'extra[info="code-gfe"]')||'';
           if(extAct){
             var frais=extAct.querySelector('extras[info="frais-pedagogiques"]');
             if(frais){a.tva=tx(frais,'extra[info="taux-tva"]')||'0.0';a.prix=tx(frais,'extra[info="frais-ht"]')||'';}
