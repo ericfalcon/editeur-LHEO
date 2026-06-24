@@ -6368,14 +6368,16 @@ function exportPDF(ficheId){
   var GFE_L={'A':'Agriculture','B':'Arts','C':'Banque/Assurance','D':'Commerce/Vente','E':'Communication','F':'Construction/BTP','G':'Hôtellerie/Tourisme','H':'Industrie','I':'Installation/Maintenance','J':'Santé','K':'Services à la personne','L':'Spectacle','M':'Support entreprise','N':'Transport/Logistique','Q':'Commerce','R':'Santé/Social','S':'Sport','T':'Tourisme/Restauration','U':'Sécurité','V':'Agriculture/Pêche'};
 
   function e(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
-  function row(label,val){
+  function row(label,val,raw){
     if(!val&&val!==0)return '';
-    return '<tr><th>'+e(label)+'</th><td>'+e(String(val))+'</td></tr>';
+    var v=String(val).trim();if(!v)return '';
+    return '<tr><th>'+e(label)+'</th><td>'+(raw?v:e(v))+'</td></tr>';
   }
   function section(title){return '<tr class="sec"><td colspan="2">'+e(title)+'</td></tr>';}
 
+  var isSingle=!!ficheId;
   var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">'+
-    '<title>Catalogue formations — '+e(PDF_THEME.org||'INFREP')+'</title>'+
+    '<title>'+(isSingle?e(fiches[0].intitule||'Fiche formation'):('Catalogue formations — '+e(PDF_THEME.org||'INFREP')))+'</title>'+
     '<style>'+
     'body{font-family:Arial,sans-serif;font-size:11px;color:#222;margin:0;padding:0}'+
     '.page{page-break-after:always;padding:15mm 12mm;box-sizing:border-box}'+
@@ -6399,25 +6401,35 @@ function exportPDF(ficheId){
     '}'+
     '</style></head><body>';
 
-  // Page de garde
-  html+='<div class="page cover">';
-  if(PDF_THEME.logo) html+='<img src="'+PDF_THEME.logo+'" style="max-height:60px;max-width:200px;margin-bottom:12px;display:block">';
-  html+='<h1>Catalogue des formations EDOF</h1>';
-  html+='<p>'+e(PDF_THEME.org||'INFREP')+'</p>';
-  html+='<p>Généré le '+new Date().toLocaleDateString('fr-FR')+'</p>';
-  html+='<p>'+fiches.length+' formation(s)</p>';
-  html+='<div class="toc">';
-  fiches.forEach(function(f,i){
-    html+='<div class="toc-item"><span>'+(i+1)+'. '+e(f.intitule)+'</span><span style="color:#adf;font-size:10px">'+e(f.numIntOf||'')+'</span></div>';
-  });
-  html+='</div></div>';
+  // Page de garde (catalogue uniquement)
+  if(!isSingle){
+    html+='<div class="page cover">';
+    if(PDF_THEME.logo) html+='<img src="'+PDF_THEME.logo+'" style="max-height:60px;max-width:200px;margin-bottom:12px;display:block">';
+    html+='<h1>Catalogue des formations EDOF</h1>';
+    html+='<p>'+e(PDF_THEME.org||'INFREP')+'</p>';
+    html+='<p>Généré le '+new Date().toLocaleDateString('fr-FR')+'</p>';
+    html+='<p>'+fiches.length+' formation(s)</p>';
+    html+='<div class="toc">';
+    fiches.forEach(function(f,i){
+      html+='<div class="toc-item"><span>'+(i+1)+'. '+e(f.intitule)+'</span><span style="color:#adf;font-size:10px">'+e(f.numIntOf||'')+'</span></div>';
+    });
+    html+='</div></div>';
+  }
 
   // Une page par fiche
   fiches.forEach(function(f,idx){
     html+='<div class="page">';
 
     // En-tête
-    html+='<h1>'+e(f.intitule||'Sans titre')+'</h1>';
+    if(isSingle){
+      html+='<div style="background:'+PDF_THEME.color+';color:#fff;padding:16px 14px;margin-bottom:0">';
+      if(PDF_THEME.logo) html+='<img src="'+PDF_THEME.logo+'" style="max-height:50px;max-width:160px;margin-bottom:10px;display:block">';
+      html+='<div style="font-size:18px;font-weight:700;margin-bottom:4px">'+e(f.intitule||'Sans titre')+'</div>';
+      html+='<div style="font-size:10px;opacity:.85">'+e(PDF_THEME.org||'INFREP')+' — N° '+e(f.numIntOf||'')+' — '+new Date().toLocaleDateString('fr-FR')+'</div>';
+      html+='</div>';
+    } else {
+      html+='<h1>'+e(f.intitule||'Sans titre')+'</h1>';
+    }
     html+='<div style="background:#e8f0fe;padding:4px 12px;font-size:10px;color:#555;margin-bottom:8px">'+
       'Fiche '+(idx+1)+'/'+fiches.length+
       (f.numIntOf?' &nbsp;|&nbsp; N° <strong>'+e(f.numIntOf)+'</strong>':'')+
@@ -6447,7 +6459,7 @@ function exportPDF(ficheId){
     if(f.typeOffre==='vae'){
       html+=row('Catégorisation VAE',f.categorisationOffre);
       if(f.vaeRncpList&&f.vaeRncpList.length)
-        html+=row('Certifications visées',f.vaeRncpList.map(function(r){return r.code+(r.titre?' — '+r.titre:'');}).join('<br>'));
+        html+=row('Certifications visées',f.vaeRncpList.map(function(r){return e(r.code)+(r.titre?' — '+e(r.titre):'');}).join('<br>'),true);
     }
     html+=row('Formacode(s)',f.formacode&&f.formacode.length?f.formacode.join(', '):'');
     html+=row('Code(s) NSF',f.nsf&&f.nsf.length?f.nsf.join(', '):'');
@@ -6455,7 +6467,7 @@ function exportPDF(ficheId){
     html+=row('Niveau entrée',NIVEAUX_L[f.nivE]||f.nivE);
     html+=row('Niveau sortie',NIVEAUX_L[f.nivS]||f.nivS);
     if(f.blocsCompetences&&f.blocsCompetences.length)
-      html+=row('Blocs de compétences',f.blocsCompetences.map(function(b){return b.code+(b.titre?' — '+b.titre:'');}).join('<br>'));
+      html+=row('Blocs de compétences',f.blocsCompetences.filter(function(b){return b&&b.code;}).map(function(b){return e(b.code)+(b.titre?' — '+e(b.titre):'');}).join('<br>'),true);
     html+='</table>';
 
     // DESCRIPTION
