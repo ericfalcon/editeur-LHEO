@@ -4920,6 +4920,23 @@ function buildAction(a,i,f){
       '<label>Montant TTC des frais d\'examen (€)</label>'+
       '<input type="number" id="fraisJury_'+i+'" data-ai="'+i+'" data-f="fraisJury" value="'+esc(a.fraisJury||'')+'" oninput="calcPrix('+i+')" placeholder="0.00">'+
     '</div>'+
+    (f.typeOffre==='vae'?
+      '<div class="fitem full" style="background:#f0f4ff;border:1px solid #c7d7f8;border-radius:6px;padding:10px 12px;margin-top:4px">'+
+      '<div style="font-weight:600;color:var(--pri);font-size:12px;margin-bottom:8px">&#128202; Calculateur de prix VAE</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+      '<div><label style="font-size:11px;color:var(--g6)">Frais de recevabilit\u00e9 (\u20ac)</label>'+
+      '<input type="number" id="vae_recevab_'+i+'" data-ai="'+i+'" data-f="vaeRecevab" value="'+esc(a.vaeRecevab||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
+      '<div><label style="font-size:11px;color:var(--g6)">Frais de jury (\u20ac)</label>'+
+      '<input type="number" id="vae_jury_'+i+'" data-ai="'+i+'" data-f="vaeJury" value="'+esc(a.vaeJury||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
+      '<div><label style="font-size:11px;color:var(--g6)">Frais post-jury (\u20ac)</label>'+
+      '<input type="number" id="vae_postjury_'+i+'" data-ai="'+i+'" data-f="vaePostJury" value="'+esc(a.vaePostJury||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
+      '<div><label style="font-size:11px;color:var(--g6)">Formation obligatoire (\u20ac)</label>'+
+      '<input type="number" id="vae_formob_'+i+'" data-ai="'+i+'" data-f="vaeFormOb" value="'+esc(a.vaeFormOb||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
+      '</div>'+
+      '<div id="vae_total_'+i+'" style="margin-top:8px;padding:6px 10px;background:var(--pri);color:#fff;border-radius:4px;font-size:12px;font-weight:600">'+
+      'Total VAE : '+((parseFloat(a.vaeRecevab||0)+parseFloat(a.vaeJury||0)+parseFloat(a.vaePostJury||0)+parseFloat(a.vaeFormOb||0)).toFixed(2))+' \u20ac</div>'+
+      '</div>'
+    :'')+
     aif(i,'lang','text',a.lang||'FR','Langue enseignement','2','FR')+
     '<div class="fitem full"><label>Modalités d\'admission <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
     '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px" id="adm_'+i+'">'+
