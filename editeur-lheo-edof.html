@@ -4329,6 +4329,10 @@ function renderEditor(f){
   ccBind('E_obj','cc_obj',3000);ccBind('E_cont','cc_cont',3000);
   ccBind('E_res','cc_res',3000);ccBind('E_rythme','cc_ry',3000);
   ccBind('E_resumec','cc_E_resumec',255);
+  // Calculer le total VAE au chargement de la fiche
+  if(f.typeOffre==='vae'&&f.actions){
+    f.actions.forEach(function(a,i){if(window.calcVaePrix)calcVaePrix(i);});
+  }
 
   // Re-rendre la section certification quand RNCP change (pour afficher/masquer les blocs)
   var rncpInput=$('E_rncp');
