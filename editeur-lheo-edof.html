@@ -6443,8 +6443,7 @@ function exportPDF(ficheId){
     if(f.typeOffre==='vae'){
       row('Catégorisation VAE',f.categorisationOffre);
       if(f.vaeRncpList&&f.vaeRncpList.length)
-        row('Certifications visées',f.vaeRncpList.map(function(r){return r.code+(r.titre?' — '+r.titre:'');}).join('
-'));
+        row('Certifications visées',f.vaeRncpList.map(function(r){return r.code+(r.titre?' — '+r.titre:'');}).join('\n'));
     }
     row('Formacode(s)',f.formacode&&f.formacode.length?f.formacode.join(', '):'');
     row('Code(s) NSF',f.nsf&&f.nsf.length?f.nsf.join(', '):'');
@@ -6452,8 +6451,7 @@ function exportPDF(ficheId){
     row('Niveau entrée',NIVEAUX_L[f.nivE]||f.nivE);
     row('Niveau sortie',NIVEAUX_L[f.nivS]||f.nivS);
     if(f.blocsCompetences&&f.blocsCompetences.length)
-      row('Blocs de compétences',f.blocsCompetences.map(function(b){return b.code+(b.titre?' — '+b.titre:'');}).join('
-'));
+      row('Blocs de compétences',f.blocsCompetences.map(function(b){return b.code+(b.titre?' — '+b.titre:'');}).join('\n'));
     space();
 
     // ===== DESCRIPTION PEDAGOGIQUE =====
