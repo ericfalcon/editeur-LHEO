@@ -6403,17 +6403,25 @@ function exportPDF(ficheId){
     '<style>'+css+'</style></head><body>';
 
   if(!isSingle){
-    html+='<div class="page cover">';
-    if(PDF_THEME.logo)html+='<img src="'+PDF_THEME.logo+'" style="max-height:55px;max-width:180px;margin-bottom:10px;display:block">';
-    html+='<h1>Catalogue des formations EDOF</h1>';
-    html+='<p>'+e(PDF_THEME.org||'INFREP')+'</p>';
-    html+='<p>Généré le '+new Date().toLocaleDateString('fr-FR')+'</p>';
-    html+='<p>'+fiches.length+' formation(s)</p>';
-    html+='<div style="margin-top:16mm">';
+    html+='<div class="page" style="padding:0">';
+    // Bandeau couleur en haut seulement
+    html+='<div style="background:'+PDF_THEME.color+';color:#fff;padding:14mm 12mm 10mm 12mm">';
+    if(PDF_THEME.logo)html+='<img src="'+PDF_THEME.logo+'" style="max-height:50px;max-width:160px;margin-bottom:10px;display:block">';
+    html+='<div style="font-size:20px;font-weight:700;margin-bottom:4px">Catalogue des formations EDOF</div>';
+    html+='<div style="font-size:11px;opacity:.9">'+e(PDF_THEME.org||'INFREP')+'</div>';
+    html+='</div>';
+    // Corps sur fond blanc
+    html+='<div style="padding:8mm 12mm">';
+    html+='<div style="color:#888;font-size:10px;margin-bottom:8mm">Généré le '+new Date().toLocaleDateString('fr-FR')+' — '+fiches.length+' formation(s)</div>';
+    html+='<div style="font-size:11px;font-weight:700;color:'+PDF_THEME.color+';margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Sommaire</div>';
     fiches.forEach(function(f,i){
-      html+='<div class="toc-item"><span>'+(i+1)+'. '+e(f.intitule)+'</span><span style="opacity:.7;font-size:9px">'+e(f.numIntOf||'')+'</span></div>';
+      html+='<div style="padding:4px 0;border-bottom:1px dotted #ddd;display:flex;justify-content:space-between;font-size:10px">';
+      html+='<span>'+(i+1)+'. '+e(f.intitule)+'</span>';
+      html+='<span style="color:#999;font-size:9px;flex-shrink:0;margin-left:8px">'+e(f.numIntOf||'')+'</span>';
+      html+='</div>';
     });
-    html+='</div></div>';
+    html+='</div>';
+    html+='</div>';
   }
 
   fiches.forEach(function(f,idx){
