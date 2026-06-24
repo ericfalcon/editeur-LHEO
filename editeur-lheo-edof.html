@@ -4925,7 +4925,7 @@ function buildAction(a,i,f){
     '<input type="number" id="prixH_'+i+'" data-ai="'+i+'" data-f="prixHoraire" value="'+esc(a.prixHoraire||'')+'" oninput="calcPrix('+i+');calcVaePrix('+i+')" placeholder="72"></div>'+
     '</div></div>'+
     '<div class="fitem"><label>Prix inclut les frais d\'examen / frais de jury ? <span class="bdg b-o">Impacte les résultats attendus VAE</span></label>'+
-      '<select data-ai="'+i+'" data-f="certifInclus" onchange="var r=document.getElementById(\'jury_row_\'+this.dataset.ai);if(r)r.style.display=this.value===\'1\'?\'\'\':\'none\'">'+
+      '<select data-ai="'+i+'" data-f="certifInclus" id="sel_certif_'+i+'" onchange="(function(sel){var ai=sel.dataset.ai;var r=document.getElementById(\'jury_row_\'+ai);if(r)r.style.display=sel.value===\'1\'?\'\'\':\'none\'})(this)">'+
       so('0','Non',a.certifInclus||'0')+so('1','Oui',a.certifInclus)+so('2','Aucuns frais d\'examen attendus',a.certifInclus)+
       '</select></div>'+
     '<div class="fitem" id="jury_row_'+i+'" style="'+(a.certifInclus==='1'?'':'display:none')+'">'+
