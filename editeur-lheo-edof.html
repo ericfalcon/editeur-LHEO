@@ -5088,14 +5088,17 @@ function collect(fid){
   // VAE : collecter la liste RNCP visés et générer resultats-attendus
   if(f.typeOffre==='vae'){
     var vaeRows=document.querySelectorAll('.vae-rncp-row');
-    f.vaeRncpList=[];
+    var newList=[];
     vaeRows.forEach(function(row){
       var cEl=row.querySelector('.vae-rncp-code');
       var tEl=row.querySelector('.vae-rncp-titre');
       var c=cEl?cEl.value.trim():'';
       var t=tEl?tEl.value.trim():'';
-      if(c) f.vaeRncpList.push({code:c,titre:t});
+      if(c) newList.push({code:c,titre:t});
     });
+    // Si le DOM contient des rows, on met à jour ; sinon on conserve la liste en mémoire
+    if(newList.length>0) f.vaeRncpList=newList;
+    else if(!f.vaeRncpList) f.vaeRncpList=[];
     if(f.vaeRncpList.length){
       // Lire frais de jury depuis la première action (champ frais-certif-inclus-frais-anpec)
       var certifInclusVal=(f.actions&&f.actions[0])?f.actions[0].certifInclus:'0';
@@ -5540,6 +5543,21 @@ function toXML(formations){
     o+=xf('certifiante',f.certif||'N');
     o+=xf('intitule-formation',f.intitule);
     o+=xf('objectif-formation',f.objectif);
+    // Pour la VAE : reconstruire resultats-attendus depuis vaeRncpList si f.resultats est vide
+    if(f.typeOffre==='vae'&&(!f.resultats||!f.resultats.trim())&&f.vaeRncpList&&f.vaeRncpList.length){
+      var certifInclusVal2=(f.actions&&f.actions[0])?f.actions[0].certifInclus:'0';
+      var lines2=['Passage devant un jury pour les certifications :'];
+      f.vaeRncpList.forEach(function(r){lines2.push('- '+r.code+(r.titre?' - '+r.titre:''));});
+      if(certifInclusVal2==='1'){
+        lines2.push('Les frais de jury sont inclus dans le prix du parcours.');
+        if(f.actions&&f.actions[0]&&f.actions[0].fraisJury)
+          lines2.push('Montant des frais de jury : '+f.actions[0].fraisJury+' € TTC.');
+      } else if(certifInclusVal2==='2')
+        lines2.push('Aucuns frais de passage de certification attendus.');
+      else
+        lines2.push("Les frais de jury sont a la charge du candidat et seront payes directement a l'organisme certificateur.");
+      f.resultats=lines2.join('\n');
+    }
     o+=xf('resultats-attendus',f.resultats);
     o+=xf('contenu-formation',f.contenu);
     o+=xf('parcours-de-formation',f.parcours);
