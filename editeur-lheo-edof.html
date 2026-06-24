@@ -6406,9 +6406,9 @@ function exportPDF(ficheId){
     '<style>'+css+'</style></head><body>';
 
   if(!isSingle){
-    html+='<div class="page" style="padding:0">';
+    html+='<div class="page" style="padding:0 0 12mm 0">';
     // Bandeau couleur en haut seulement
-    html+='<div style="background:'+PDF_THEME.color+';color:#fff;padding:14mm 12mm 10mm 12mm">';
+    html+='<div style="background:'+PDF_THEME.color+';color:#fff;padding:12mm 12mm 10mm 12mm;margin-top:10mm">';
     if(PDF_THEME.logo)html+='<img src="'+PDF_THEME.logo+'" style="max-height:50px;max-width:160px;margin-bottom:10px;display:block">';
     html+='<div style="font-size:20px;font-weight:700;margin-bottom:4px">Catalogue des formations EDOF</div>';
     html+='<div style="font-size:11px;opacity:.9">'+e(PDF_THEME.org||'INFREP')+'</div>';
