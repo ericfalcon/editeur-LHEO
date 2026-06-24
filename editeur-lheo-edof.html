@@ -5199,7 +5199,10 @@ function validateFiche(f){
   if(!luhnSiret(f.siret)) errs.push({field:'E_siret',msg:'SIRET invalide (clé Luhn incorrecte)'});
   if(!f.objectif||f.objectif.trim().length<10) errs.push({field:'E_obj',msg:'Objectif pédagogique manquant (min 10 car.)'});
   if(!f.contenu||f.contenu.trim().length<10) errs.push({field:'E_cont',msg:'Contenu manquant (min 10 car.)'});
-  if(!f.resultats||f.resultats.trim().length<10) errs.push({field:'E_res',msg:'Résultats attendus manquants'});
+  // Pour la VAE, résultats générés depuis vaeRncpList — pas de validation texte
+  var isVaeV2=(f.typeOffre==='vae');
+  if(!isVaeV2&&(!f.resultats||f.resultats.trim().length<10)) errs.push({field:'E_res',msg:'Résultats attendus manquants'});
+  if(isVaeV2&&(!f.vaeRncpList||!f.vaeRncpList.length)) errs.push({field:'E_res',msg:'Résultats attendus manquants — ajoutez au moins une certification RNCP visée'});
   if(!f.resumeContenu||f.resumeContenu.trim().length<5) errs.push({field:'E_resumec',msg:'Points forts manquants (max 255 car.)'});
   var to=f.typeOffre||'certification';
   var isVaeV=(to==='vae');
