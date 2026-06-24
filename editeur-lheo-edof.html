@@ -4328,7 +4328,7 @@ function renderEditor(f){
   })();
   ccBind('E_obj','cc_obj',3000);ccBind('E_cont','cc_cont',3000);
   ccBind('E_res','cc_res',3000);ccBind('E_rythme','cc_ry',3000);
-  ccBind('E_resumec','cc_resumec',255);
+  ccBind('E_resumec','cc_E_resumec',255);
 
   // Re-rendre la section certification quand RNCP change (pour afficher/masquer les blocs)
   var rncpInput=$('E_rncp');
@@ -4725,7 +4725,9 @@ function buildDesc(f){
     :
       fta('Résultats attendus <span class="req">*</span>','E_res',f.resultats,3000,true)
     )+
-    fi('Points forts <span class="req">*</span> (255 car max)','E_resumec','text',f.resumeContenu,255,'Accroche courte visible sur Mon Compte Formation',true,true)+
+    '<div class="fitem full"><label>Points forts <span class="req">*</span> <span class="bdg b-o">255 car. max</span></label>'+
+    '<textarea id="E_resumec" maxlength="255" rows="3" style="resize:vertical;min-height:60px" placeholder="Accroche courte visible sur Mon Compte Formation">'+esc(f.resumeContenu||'')+'</textarea>'+
+    '<div class="cc" id="cc_E_resumec">'+(f.resumeContenu||'').length+'/255</div></div>'+
     fta('Rythme de la formation','E_rythme',f.rythme,3000,true)+
     fi('URL formation','E_url','url',f.url,'','https://...','',true)+
     '</div>';}
