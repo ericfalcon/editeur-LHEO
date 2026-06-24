@@ -161,8 +161,7 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
       })();
     </script>
     <!-- End Matomo Code -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-</head>
+  </head>
 <body>
 <div class="app">
   <div class="sb">
@@ -171,20 +170,21 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
     <div class="sb-list" id="J_list"></div>
     <div class="sb-foot" style="flex-direction:column;gap:5px">
       <div style="display:flex;gap:5px">
-        <button class="btn" style="flex:1" id="J_imp">Importer XML</button>
-      <button class="btn" id="J_hab_btn" title="Habilitations EDOF">🏅</button>
-        <button class="btn btn-ok" style="flex:1" id="J_expAll">Exporter tout</button>
-        <button class="btn" style="flex:1" id="J_expPDF" title="Exporter le catalogue en PDF">📄 PDF</button>
-        <button class="btn" id="J_expXls" title="Export CSV/Excel">📊</button>
+        <button class="btn" style="flex:1" id="J_imp">📥 Importer XML</button>
+        <button class="btn btn-ok" style="flex:1" id="J_expAll">📤 Exporter tout</button>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button class="btn" style="flex:1" id="J_expPDF" title="Exporter le catalogue en PDF">📄 Export PDF</button>
+        <button class="btn" style="flex:1" id="J_expXls" title="Export CSV/Excel">📊 Export CSV</button>
       </div>
       <button class="btn btn-full" id="J_imp_hab" style="font-size:11px;justify-content:center">
         🎓 Importer habilitations EDOF (.csv)
       </button>
       <div id="J_hab_status" style="font-size:10px;color:var(--g5);text-align:center;min-height:14px"></div>
-    </div>
-    <div class="sb-foot" style="border-top:1px solid var(--border);padding-top:5px;gap:4px">
-      <button class="btn btn-sm" style="flex:1;font-size:10px" id="J_saveData" title="Sauvegarder toutes les fiches dans un fichier .json pour les retrouver sur un autre navigateur">&#128190; Sauvegarder fiches</button>
-      <button class="btn btn-sm" style="flex:1;font-size:10px" id="J_loadData" title="Restaurer des fiches depuis un fichier .json precedemment sauvegarde">&#128194; Restaurer fiches</button>
+      <div style="display:flex;gap:5px;border-top:1px solid var(--g2);padding-top:5px">
+        <button class="btn btn-sm" style="flex:1;font-size:10px" id="J_saveData" title="Sauvegarder toutes les fiches">💾 Sauvegarder fiches</button>
+        <button class="btn btn-sm" style="flex:1;font-size:10px" id="J_loadData" title="Restaurer des fiches">📂 Restaurer fiches</button>
+      </div>
     </div>
     <input type="file" id="file-data" accept=".json" style="display:none">
   </div>
@@ -228,8 +228,8 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
 </div>
 <input type="file" id="J_hab_csv" accept=".csv" style="display:none">
 <div class="notif" id="J_notif"></div>
-<input type="file" id="file-in" accept=".xml">
-<input type="file" id="file-hab" accept=".csv">
+<input type="file" id="file-in" accept=".xml" style="display:none">
+<input type="file" id="file-hab" accept=".csv" style="display:none">
 <script>
 window.addEventListener('load', function() {
 'use strict';
@@ -6310,66 +6310,12 @@ $('J_imp').addEventListener('click',function(){$('file-in').click();});
 $('J_expAll').addEventListener('click',doExportAll);
 
 // =============================================
-// EXPORT PDF CATALOGUE
+// EXPORT PDF CATALOGUE (via impression navigateur)
 // =============================================
 function exportPDF(ficheId){
-  if(!window.jspdf){toast('jsPDF non chargé — utilisez la version GitHub Pages',true);return;}
-  var { jsPDF } = window.jspdf;
-  var doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   var fiches = ficheId ? cat.filter(function(f){return f.id===ficheId;}) : cat;
   if(!fiches.length){toast('Aucune fiche à exporter',true);return;}
 
-  var W=210, M=12, CW=W-2*M, pageH=297, y=0;
-
-  function newPage(){doc.addPage();y=15;}
-  function checkY(need){if(y+(need||6)>pageH-12)newPage();}
-
-  function hdr1(text){
-    checkY(10);
-    doc.setFillColor(26,86,219);
-    doc.rect(M,y,CW,8,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(10);
-    doc.setTextColor(255,255,255);
-    doc.text(text,M+2,y+5.5);
-    doc.setTextColor(0,0,0);y+=11;
-  }
-  function hdr2(text){
-    checkY(8);
-    doc.setFillColor(230,237,255);
-    doc.rect(M,y,CW,6,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(9);
-    doc.setTextColor(26,86,219);
-    doc.text(text,M+2,y+4.2);
-    doc.setTextColor(0,0,0);y+=8;
-  }
-  function hdr3(text){
-    checkY(7);
-    doc.setFont('helvetica','bold');doc.setFontSize(8.5);
-    doc.setTextColor(80,80,80);
-    doc.text(text,M,y+4);
-    doc.setDrawColor(180,180,180);
-    doc.line(M,y+5.5,M+CW,y+5.5);
-    doc.setTextColor(0,0,0);y+=8;
-  }
-  function row(label,value){
-    if(value===undefined||value===null||String(value).trim()==='')return;
-    var val=String(value).trim();
-    checkY(6);
-    var lblW=50;
-    doc.setFont('helvetica','bold');doc.setFontSize(7.5);
-    doc.setTextColor(60,60,60);
-    doc.text(label,M,y);
-    doc.setFont('helvetica','normal');
-    doc.setTextColor(30,30,30);
-    var lines=doc.splitTextToSize(val,CW-lblW-2);
-    checkY(lines.length*4+1);
-    doc.text(lines,M+lblW,y);
-    y+=Math.max(5,lines.length*4+1);
-  }
-  function sep(){checkY(3);doc.setDrawColor(220,220,220);doc.line(M,y,W-M,y);y+=3;}
-  function space(n){y+=(n||3);}
-
-  // Correspondances lisibles
   var TYPE_OFFRE={'certification':'Formation préparant à une certification','bilan':'Bilan de compétences','vae':'Accompagnement à la VAE','permis':'Permis de conduire'};
   var OBJ_GEN_L={'2':'Perfectionnement','4':'Création entreprise','5':'Remise à niveau','6':'Certification','7':'Professionnalisation','8':'Préparation qualification','9':'Mobilisation / aide au projet'};
   var PARCOURS_L={'1':'Formation initiale','2':'Formation continue','3':'Apprentissage','4':'Contrat de professionnalisation','5':'VAE','6':'Bilan de compétences','7':'Autre'};
@@ -6382,197 +6328,199 @@ function exportPDF(ficheId){
   var GARANTIE={'0':'Non garantie','1':'Garantie'};
   var GFE_L={'A':'Agriculture','B':'Arts','C':'Banque/Assurance','D':'Commerce/Vente','E':'Communication','F':'Construction/BTP','G':'Hôtellerie/Tourisme','H':'Industrie','I':'Installation/Maintenance','J':'Santé','K':'Services à la personne','L':'Spectacle','M':'Support entreprise','N':'Transport/Logistique','Q':'Commerce','R':'Santé/Social','S':'Sport','T':'Tourisme/Restauration','U':'Sécurité','V':'Agriculture/Pêche'};
 
-  // PAGE DE GARDE
-  doc.setFillColor(26,86,219);
-  doc.rect(0,0,210,55,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(20);
-  doc.setTextColor(255,255,255);
-  doc.text('Catalogue des formations EDOF',M,22);
-  doc.setFontSize(11);doc.setFont('helvetica','normal');
-  doc.text('INFREP — Puy-de-Dôme (63)',M,34);
-  doc.setFontSize(8);
-  doc.text('Généré le '+new Date().toLocaleDateString('fr-FR')+' — '+fiches.length+' formation(s)',M,44);
-  doc.setTextColor(0,0,0);
-  y=62;
-  doc.setFont('helvetica','bold');doc.setFontSize(9);
-  doc.setTextColor(26,86,219);
-  doc.text('SOMMAIRE',M,y);y+=6;
+  function e(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
+  function row(label,val){
+    if(!val&&val!==0)return '';
+    return '<tr><th>'+e(label)+'</th><td>'+e(String(val))+'</td></tr>';
+  }
+  function section(title){return '<tr class="sec"><td colspan="2">'+e(title)+'</td></tr>';}
+
+  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">'+
+    '<title>Catalogue formations INFREP</title>'+
+    '<style>'+
+    'body{font-family:Arial,sans-serif;font-size:11px;color:#222;margin:0;padding:0}'+
+    '.page{page-break-after:always;padding:15mm 12mm;box-sizing:border-box}'+
+    '.page:last-child{page-break-after:auto}'+
+    'h1{background:#1a56db;color:#fff;padding:8px 12px;margin:0 0 4px 0;font-size:15px;border-radius:4px 4px 0 0}'+
+    'h2{background:#e8f0fe;color:#1a56db;padding:5px 10px;margin:12px 0 0 0;font-size:12px;border-radius:3px}'+
+    'h3{background:#f5f5f5;color:#444;padding:3px 8px;margin:8px 0 0 0;font-size:10px;border-radius:2px}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:2px}'+
+    'th{width:35%;text-align:left;font-weight:600;color:#555;padding:3px 6px;vertical-align:top;background:#fafafa;border-bottom:1px solid #eee}'+
+    'td{padding:3px 6px;vertical-align:top;border-bottom:1px solid #eee}'+
+    'tr.sec td{background:#1a56db;color:#fff;font-weight:700;font-size:10px;padding:4px 8px;text-transform:uppercase;letter-spacing:.5px}'+
+    '.badge{display:inline-block;background:#1a56db;color:#fff;border-radius:3px;padding:1px 6px;font-size:9px;margin:2px 2px 6px 0}'+
+    '.cover{background:#1a56db;color:#fff;padding:20mm 12mm;min-height:60mm}'+
+    '.cover h1{background:none;font-size:22px;margin:0 0 8px 0}'+
+    '.cover p{margin:4px 0;font-size:12px;opacity:.9}'+
+    '.toc{margin-top:15mm}'+
+    '.toc-item{padding:4px 0;border-bottom:1px dotted #ccc;display:flex;justify-content:space-between}'+
+    '@media print{'+
+    '@page{size:A4;margin:0}'+
+    '.page{padding:10mm 10mm;min-height:100vh}'+
+    '}'+
+    '</style></head><body>';
+
+  // Page de garde
+  html+='<div class="page cover">';
+  html+='<h1>Catalogue des formations EDOF</h1>';
+  html+='<p>INFREP — Puy-de-Dôme (63)</p>';
+  html+='<p>Généré le '+new Date().toLocaleDateString('fr-FR')+'</p>';
+  html+='<p>'+fiches.length+' formation(s)</p>';
+  html+='<div class="toc">';
   fiches.forEach(function(f,i){
-    checkY(5);
-    doc.setFont('helvetica','normal');doc.setFontSize(8);
-    doc.setTextColor(30,30,30);
-    var line=(i+1)+'. '+f.intitule+(f.numIntOf?' ['+f.numIntOf+']':'');
-    var lines=doc.splitTextToSize(line,CW);
-    doc.text(lines,M+3,y);y+=lines.length*4.5+1;
+    html+='<div class="toc-item"><span>'+(i+1)+'. '+e(f.intitule)+'</span><span style="color:#adf;font-size:10px">'+e(f.numIntOf||'')+'</span></div>';
   });
+  html+='</div></div>';
 
-  // UNE PAGE PAR FICHE
+  // Une page par fiche
   fiches.forEach(function(f,idx){
-    doc.addPage();y=0;
+    html+='<div class="page">';
 
-    // EN-TÊTE FICHE
-    doc.setFillColor(26,86,219);
-    doc.rect(0,0,210,20,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(13);
-    doc.setTextColor(255,255,255);
-    var titreLines=doc.splitTextToSize(f.intitule||'Sans titre',CW);
-    doc.text(titreLines,M,9);
-    doc.setFontSize(7.5);doc.setFont('helvetica','normal');
-    doc.text('Fiche '+(idx+1)+'/'+fiches.length+(f.numIntOf?' — N° '+f.numIntOf:''),M,17);
-    doc.setTextColor(0,0,0);y=24;
+    // En-tête
+    html+='<h1>'+e(f.intitule||'Sans titre')+'</h1>';
+    html+='<div style="background:#e8f0fe;padding:4px 12px;font-size:10px;color:#555;margin-bottom:8px">'+
+      'Fiche '+(idx+1)+'/'+fiches.length+
+      (f.numIntOf?' &nbsp;|&nbsp; N° <strong>'+e(f.numIntOf)+'</strong>':'')+
+      (f.typeOffre?' &nbsp;|&nbsp; <span class="badge">'+e(TYPE_OFFRE[f.typeOffre]||f.typeOffre)+'</span>':'')+
+      (f.certif==='O'?' <span class="badge" style="background:#0e7a4e">Certifiante</span>':'')+
+      '</div>';
 
-    // ===== IDENTIFICATION =====
-    hdr1('IDENTIFICATION');
-    row('Type d\'offre',TYPE_OFFRE[f.typeOffre]||f.typeOffre);
-    row('N° interne OF',f.numIntOf);
-    row('SIRET',f.siret);
-    row('Raison sociale',f.raisonSociale);
-    row('NDA',f.numActivite);
-    row('Code UAI',f.codeUAI);
-    row('Type de parcours',PARCOURS_L[f.parcours]||f.parcours);
-    row('Certifiante',f.certif==='O'?'Oui':'Non');
-    row('Objectif général',OBJ_GEN_L[f.objGen]||f.objGen);
-    space();
+    // IDENTIFICATION
+    html+='<h2>Identification</h2><table>';
+    html+=row('N° interne OF',f.numIntOf);
+    html+=row('SIRET',f.siret);
+    html+=row('Raison sociale',f.raisonSociale);
+    html+=row('NDA',f.numActivite);
+    html+=row('Code UAI',f.codeUAI);
+    html+=row('Type d\'offre',TYPE_OFFRE[f.typeOffre]||f.typeOffre);
+    html+=row('Type de parcours',PARCOURS_L[f.parcours]||f.parcours);
+    html+=row('Certifiante',f.certif==='O'?'Oui':'Non');
+    html+=row('Objectif général',OBJ_GEN_L[f.objGen]||f.objGen);
+    html+='</table>';
 
-    // ===== CERTIFICATION =====
-    hdr1('CERTIFICATION ET CODES');
-    row('Code RNCP',f.rncp);
-    row('Code RS',f.rs);
-    row('Dispositif CPF',f.cpf);
-    row('Certifinfo',f.certifinfo);
+    // CERTIFICATION
+    html+='<h2>Certification et codes</h2><table>';
+    html+=row('Code RNCP',f.rncp);
+    html+=row('Code RS',f.rs);
+    html+=row('Dispositif CPF',f.cpf);
+    html+=row('Certifinfo',f.certifinfo);
     if(f.typeOffre==='vae'){
-      row('Catégorisation VAE',f.categorisationOffre);
+      html+=row('Catégorisation VAE',f.categorisationOffre);
       if(f.vaeRncpList&&f.vaeRncpList.length)
-        row('Certifications visées',f.vaeRncpList.map(function(r){return r.code+(r.titre?' — '+r.titre:'');}).join('\n'));
+        html+=row('Certifications visées',f.vaeRncpList.map(function(r){return r.code+(r.titre?' — '+r.titre:'');}).join('<br>'));
     }
-    row('Formacode(s)',f.formacode&&f.formacode.length?f.formacode.join(', '):'');
-    row('Code(s) NSF',f.nsf&&f.nsf.length?f.nsf.join(', '):'');
-    row('Code(s) ROME',f.rome&&f.rome.length?f.rome.join(', '):'');
-    row('Niveau entrée',NIVEAUX_L[f.nivE]||f.nivE);
-    row('Niveau sortie',NIVEAUX_L[f.nivS]||f.nivS);
+    html+=row('Formacode(s)',f.formacode&&f.formacode.length?f.formacode.join(', '):'');
+    html+=row('Code(s) NSF',f.nsf&&f.nsf.length?f.nsf.join(', '):'');
+    html+=row('Code(s) ROME',f.rome&&f.rome.length?f.rome.join(', '):'');
+    html+=row('Niveau entrée',NIVEAUX_L[f.nivE]||f.nivE);
+    html+=row('Niveau sortie',NIVEAUX_L[f.nivS]||f.nivS);
     if(f.blocsCompetences&&f.blocsCompetences.length)
-      row('Blocs de compétences',f.blocsCompetences.map(function(b){return b.code+(b.titre?' — '+b.titre:'');}).join('\n'));
-    space();
+      html+=row('Blocs de compétences',f.blocsCompetences.map(function(b){return b.code+(b.titre?' — '+b.titre:'');}).join('<br>'));
+    html+='</table>';
 
-    // ===== DESCRIPTION PEDAGOGIQUE =====
-    hdr1('DESCRIPTION PÉDAGOGIQUE');
-    row('Objectif pédagogique',f.objectif);
-    sep();
-    row('Résultats attendus',f.resultats);
-    sep();
-    row('Contenu',f.contenu);
-    sep();
-    row('Points forts (255 car.)',f.resumeContenu);
-    row('Rythme de formation',f.rythme);
-    row('URL formation',f.url);
-    space();
+    // DESCRIPTION
+    html+='<h2>Description pédagogique</h2><table>';
+    html+=row('Objectif pédagogique',f.objectif);
+    html+=row('Résultats attendus',f.resultats);
+    html+=row('Contenu',f.contenu);
+    html+=row('Points forts (255 car.)',f.resumeContenu);
+    html+=row('Rythme de formation',f.rythme);
+    html+=row('URL formation',f.url);
+    html+='</table>';
 
-    // ===== ORGANISME =====
-    hdr1('ORGANISME DE FORMATION');
-    row('Raison sociale',f.raisonSociale);
-    row('SIRET',f.siret);
-    row('NDA',f.numActivite);
-    row('Code UAI',f.codeUAI);
-    space();
-
-    // ===== ACTIONS =====
+    // ACTIONS
     (f.actions||[]).forEach(function(a,ai){
-      hdr2('ACTION '+(ai+1)+(a.num?' — '+a.num:''));
+      html+='<h2>Action '+(ai+1)+(a.num?' — '+e(a.num):'')+'</h2>';
 
-      row('N° interne action',a.num);
-      row('Modalité enseignement',MOD_ENS[a.modEns]||a.modEns);
-      row('Niveau requis à l\'entrée',a.niveauEntreeObl==='1'?'Oui':'Non');
-      row('Conditions spécifiques',a.aPrereq==='1'?'Oui':'Non');
-      row('Détail prérequis',a.prereq);
-      sep();
+      html+='<h3>Organisation</h3><table>';
+      html+=row('N° interne action',a.num);
+      html+=row('Modalité enseignement',MOD_ENS[a.modEns]||a.modEns);
+      html+=row('Niveau requis',a.niveauEntreeObl==='1'?'Oui':'Non');
+      html+=row('Prérequis',a.aPrereq==='1'?'Oui':'Non');
+      html+=row('Détail prérequis',a.prereq);
+      html+=row('Conditions spécifiques',a.prereq);
+      html+=row('Langue',a.lang);
+      html+=row('GFE',a.gfe?a.gfe+' — '+(GFE_L[a.gfe]||''):'');
+      html+=row('Entrées / sorties',ENTSOR[a.entSor]||a.entSor);
+      html+=row('Modalités admission',a.codesAdm&&a.codesAdm.join(', '));
+      html+=row('Rythme',a.codesRythme&&a.codesRythme.join(', '));
+      html+=row('Périmètre recrutement',PERIM_L[a.perim]||a.perim);
+      html+=row('Infos périmètre',a.infoPerim);
+      html+=row('Infos recrutement',a.infoRecrutement);
+      html+=row('Modalités pédagogiques',a.modPed);
+      html+=row('Modalités handicap',a.modHandicap);
+      html+=row('Accessibilité handicap',a.handicap);
+      html+=row('Prise en charge handicap',a.priseCharge);
+      html+='</table>';
 
-      hdr3('Durée et tarification');
-      row('Durée totale (h)',a.dureeTotal);
-      row('Dont heures en centre (h)',a.duree);
-      row('Dont heures en entreprise (h)',a.dureeEntreprise);
-      row('Taux TVA',a.tva?a.tva+' %':'');
-      row('Prix TTC (€)',a.prixTTC||a.prix);
-      row('Prix horaire HT (€)',a.prixHoraire);
-      row('Frais certif inclus',a.certifInclus==='1'?'Oui':a.certifInclus==='2'?'Aucuns frais':'Non');
-      row('Montant frais jury (€)',a.fraisJury);
-      if(a.vaeRecevab||a.vaeJury||a.vaePostJury||a.vaeFormOb){
-        row('Frais VAE — recevabilité (€)',a.vaeRecevab);
-        row('Frais VAE — jury (€)',a.vaeJury);
-        row('Frais VAE — post-jury (€)',a.vaePostJury);
-        row('Frais VAE — formation oblig. (€)',a.vaeFormOb);
-      }
-      sep();
+      html+='<h3>Durée et tarification</h3><table>';
+      html+=row('Durée totale (h)',a.dureeTotal);
+      html+=row('Heures en centre (h)',a.duree);
+      html+=row('Heures en entreprise (h)',a.dureeEntreprise);
+      html+=row('Taux TVA',a.tva?a.tva+' %':'');
+      html+=row('Prix TTC (€)',a.prixTTC||a.prix);
+      html+=row('Prix horaire HT (€)',a.prixHoraire);
+      html+=row('Frais certif inclus',a.certifInclus==='1'?'Oui':a.certifInclus==='2'?'Aucuns frais':'Non');
+      html+=row('Frais de jury (€)',a.fraisJury);
+      if(a.vaeRecevab) html+=row('Frais VAE — recevabilité (€)',a.vaeRecevab);
+      if(a.vaePostJury) html+=row('Frais VAE — post-jury (€)',a.vaePostJury);
+      if(a.vaeFormOb) html+=row('Frais VAE — formation oblig. (€)',a.vaeFormOb);
+      html+='</table>';
 
-      hdr3('Organisation');
-      row('Langue',a.lang);
-      row('Groupe Formation Emploi',a.gfe?a.gfe+' — '+(GFE_L[a.gfe]||''):'');
-      row('Entrées / sorties',ENTSOR[a.entSor]||a.entSor);
-      row('Modalités d\'admission',a.codesAdm&&a.codesAdm.join(', '));
-      row('Rythme de formation',a.codesRythme&&a.codesRythme.join(', '));
-      row('Périmètre recrutement',PERIM_L[a.perim]||a.perim);
-      row('Infos périmètre',a.infoPerim);
-      row('Infos recrutement',a.infoRecrutement);
-      row('Modalités pédagogiques',a.modPed);
-      row('Modalités handicap',a.modHandicap);
-      row('Accessibilité handicap',a.handicap);
-      row('Prise en charge handicap',a.priseCharge);
-      row('Conditions spécifiques',a.prereq);
-      sep();
+      html+='<h3>Lieu de formation</h3><table>';
+      html+=row('Adresse',a.adr);
+      html+=row('Code postal',a.cp);
+      html+=row('Ville',a.ville);
+      html+=row('Département',a.dep);
+      html+=row('Région',a.reg);
+      html+=row('Pays',a.pays);
+      html+=row('Coordonnées GPS',a.lat&&a.lon?a.lat+', '+a.lon:'');
+      html+=row('Téléphone contact',a.tel);
+      html+=row('Email contact',a.email);
+      html+=row('URL action',a.urlAct);
+      html+=row('Restauration',a.restauration);
+      html+=row('Hébergement',a.hebergement);
+      html+=row('Transport',a.transport);
+      html+=row('Autres services',a.autresServices);
+      html+='</table>';
 
-      hdr3('Lieu de formation');
-      row('Adresse',a.adr);
-      row('Code postal',a.cp);
-      row('Ville',a.ville);
-      row('Département',a.dep);
-      row('Région',a.reg);
-      row('Pays',a.pays);
-      row('Latitude / Longitude',a.lat&&a.lon?a.lat+' / '+a.lon:'');
-      sep();
-
-      hdr3('Services annexes');
-      row('URL action',a.urlAct);
-      row('Restauration',a.restauration);
-      row('Hébergement',a.hebergement);
-      row('Transport',a.transport);
-      row('Autres services',a.autresServices);
-      sep();
-
-      hdr3('Coordonnées de contact');
-      row('Téléphone',a.tel);
-      row('Courriel',a.email);
-      space();
-
-      // SESSIONS
+      // Sessions
       (a.sessions||[]).forEach(function(s,si){
-        hdr3('Session '+(si+1)+(s.num?' — '+s.num:''));
-        row('N° session',s.num);
-        row('Date début',s.debut);
-        row('Date fin',s.fin);
-        row('État recrutement',ETAT_REC[s.etatRecrutement]||s.etatRecrutement);
-        row('Individuelle / Collective',IND_COLL[s.indColl]||s.indColl);
-        row('Garantie session',GARANTIE[s.garantie]||s.garantie);
-        row('Capacité totale',s.placesTotal);
-        row('Places financées',s.placesFinancees);
-        row('Contact — Nom',s.contactNom);
-        row('Contact — Prénom',s.contactPrenom);
-        row('Contact — Email',s.email);
-        row('Contact — Tél.',s.tel);
-        row('URL session',s.urlSess);
-        row('Modalités particulières',s.modParticulieres);
-        space(2);
+        html+='<h3>Session '+(si+1)+(s.num?' — '+e(s.num):'')+'</h3><table>';
+        html+=row('N° session',s.num);
+        html+=row('Date début',s.debut);
+        html+=row('Date fin',s.fin);
+        html+=row('État recrutement',ETAT_REC[s.etatRecrutement]||s.etatRecrutement);
+        html+=row('Individuelle / Collective',IND_COLL[s.indColl]||s.indColl);
+        html+=row('Garantie session',GARANTIE[s.garantie]||s.garantie);
+        html+=row('Capacité totale',s.placesTotal);
+        html+=row('Places financées',s.placesFinancees);
+        html+=row('Contact — Nom',s.contactNom);
+        html+=row('Contact — Prénom',s.contactPrenom);
+        html+=row('Contact — Email',s.email);
+        html+=row('Contact — Tél.',s.tel);
+        html+=row('URL session',s.urlSess);
+        html+=row('Modalités particulières',s.modParticulieres);
+        html+='</table>';
       });
     });
 
-    // Pied de page
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);
-    doc.setTextColor(150,150,150);
-    doc.text('INFREP Puy-de-Dôme — Catalogue EDOF — Fiche '+(idx+1)+'/'+fiches.length,W/2,292,{align:'center'});
-    doc.setTextColor(0,0,0);
+    html+='<div style="text-align:center;color:#aaa;font-size:9px;margin-top:12px;border-top:1px solid #eee;padding-top:6px">'+
+      'INFREP Puy-de-Dôme — Catalogue EDOF — Fiche '+(idx+1)+'/'+fiches.length+
+      ' — Généré le '+new Date().toLocaleDateString('fr-FR')+
+      '</div>';
+    html+='</div>';
   });
 
-  var fname=ficheId?(fiches[0].numIntOf||fiches[0].id).replace(/[^a-zA-Z0-9_-]/g,'_')+'_fiche.pdf':'catalogue_INFREP_EDOF_'+new Date().toISOString().slice(0,10)+'.pdf';
-  doc.save(fname);
-  toast('PDF généré : '+fname);
+  html+='</body></html>';
+
+  // Ouvrir dans un nouvel onglet et imprimer
+  var w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){w.print();},600);
+  toast('PDF : utilisez "Enregistrer en PDF" dans la boîte d\'impression');
 }
 
 $('J_expPDF').addEventListener('click',function(){exportPDF(null);});
