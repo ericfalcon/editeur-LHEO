@@ -3678,7 +3678,7 @@ window.applySiretData=function(data){
 window.calcVaePrix=function(ai){
   var g=function(id){var el=document.getElementById(id);return el?parseFloat(el.value||'0'):0;};
   var recevab=g('vae_recevab_'+ai);
-  var jury=g('vae_jury_'+ai);
+  var jury=g('fraisJury_'+ai); // champ existant "Montant TTC des frais d'examen"
   var postjury=g('vae_postjury_'+ai);
   var formob=g('vae_formob_'+ai);
   var heures=g('duree_'+ai);
@@ -4928,7 +4928,7 @@ function buildAction(a,i,f){
       '</select></div>'+
     '<div class="fitem" id="jury_row_'+i+'" style="'+(a.certifInclus==='1'?'':'display:none')+'">'+
       '<label>Montant TTC des frais d\'examen (€)</label>'+
-      '<input type="number" id="fraisJury_'+i+'" data-ai="'+i+'" data-f="fraisJury" value="'+esc(a.fraisJury||'')+'" oninput="calcPrix('+i+')" placeholder="0.00">'+
+      '<input type="number" id="fraisJury_'+i+'" data-ai="'+i+'" data-f="fraisJury" value="'+esc(a.fraisJury||'')+'" oninput="calcPrix('+i+');calcVaePrix('+i+')" placeholder="0.00">'+
     '</div>'+
     (f.typeOffre==='vae'?
       '<div class="fitem full" style="background:#f0f4ff;border:1px solid #c7d7f8;border-radius:6px;padding:10px 12px;margin-top:4px">'+
@@ -4936,8 +4936,7 @@ function buildAction(a,i,f){
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
       '<div><label style="font-size:11px;color:var(--g6)">Frais de recevabilit\u00e9 (\u20ac)</label>'+
       '<input type="number" id="vae_recevab_'+i+'" data-ai="'+i+'" data-f="vaeRecevab" value="'+esc(a.vaeRecevab||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
-      '<div><label style="font-size:11px;color:var(--g6)">Frais de jury (\u20ac)</label>'+
-      '<input type="number" id="vae_jury_'+i+'" data-ai="'+i+'" data-f="vaeJury" value="'+esc(a.vaeJury||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
+
       '<div><label style="font-size:11px;color:var(--g6)">Frais post-jury (\u20ac)</label>'+
       '<input type="number" id="vae_postjury_'+i+'" data-ai="'+i+'" data-f="vaePostJury" value="'+esc(a.vaePostJury||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
       '<div><label style="font-size:11px;color:var(--g6)">Formation obligatoire (\u20ac)</label>'+
