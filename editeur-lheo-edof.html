@@ -6555,12 +6555,15 @@ function exportPDF(ficheId){
 
   html+='</body></html>';
 
-  // Ouvrir dans un nouvel onglet et imprimer
-  var w=window.open('','_blank');
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(function(){w.print();},600);
+  // Ouvrir via Blob URL pour garantir le rendu complet avant impression
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var w=window.open(url,'_blank');
+  if(w){
+    w.addEventListener('load',function(){
+      setTimeout(function(){w.print();URL.revokeObjectURL(url);},400);
+    });
+  }
   toast('PDF : utilisez "Enregistrer en PDF" dans la boîte d\'impression');
 }
 
