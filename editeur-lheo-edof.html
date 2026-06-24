@@ -6423,7 +6423,7 @@ function exportPDF(ficheId){
 
     // ===== IDENTIFICATION =====
     hdr1('IDENTIFICATION');
-    row('Type d'offre',TYPE_OFFRE[f.typeOffre]||f.typeOffre);
+    row('Type d\'offre',TYPE_OFFRE[f.typeOffre]||f.typeOffre);
     row('N° interne OF',f.numIntOf);
     row('SIRET',f.siret);
     row('Raison sociale',f.raisonSociale);
@@ -6483,7 +6483,7 @@ function exportPDF(ficheId){
 
       row('N° interne action',a.num);
       row('Modalité enseignement',MOD_ENS[a.modEns]||a.modEns);
-      row('Niveau requis à l'entrée',a.niveauEntreeObl==='1'?'Oui':'Non');
+      row('Niveau requis à l\'entrée',a.niveauEntreeObl==='1'?'Oui':'Non');
       row('Conditions spécifiques',a.aPrereq==='1'?'Oui':'Non');
       row('Détail prérequis',a.prereq);
       sep();
@@ -6509,7 +6509,7 @@ function exportPDF(ficheId){
       row('Langue',a.lang);
       row('Groupe Formation Emploi',a.gfe?a.gfe+' — '+(GFE_L[a.gfe]||''):'');
       row('Entrées / sorties',ENTSOR[a.entSor]||a.entSor);
-      row('Modalités d'admission',a.codesAdm&&a.codesAdm.join(', '));
+      row('Modalités d\'admission',a.codesAdm&&a.codesAdm.join(', '));
       row('Rythme de formation',a.codesRythme&&a.codesRythme.join(', '));
       row('Périmètre recrutement',PERIM_L[a.perim]||a.perim);
       row('Infos périmètre',a.infoPerim);
