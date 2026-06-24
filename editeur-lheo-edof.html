@@ -6384,8 +6384,9 @@ function exportPDF(ficheId){
   function tbl(rows){var r=rows.join('');return r?'<table>'+r+'</table>':'';}
 
   var css='body{font-family:Arial,sans-serif;font-size:10.5px;color:#222;margin:0;padding:0}'+
-    '.page{padding:12mm 10mm;box-sizing:border-box;page-break-after:always}'+
+    '.page{padding:10mm;box-sizing:border-box;page-break-after:always}'+
     '.page:last-child{page-break-after:auto}'+
+    '.cover-page{padding:0;box-sizing:border-box;page-break-after:always}'+
     'table{width:100%;border-collapse:collapse;margin-bottom:0}'+
     'th{width:38%;text-align:left;font-weight:600;color:#444;padding:3px 6px;vertical-align:top;background:#fafafa;border-bottom:1px solid #eee;white-space:nowrap}'+
     'td{padding:3px 6px;vertical-align:top;border-bottom:1px solid #eee;word-break:break-word}'+
@@ -6406,9 +6407,9 @@ function exportPDF(ficheId){
     '<style>'+css+'</style></head><body>';
 
   if(!isSingle){
-    html+='<div class="page" style="padding:0">';
+    html+='<div class="cover-page">';
     // Bandeau couleur en haut seulement
-    html+='<div style="background:'+PDF_THEME.color+';color:#fff;padding:10mm 10mm 8mm 10mm;margin:-10mm -10mm 0 -10mm">';
+    html+='<div style="background:'+PDF_THEME.color+';color:#fff;padding:10mm 10mm 8mm 10mm">';
     if(PDF_THEME.logo)html+='<img src="'+PDF_THEME.logo+'" style="max-height:50px;max-width:160px;margin-bottom:10px;display:block">';
     html+='<div style="font-size:20px;font-weight:700;margin-bottom:4px">Catalogue des formations EDOF</div>';
     html+='<div style="font-size:11px;opacity:.9">'+e(PDF_THEME.org||'INFREP')+'</div>';
@@ -6424,7 +6425,7 @@ function exportPDF(ficheId){
       html+='</div>';
     });
     html+='</div>';
-    html+='</div>';
+    html+='</div>'; // fin cover-page
   }
 
   fiches.forEach(function(f,idx){
@@ -6437,7 +6438,7 @@ function exportPDF(ficheId){
     html+='<div class="page">';
 
     html+='<div class="fiche-header">';
-    if(isSingle&&PDF_THEME.logo)html+='<img src="'+PDF_THEME.logo+'" style="max-height:40px;max-width:140px;margin-bottom:8px;display:block">';
+    if(PDF_THEME.logo)html+='<img src="'+PDF_THEME.logo+'" style="max-height:40px;max-width:140px;margin-bottom:8px;display:block">';
     html+='<h1>'+e(f.intitule||'Sans titre')+'</h1>';
     html+='<div class="sub">'+e(PDF_THEME.org||'INFREP')+(f.numIntOf?' — N° '+e(f.numIntOf):'')+'</div>';
     html+='</div>';
