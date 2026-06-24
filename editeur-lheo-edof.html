@@ -3675,6 +3675,21 @@ window.applySiretData=function(data){
   if(changed.length) toast('Pré-rempli depuis SIRET : '+changed.join(', '));
 };
 
+window.calcVaePrix=function(ai){
+  var recevab=parseFloat(document.getElementById('vae_recevab_'+ai)&&document.getElementById('vae_recevab_'+ai).value||'0');
+  var jury=parseFloat(document.getElementById('vae_jury_'+ai)&&document.getElementById('vae_jury_'+ai).value||'0');
+  var postjury=parseFloat(document.getElementById('vae_postjury_'+ai)&&document.getElementById('vae_postjury_'+ai).value||'0');
+  var formob=parseFloat(document.getElementById('vae_formob_'+ai)&&document.getElementById('vae_formob_'+ai).value||'0');
+  var total=recevab+jury+postjury+formob;
+  var totEl=document.getElementById('vae_total_'+ai);
+  if(totEl) totEl.textContent='Total VAE : '+total.toFixed(2)+' €';
+  // Reporter le total dans le champ prix TTC
+  var ttcEl=document.getElementById('prix_ttc_'+ai);
+  if(ttcEl&&total>0){
+    ttcEl.value=total.toFixed(2);
+    window.calcPrixHT&&window.calcPrixHT(ai);
+  }
+};
 window.calcPrix=function(ai){
   var phEl=document.getElementById('prixH_'+ai);
   var centreEl=document.getElementById('duree_'+ai);
