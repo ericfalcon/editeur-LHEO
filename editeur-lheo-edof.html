@@ -161,7 +161,8 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
       })();
     </script>
     <!-- End Matomo Code -->
-  </head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
 <body>
 <div class="app">
   <div class="sb">
@@ -173,6 +174,7 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
         <button class="btn" style="flex:1" id="J_imp">Importer XML</button>
       <button class="btn" id="J_hab_btn" title="Habilitations EDOF">🏅</button>
         <button class="btn btn-ok" style="flex:1" id="J_expAll">Exporter tout</button>
+        <button class="btn" style="flex:1" id="J_expPDF" title="Exporter le catalogue en PDF">📄 PDF</button>
         <button class="btn" id="J_expXls" title="Export CSV/Excel">📊</button>
       </div>
       <button class="btn btn-full" id="J_imp_hab" style="font-size:11px;justify-content:center">
@@ -4164,6 +4166,7 @@ function renderEditor(f){
     '<button class="btn" id="E_prev">XML</button>'+
     '<button class="btn btn-warn" id="E_valid" title="Vérifier les champs avant export">✔ Valider</button>'+
     '<button class="btn btn-ok" id="E_exp">Exporter</button>'+
+    '<button class="btn" id="E_pdf" title="Exporter cette fiche en PDF">📄 PDF</button>'+
     '<button class="btn" id="E_apercu">👁 Aperçu MCF</button>'+
     '<button class="btn" onclick="dupFiche(\''+f.id+'\')">⧉ Dupliquer</button>'+
     '</div></div>'+
@@ -4375,6 +4378,7 @@ function renderEditor(f){
   if(aperBtn) aperBtn.addEventListener('click',function(){doSave(f.id,true);doApercu(f.id);});
   $('E_prev').addEventListener('click',function(){doPreview(f.id);});
   $('E_prev2').addEventListener('click',function(){doPreview(f.id);});
+  $('E_pdf').addEventListener('click',function(){exportPDF(f.id);});
   $('E_valid').addEventListener('click',function(){var errs=validateFiche(f);showValidation(errs);if(!errs.length)toast('Fiche valide ✓');else if(errs.filter(function(e){return !e.warn;}).length===0)toast(errs.length+' avertissement(s) — export possible');else toast(errs.filter(function(e){return !e.warn;}).length+' erreur(s) bloquante(s)',true);});
   $('E_exp').addEventListener('click',function(){doExport1(f.id);});
   // E_addAct géré par délégation permanente sur J_main
@@ -6304,6 +6308,199 @@ function checkHabBadge(code,containerId){
 $('J_new').addEventListener('click',newFiche);
 $('J_imp').addEventListener('click',function(){$('file-in').click();});
 $('J_expAll').addEventListener('click',doExportAll);
+
+// =============================================
+// EXPORT PDF CATALOGUE
+// =============================================
+function exportPDF(ficheId){
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  var fiches = ficheId ? cat.filter(function(f){return f.id===ficheId;}) : cat;
+  if(!fiches.length){toast('Aucune fiche à exporter',true);return;}
+
+  var PRI='#1a56db', GREY='#444444', LGREY='#888888', BG='#f0f4ff';
+  var W=210, M=15, CW=W-2*M;
+  var y=0, pageH=297;
+
+  function newPage(){doc.addPage();y=15;}
+  function checkY(need){if(y+need>pageH-15)newPage();}
+
+  function addTitle(text){
+    checkY(14);
+    doc.setFillColor(26,86,219);
+    doc.rect(M,y,CW,10,'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.setTextColor(255,255,255);
+    doc.text(text,M+3,y+7);
+    doc.setTextColor(0,0,0);
+    y+=13;
+  }
+
+  function addSection(label,value){
+    if(!value||!String(value).trim()) return;
+    checkY(8);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.setTextColor(26,86,219);
+    doc.text(label+' :',M,y);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(68,68,68);
+    var lines=doc.splitTextToSize(String(value),CW-2);
+    var lh=4.5;
+    checkY(lines.length*lh+2);
+    doc.text(lines,M,y+4.5);
+    y+=lines.length*lh+6;
+  }
+
+  function addSeparator(){
+    checkY(4);
+    doc.setDrawColor(200,200,200);
+    doc.line(M,y,W-M,y);
+    y+=4;
+  }
+
+  function addBadge(text,r,g,b){
+    doc.setFillColor(r,g,b);
+    var tw=doc.getTextWidth(text)+4;
+    doc.roundedRect(M,y-3.5,tw,5,1,1,'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(7);
+    doc.setTextColor(255,255,255);
+    doc.text(text,M+2,y);
+    doc.setTextColor(0,0,0);
+    return tw+3;
+  }
+
+  // Page de garde
+  doc.setFillColor(26,86,219);
+  doc.rect(0,0,210,60,'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(22);
+  doc.setTextColor(255,255,255);
+  doc.text('Catalogue des formations',M,30);
+  doc.setFontSize(12);
+  doc.setFont('helvetica','normal');
+  doc.text('INFREP — Puy-de-Dôme',M,42);
+  doc.setFontSize(9);
+  doc.text('Généré le '+new Date().toLocaleDateString('fr-FR'),M,52);
+  doc.setTextColor(0,0,0);
+  y=75;
+  // Résumé
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(10);
+  doc.text(fiches.length+' formation(s) dans ce catalogue',M,y);
+  y+=8;
+  fiches.forEach(function(f,idx){
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(68,68,68);
+    doc.text((idx+1)+'. '+f.intitule,M+3,y);
+    y+=6;
+    if(y>270){newPage();}
+  });
+
+  // Fiches
+  fiches.forEach(function(f,idx){
+    doc.addPage();
+    y=15;
+
+    // En-tête fiche
+    doc.setFillColor(26,86,219);
+    doc.rect(0,0,210,18,'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.setTextColor(255,255,255);
+    var titre=doc.splitTextToSize(f.intitule||'Sans titre',CW);
+    doc.text(titre,M,10);
+    doc.setFontSize(8);
+    doc.setFont('helvetica','normal');
+    doc.text('N° '+(f.numIntOf||f.id),M,16);
+    doc.setTextColor(0,0,0);
+    y=24;
+
+    // Badges type/certif
+    var typeLabel={'certification':'Formation certifiante','bilan':'Bilan de compétences','vae':'Accompagnement VAE','permis':'Permis de conduire'};
+    var tl=typeLabel[f.typeOffre]||f.typeOffre||'Formation';
+    addBadge(tl,26,86,219);
+    if(f.certif==='O') {var bx=addBadge(tl,26,86,219);addBadge('Certifiante',14,122,78);}
+    y+=8;
+
+    // SIRET / NDA
+    if(f.siret) addSection('SIRET',f.siret+(f.raisonSociale?' — '+f.raisonSociale:''));
+    if(f.numActivite) addSection('NDA',f.numActivite);
+    addSeparator();
+
+    // Codes
+    var codes=[];
+    if(f.rncp) codes.push('RNCP : '+f.rncp);
+    if(f.rs) codes.push('RS : '+f.rs);
+    if(f.cpf) codes.push('CPF : '+f.cpf);
+    if(f.formacode&&f.formacode.length) codes.push('FORMACODE : '+f.formacode.join(', '));
+    if(f.nsf&&f.nsf.length) codes.push('NSF : '+f.nsf.join(', '));
+    if(f.rome&&f.rome.length) codes.push('ROME : '+f.rome.join(', '));
+    if(codes.length) addSection('Codes',codes.join(' | '));
+
+    // Description
+    addSection('Objectif pédagogique',f.objectif);
+    addSection('Résultats attendus',f.resultats);
+    addSection('Contenu',f.contenu);
+    addSection('Points forts',f.resumeContenu);
+
+    // Actions
+    (f.actions||[]).forEach(function(a,ai){
+      addSeparator();
+      checkY(8);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(9);
+      doc.setTextColor(26,86,219);
+      doc.text('Action '+(ai+1)+(a.num?' — '+a.num:''),M,y);
+      doc.setTextColor(0,0,0);
+      y+=6;
+
+      var infos=[];
+      if(a.dureeTotal) infos.push('Durée : '+a.dureeTotal+'h');
+      else if(a.duree) infos.push('Durée centre : '+a.duree+'h');
+      if(a.prixTTC) infos.push('Prix TTC : '+a.prixTTC+' €');
+      if(a.lang) infos.push('Langue : '+a.lang);
+      if(infos.length) addSection('Informations',infos.join(' | '));
+
+      if(a.adr||a.cp||a.ville){
+        addSection('Lieu',[a.adr,a.cp,a.ville].filter(Boolean).join(' '));
+      }
+      if(a.tel||a.email) addSection('Contact',[a.tel,a.email].filter(Boolean).join(' — '));
+      if(a.modPed) addSection('Modalités pédagogiques',a.modPed);
+      if(a.handicap) addSection('Accessibilité',a.handicap);
+
+      // Sessions
+      (a.sessions||[]).forEach(function(s,si){
+        if(s.debut||s.fin){
+          checkY(6);
+          doc.setFont('helvetica','italic');
+          doc.setFontSize(8);
+          doc.setTextColor(100,100,100);
+          doc.text('Session '+(si+1)+' : '+(s.debut||'?')+' → '+(s.fin||'?'),M+3,y);
+          doc.setTextColor(0,0,0);
+          y+=5;
+        }
+      });
+    });
+
+    // Pied de page
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7);
+    doc.setTextColor(150,150,150);
+    doc.text('INFREP Puy-de-Dôme — Catalogue EDOF — Page '+(idx+2),W/2,290,{align:'center'});
+    doc.setTextColor(0,0,0);
+  });
+
+  var fname = ficheId ? (fiches[0].numIntOf||fiches[0].id)+'_fiche.pdf' : 'catalogue_INFREP_EDOF.pdf';
+  doc.save(fname);
+  toast('PDF généré : '+fname);
+}
+
+$('J_expPDF').addEventListener('click',function(){exportPDF(null);});
+
 var xlsBtn=$('J_expXls');if(xlsBtn)xlsBtn.addEventListener('click',doExportExcel);
 $('file-in').addEventListener('change',doImport);
 showWelcome();drawList();
