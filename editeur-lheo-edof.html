@@ -6467,8 +6467,7 @@ function exportPDF(ficheId){
       isVae?row('Dispositif CPF','CPF200 — VAE (fixe)'):'',
       isVae?row('Catégorisation offre VAE (Formacode V14)',f.categorisationOffre):'',
     ];
-    if(isVae&&f.vaeRncpList&&f.vaeRncpList.length)
-      certRows.push('<tr><th>Certifications RNCP visées</th><td>'+f.vaeRncpList.map(function(r){return e(r.code+(r.titre?' — '+r.titre:''));}).join('<br>')+'</td></tr>');
+    // VAE : les certifications RNCP visées sont dans Résultats attendus, pas ici
     certRows.push(row('Niveau à l\'entrée',NIVEAUX_L[f.nivE]||f.nivE));
     certRows.push(row('Niveau à la sortie',NIVEAUX_L[f.nivS]||f.nivS));
     if(!isVae&&!isBilan&&!isPermis){
@@ -6492,7 +6491,7 @@ function exportPDF(ficheId){
     var descRows=[];
     // Pour la VAE : reconstruire resultats depuis vaeRncpList si vide
     var vaeResultats=f.resultats;
-    if(isVae&&(!vaeResultats||!vaeResultats.trim())&&f.vaeRncpList&&f.vaeRncpList.length){
+    if(isVae&&f.vaeRncpList&&f.vaeRncpList.length){
       var rl=['Passage devant un jury pour les certifications :'];
       f.vaeRncpList.forEach(function(r){rl.push('- '+r.code+(r.titre?' - '+r.titre:''));});
       var a0=f.actions&&f.actions[0];
