@@ -5187,8 +5187,6 @@ function collect(fid){
       });
       if(fraisInclus){
         lines.push('Les frais de jury sont inclus dans le prix du parcours.');
-        if(f.actions&&f.actions[0]&&f.actions[0].fraisJury)
-          lines.push('Montant des frais de jury : '+f.actions[0].fraisJury+' € TTC.');
       } else if(aucunFrais)
         lines.push('Aucuns frais de passage de certification attendus.');
       else
@@ -5627,8 +5625,6 @@ function toXML(formations){
       f.vaeRncpList.forEach(function(r){lines2.push('- '+r.code+(r.titre?' - '+r.titre:''));});
       if(certifInclusVal2==='1'){
         lines2.push('Les frais de jury sont inclus dans le prix du parcours.');
-        if(f.actions&&f.actions[0]&&f.actions[0].fraisJury)
-          lines2.push('Montant des frais de jury : '+f.actions[0].fraisJury+' € TTC.');
       } else if(certifInclusVal2==='2')
         lines2.push('Aucuns frais de passage de certification attendus.');
       else
@@ -6501,7 +6497,7 @@ function exportPDF(ficheId){
       f.vaeRncpList.forEach(function(r){rl.push('- '+r.code+(r.titre?' - '+r.titre:''));});
       var a0=f.actions&&f.actions[0];
       if(a0){
-        if(a0.certifInclus==='1'){rl.push('Les frais de jury sont inclus dans le prix du parcours.');if(a0.fraisJury)rl.push('Montant des frais de jury : '+a0.fraisJury+' € TTC.');}
+        if(a0.certifInclus==='1') rl.push('Les frais de jury sont inclus dans le prix du parcours.');
         else if(a0.certifInclus==='0') rl.push('Les frais de jury ne sont pas inclus dans le prix du parcours.');
         else if(a0.certifInclus==='2') rl.push('Aucuns frais de passage de certification attendus.');
       }
