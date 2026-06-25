@@ -5746,7 +5746,7 @@ function toXML(formations){
       ryt.forEach(function(c){o+='            <extra info="code-rythme-formation">'+escX(c)+'</extra>\n';});
       o+='          </extras>\n';
       o+='          <extra info="frais-certif-inclus-frais-anpec">'+(a.certifInclus==='1'?'1':'0')+'</extra>\n';
-      if(a.certifInclus==='1'&&a.fraisJury)o+='          <extra info="frais-jury">'+escX(a.fraisJury)+'</extra>\n';
+      // frais-jury : non prévu dans la spec EDOF V14 — montant uniquement dans résultats-attendus et IHM
       // Calcul frais TTC selon TVA
       var ht=parseFloat(a.prix||'0');
       var tva=parseFloat(a.tva||'0.0');
