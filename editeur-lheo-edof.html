@@ -6503,7 +6503,8 @@ function exportPDF(ficheId){
       vaeResultats=rl.join('\n');
     }
     descRows.push(row('Objectif pédagogique',f.objectif));
-    descRows.push(row('Résultats attendus',vaeResultats));
+    if(isVae) descRows.push('<tr><th>Résultats attendus</th><td>'+vaeResultats.split('\n').map(function(l){return e(l);}).join('<br>')+'</td></tr>');
+    else descRows.push(row('Résultats attendus',f.resultats));
     descRows.push(row('Contenu',f.contenu));
     descRows.push(row('Points forts (255 car. max)',f.resumeContenu));
     descRows.push(row('Rythme de la formation',f.rythme));
