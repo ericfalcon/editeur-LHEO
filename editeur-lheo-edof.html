@@ -6380,8 +6380,8 @@ function exportPDF(ficheId){
   function tbl(rows){var r=rows.join('');return r?'<table>'+r+'</table>':'';}
 
   var css='body{font-family:Arial,sans-serif;font-size:10.5px;color:#222;margin:0;padding:0}'+
-    '.page{padding:10mm;box-sizing:border-box;page-break-after:always}'+
-    (isSingle?'.page:last-child{page-break-after:auto}':'')+
+    '.page{padding:10mm;box-sizing:border-box}'+(isSingle?'':'.page{page-break-after:always}')+
+    (isSingle?'':'')+
     '.cover-page{padding:0;box-sizing:border-box;page-break-after:always}'+
     'table{width:100%;border-collapse:collapse;margin-bottom:0}'+
     'th{width:38%;text-align:left;font-weight:600;color:#444;padding:3px 6px;vertical-align:top;background:#fafafa;border-bottom:1px solid #eee;white-space:nowrap}'+
@@ -6431,7 +6431,7 @@ function exportPDF(ficheId){
     var isPermis=(to==='permis');
     var isCertif=(to==='certification');
 
-    html+='<div class="page">';
+    html+='<div class="page"'+((!isSingle&&idx<fiches.length-1)?' style="page-break-after:always"':'')+'>';
 
     html+='<div class="fiche-header">';
     if(PDF_THEME.logo)html+='<img src="'+PDF_THEME.logo+'" style="max-height:40px;max-width:140px;margin-bottom:8px;display:block">';
