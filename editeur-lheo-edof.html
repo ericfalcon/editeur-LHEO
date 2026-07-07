@@ -3503,50 +3503,52 @@ var NIVEAUX = [
 ];
 
 // Parcours-de-formation (section Identification - nomenclature LHEO)
+// Type de parcours de formation (nomenclature officielle EDOF V14 §3.4.1 - table PF7N)
 var PARCOURS = [
-  ['1','Formation initiale'],
-  ['2','Formation continue'],
-  ['3','Apprentissage'],
-  ['4','Contrat de professionnalisation'],
-  ['5','VAE'],
-  ['6','Bilan de compétences'],
-  ['7','Autre'],
-];
-// Type de parcours action (nomenclature EDOF V14 §3.4.1)
-var PARCOURS_ACTION = [
   ['1','Collectif — sans personnalisation'],
   ['2','Individualisé — selon les objectifs individuels'],
   ['3','Modulaire — selon les modules nécessaires'],
   ['4','Mixte — individualisé et modularisé'],
 ];
+// Alias conservé pour compatibilité avec le code existant qui référence PARCOURS_ACTION
+var PARCOURS_ACTION = PARCOURS;
 
+// Groupe Formation Emploi (nomenclature officielle EDOF V14 §3.4.10 - table PF7B)
 var GFE = [
-  ['A','A - Agriculture, marine, pêche, espaces naturels et ruraux'],
-  ['B','B - Arts et façonnage d\'ouvrages d\'art'],
-  ['C','C - Banque, assurance, immobilier'],
-  ['D','D - Commerce, vente et grande distribution'],
-  ['E','E - Communication, média et multimédia'],
-  ['F','F - Construction, bâtiment et travaux publics'],
-  ['G','G - Hôtellerie, restauration, tourisme, loisirs et animation'],
-  ['H','H - Industrie'],
-  ['I','I - Installation et maintenance'],
-  ['J','J - Santé'],
-  ['K','K - Services à la personne et à la collectivité'],
-  ['L','L - Spectacle'],
-  ['M','M - Support à l\'entreprise'],
-  ['N','N - Transport et logistique'],
-  ['Q','Q - Commerce'],
-  ['R','R - Santé, social, soins personnels'],
-  ['S','S - Sport'],
-  ['T','T - Tourisme, hôtellerie, restauration'],
-  ['U','U - Sécurité'],
-  ['V','V - Agriculture, pêche, espaces naturels et ruraux'],
+  ['1','1 - Agriculture'],
+  ['2','2 - Pêche, Mer'],
+  ['3','3 - Bâtiment : gros oeuvre, travaux publics'],
+  ['4','4 - Bâtiment : second oeuvre'],
+  ['5','5 - Travail des métaux'],
+  ['6','6 - Mécanique'],
+  ['7','7 - Electromécanique'],
+  ['8','8 - Electricité, énergie'],
+  ['9','9 - Appui à la production des industries'],
+  ['10','10 - Transformation des matériaux, procédés'],
+  ['11','11 - Production alimentaire'],
+  ['12','12 - Textile, habillement, cuir'],
+  ['13','13 - Travail du bois, matériaux de synthèse'],
+  ['14','14 - Techniques graphiques, impression'],
+  ['15','15 - Transport, logistique'],
+  ['16','16 - Gestion et traitement de l\'information'],
+  ['17','17 - Commerce'],
+  ['18','18 - Santé, social, soins personnels'],
+  ['19','19 - Hôtellerie, tourisme, loisirs'],
+  ['20','20 - Environnement, nettoyage, sécurité'],
+  ['21','21 - Communication, médias'],
+  ['22','22 - Création et production artistique'],
+  ['23','23 - Autres professions, professions d\'enseignement et de la magistrature'],
+  ['24','24 - Formation d\'insertion'],
 ];
+// Périmètre de recrutement (nomenclature officielle EDOF V14 §3.4.8)
 var PERIM = [
-  ['0','0 - Sans contrainte geographique'],
-  ['1','1 - Recrutement regional'],['2','2 - Inter-regional'],
-  ['3','3 - Departemental'],['4','4 - Local'],
-  ['5','5 - International'],['6','6 - Intra-entreprise'],
+  ['1','1 - Commune'],
+  ['2','2 - Département'],
+  ['3','3 - Région'],
+  ['4','4 - Interrégion'],
+  ['5','5 - National'],
+  ['6','6 - International'],
+  ['7','7 - Autres'],
 ];
 
 /* ==============================================================
@@ -4480,7 +4482,7 @@ function buildIdent(f){
 
   // Pré-remplissage automatique selon le type (si champs encore vides ou valeur par défaut)
   // Note : on pré-remplit en mémoire, le formulaire affichera les valeurs mises à jour
-  if(isBilan&&(f.objGen==='7')){f.objGen='9';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';f.formacode=['22252'];f.nsf=['315'];f.rome=[];f.nivE='0';f.nivS='0';f.parcours='I';}
+  if(isBilan&&(f.objGen==='7')){f.objGen='9';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';f.formacode=['22252'];f.nsf=['315'];f.rome=[];f.nivE='0';f.nivS='0';f.parcours='2';}
   if(isVae&&(f.objGen==='7')){f.objGen='6';f.certif='O';f.cpf='CPF200';f.rncp='';f.rs='';}
   if(isPermis&&(f.objGen==='7')){f.objGen='3';f.certif='N';if(!f.cpf||f.cpf==='')f.cpf='CPF206';}
   // Pour une formation certifiante, f.cpf doit être vide (code RNCP/RS suffit)
@@ -4506,7 +4508,7 @@ function buildIdent(f){
     (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'9':isVae?'6':'3')+'">')+
     '<div class="fitem"><label>Type de parcours</label>'+
     (isBilan?
-      '<input type="hidden" id="E_parcours" value="I">'+
+      '<input type="hidden" id="E_parcours" value="2">'+
       '<div style="padding:6px 10px;background:var(--g1);border:1px solid var(--g2);border-radius:5px;font-size:12px;color:var(--g7)">Individualisé — fixe pour un bilan de compétences</div>'
     :
       '<select id="E_parcours" onchange="">'+sOpts(PARCOURS,f.parcours)+'</select>'
@@ -4973,7 +4975,7 @@ function buildAction(a,i,f){
     afsel(i,'aPrereq','Conditions spécifiques et prérequis ?',
       so('0','Non',a.aPrereq||'0')+so('1','Oui',a.aPrereq))+
     afsel(i,'modEns','Modalité enseignement <span class="req">*</span>',
-      so('0','Présentiel',a.modEns)+so('1','À distance',a.modEns)+so('2','Mixte/hybride',a.modEns))+
+      so('0','Présentiel',a.modEns)+so('1','Mixte/hybride',a.modEns)+so('2','À distance',a.modEns))+
     '<div class="fitem"><label>Durée totale (heures) <span class="req">*</span></label>'+
     '<input type="number" data-ai="'+i+'" data-f="dureeTotal" id="dureeTotal_'+i+'" value="'+esc(a.dureeTotal||'')+'" placeholder="60" readonly style="background:#f5f5f5;color:var(--g5)"></div>'+
     '<div class="fitem"><label>Dont heures en centre</label>'+
@@ -5066,7 +5068,7 @@ function buildAction(a,i,f){
     '<textarea data-ai="'+i+'" data-f="handicap" maxlength="250">'+esc(a.handicap)+'</textarea></div>'+
     '<div class="fitem full"><label>Informations sur le recrutement</label>'+
     '<textarea data-ai="'+i+'" data-f="infoRecrutement" maxlength="3000">'+esc(a.infoRecrutement)+'</textarea></div>'+
-    afsel(i,'perim','Périmètre géographique de recrutement',sOpts(PERIM,a.perim||'0'))+
+    afsel(i,'perim','Périmètre géographique de recrutement (optionnel)',so('','— Non renseigné —',a.perim)+sOpts(PERIM,a.perim||''))+
     aif(i,'infoPerim','text',a.infoPerim,'Informations sur le périmètre','50','')+
     aif(i,'urlAct','url',a.urlAct,'URL de l\'action','','https://...')+
     aif(i,'restauration','text',a.restauration,'Restauration','250','')+
@@ -5657,7 +5659,6 @@ function toXML(formations){
       if(a.lat&&a.lon)o+='              <geolocalisation><latitude>'+escX(a.lat)+'</latitude><longitude>'+escX(a.lon)+'</longitude></geolocalisation>\n';
       o+='              <extras info="adresse">\n';
       if(a.cp&&a.ville){
-        o+='                <extra info="numero-voie"></extra>\n';
         o+='                <extra info="code-nature-voie">RUE</extra>\n';
         o+='                <extra info="libelle-voie">'+escX(a.adr||'')+'</extra>\n';}
       o+='                <extra info="conformite-reglementaire">'+(a.cp?'1':'0')+'</extra>\n';
@@ -5707,7 +5708,7 @@ function toXML(formations){
       o+=xf('langue-formation',a.lang||'FR','        ');
       if(a.infoRecrutement)o+=xf('modalites-recrutement',a.infoRecrutement,'        ');
       if(a.modPed)o+=xf('modalites-pedagogiques',a.modPed,'        ');
-      if(a.perim&&a.perim!=='0')o+=xf('code-perimetre-recrutement',a.perim,'        ');
+      if(a.perim)o+=xf('code-perimetre-recrutement',a.perim,'        ');
       if(a.infoPerim)o+=xf('infos-perimetre-recrutement',a.infoPerim,'        ');
       if(a.duree)o+=xf('nombre-heures-centre',a.duree,'        ');
       if(a.dureeEntreprise)o+=xf('nombre-heures-entreprise',a.dureeEntreprise,'        ');
@@ -5876,7 +5877,7 @@ function doImport(e){
           a.handicap=tx(aEl,'acces-handicapes');
           a.priseCharge=tx(aEl,'prise-en-charge-frais-possible');
           a.restauration=tx(aEl,'restauration');a.hebergement=tx(aEl,'hebergement');a.transport=tx(aEl,'transport');
-          a.perim=tx(aEl,'code-perimetre-recrutement')||'0';
+          a.perim=tx(aEl,'code-perimetre-recrutement')||'';
           a.duree=tx(aEl,'nombre-heures-centre');
           a.dureeEntreprise=tx(aEl,'nombre-heures-entreprise');
           // extras action
@@ -5922,7 +5923,7 @@ function doApercu(fid){
   var a=f.actions&&f.actions[0];
   var prix=a?(parseFloat(a.prix||0)*(1+parseFloat(a.tva||0)/100)).toFixed(2):'—';
   var duree=a?a.dureeTotal||a.duree:'—';
-  var modal=a?({'0':'Présentiel','1':'À distance','2':'Hybride'}[a.modEns]||'—'):'—';
+  var modal=a?({'0':'Présentiel','1':'Hybride','2':'À distance'}[a.modEns]||'—'):'—';
   var type={'certification':'Formation certifiante','bilan':'Bilan de compétences',
     'vae':'Accompagnement VAE','permis':'Permis de conduire'}[f.typeOffre||'certification']||'Formation';
   var fc=(f.formacode||[]).slice(0,3).join(', ');
@@ -5974,7 +5975,7 @@ function doExportExcel(){
       String((f.actions||[]).length),
       a?String(a.prix||''):'',
       a?String(a.dureeTotal||a.duree||''):'',
-      a?({'0':'Présentiel','1':'Distance','2':'Hybride'}[a.modEns]||''):''
+      a?({'0':'Présentiel','1':'Hybride','2':'Distance'}[a.modEns]||''):''
     ]);
   });
   var csv=rows.map(function(r){
@@ -6345,15 +6346,15 @@ function exportPDF(ficheId){
 
   var TYPE_OFFRE={'certification':'Formation préparant à une certification','bilan':'Bilan de compétences','vae':'Accompagnement à la VAE','permis':'Permis de conduire'};
   var OBJ_GEN_L={'2':'2 - Perfectionnement, élargissement des compétences','4':'4 - Création entreprise','5':'5 - Remise à niveau, savoirs de base, initiation','6':'6 - Certification','7':'7 - Professionnalisation','8':'8 - Préparation à la qualification','9':'9 - Mobilisation, aide au projet professionnel'};
-  var PARCOURS_L={'1':'Formation initiale','2':'Formation continue','3':'Apprentissage','4':'Contrat de professionnalisation','5':'VAE','6':'Bilan de compétences','7':'Autre','I':'Individualisé','M':'Mixte — individualisé et modularisé'};
-  var MOD_ENS={'0':'Présentiel','1':'À distance','2':'Mixte/hybride'};
+  var PARCOURS_L={'1':'Collectif','2':'Individualisé','3':'Modulaire','4':'Mixte'};
+  var MOD_ENS={'0':'Présentiel','1':'Mixte/hybride','2':'À distance'};
   var ENTSOR={'0':'Dates fixes','1':'Permanentes'};
-  var PERIM_L={'0':'Sans contrainte géographique','1':'Recrutement régional','2':'Inter-régional','3':'Départemental','4':'Local','5':'International','6':'Intra-entreprise'};
+  var PERIM_L={'1':'Commune','2':'Département','3':'Région','4':'Interrégion','5':'National','6':'International','7':'Autres'};
   var NIVEAUX_L={'0':'Non communiqué','1':'Sans niveau spécifique','2':'Niveau VI (illettrisme)','3':'Niveau V bis (préqualification)','4':'Niveau V (CAP, BEP)','5':'Niveau IV (Bac pro, BP, BT)','14':'14 - Niveau 4 EQF (baccalauréat)','6':'Niveau III (BTS, DUT / Bac+2)','7':'Niveau II (Licence, Maîtrise / Bac+3/4)','8':'Niveau I (supérieur Maîtrise / Bac+5+)'};
   var ETAT_REC={'1':'1 - Ouvert','2':'2 - Fermé','3':'3 - Complet'};
   var IND_COLL={'0':'Individuelle','1':'Collective'};
   var GARANTIE={'0':'Non garantie','1':'Garantie'};
-  var GFE_L={'A':'Agriculture, marine, pêche','B':'Arts et façonnage','C':'Banque, assurance, immobilier','D':'Commerce, vente et grande distribution','E':'Communication, média et multimédia','F':'Construction, bâtiment et travaux publics','G':'Hôtellerie, restauration, tourisme, loisirs et animation','H':'Industrie','I':'Installation et maintenance','J':'Santé','K':'Services à la personne et à la collectivité','L':'Spectacle','M':'Support à l\'entreprise','N':'Transport et logistique','Q':'Commerce','R':'Santé, social, soins personnels','S':'Sport','T':'Tourisme, hôtellerie, restauration','U':'Sécurité','V':'Agriculture, pêche, espaces naturels et ruraux'};
+  var GFE_L={'1':'Agriculture','2':'Pêche, Mer','3':'Bâtiment : gros oeuvre, travaux publics','4':'Bâtiment : second oeuvre','5':'Travail des métaux','6':'Mécanique','7':'Electromécanique','8':'Electricité, énergie','9':'Appui à la production des industries','10':'Transformation des matériaux, procédés','11':'Production alimentaire','12':'Textile, habillement, cuir','13':'Travail du bois, matériaux de synthèse','14':'Techniques graphiques, impression','15':'Transport, logistique','16':'Gestion et traitement de l\'information','17':'Commerce','18':'Santé, social, soins personnels','19':'Hôtellerie, tourisme, loisirs','20':'Environnement, nettoyage, sécurité','21':'Communication, médias','22':'Création et production artistique','23':'Autres professions, professions d\'enseignement et de la magistrature','24':'Formation d\'insertion'};
   var ADM_L={'99999':'Admission sans disposition particulière','92002':'Admission sur dossier','92003':'Admission sur concours','92005':'Admission après entretien','92007':'Admission après test','92009':'Admission après visite médicale','99998':'Plusieurs modalités possibles'};
   var RYTHME_L={'1':'Journalier','2':'Hebdomadaire','3':'En semaine','4':'Le week-end','5':'Temps plein','6':'Temps partiel','7':'Plusieurs rythmes'};
 
@@ -6749,20 +6750,20 @@ function onTypeOffreChange(val){
   // Pré-remplir les champs selon le type
   if(val==='bilan'){
     ff.objGen='9';ff.certif='N';ff.cpf='CPF202';ff.rncp='';ff.rs='';
-    ff.formacode=['22252'];ff.nsf=['315'];ff.rome=[];ff.nivE='0';ff.nivS='0';ff.parcours='I';
-    ff.parcours='6'; // Bilan de compétences
+    ff.formacode=['22252'];ff.nsf=['315'];ff.rome=[];ff.nivE='0';ff.nivS='0';
+    ff.parcours='2'; // Individualisé
   }
   else if(val==='vae'){
     ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';
-    ff.parcours='5'; // VAE
+    ff.parcours='2'; // Individualisé
     // Pré-sélectionner 92001 sur toutes les actions existantes
     (ff.actions||[]).forEach(function(a){a.codesAdm=['99999'];});
   }
-  else if(val==='permis'){ff.objGen='3';ff.certif='N';ff.parcours='7';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
+  else if(val==='permis'){ff.objGen='3';ff.certif='N';ff.parcours='2';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
   else{
-    // Formation certifiante : vider CPF (code RNCP/RS suffit), remettre parcours formation continue
+    // Formation certifiante : vider CPF (code RNCP/RS suffit), remettre parcours par défaut
     ff.objGen='6';ff.certif='O';ff.cpf='';
-    ff.parcours='2'; // Formation continue par défaut pour certification
+    ff.parcours='1'; // Collectif par défaut pour certification
     // Remettre codesAdm par défaut
     (ff.actions||[]).forEach(function(a){
       a.codesAdm=['99999'];
