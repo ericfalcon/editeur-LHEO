@@ -5600,22 +5600,10 @@ function toXML(formations){
   formations.forEach(function(f){
     var today=new Date().toISOString().slice(0,10).replace(/-/g,'');
     o+='    <formation numero="'+escX(f.numIntOf)+'" datemaj="'+today+'" datecrea="'+today+'">\n';
-    // domaine-formation : FORMACODE (sauf VAE), NSF (sauf permis), ROME
-    var toType=f.typeOffre||'certification';
-    var isVaeX=(toType==='vae');
-    var isPermisX=(toType==='permis');
-    o+='      <domaine-formation>\n';
-    if(!isVaeX&&!isPermisX){
-      (f.formacode||[]).forEach(function(c,ci){
-        o+='        <code-FORMACODE ref="V14"'+(ci===0?' tag="principal"':'')+'>'+escX(c)+'</code-FORMACODE>\n';});
-    }
-    if(!isPermisX){
-      (f.nsf||[]).forEach(function(c){o+='        <code-NSF>'+escX(c)+'</code-NSF>\n';});
-    }
-    (f.rome||[]).forEach(function(c){o+='        <code-ROME>'+escX(c)+'</code-ROME>\n';});
-    o+='      </domaine-formation>\n';
-    // certifiante
-    o+=xf('certifiante',f.certif||'N');
+    // NOTE V14 (28/04/2026) : <domaine-formation> et <certifiante> ne font plus partie du XSD.
+    // La classification par domaine passe désormais uniquement par extra info="categorisation-offre"
+    // (obligatoire pour les offres VAE CPF200). Ne pas régénérer ces balises : elles font échouer
+    // l'import avec l'anomalie XSD "élément intitule-formation attendu".
     o+=xf('intitule-formation',f.intitule);
     o+=xf('objectif-formation',f.objectif);
     // Pour la VAE : reconstruire resultats-attendus depuis vaeRncpList si f.resultats est vide
