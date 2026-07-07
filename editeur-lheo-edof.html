@@ -5329,9 +5329,24 @@ function validateFiche(f){
     if(!a.cp||!/^\d{5}$/.test(a.cp)) errs.push({field:null,msg:'Action '+(i+1)+' : Code postal invalide (5 chiffres)'});
     if(!a.ville) errs.push({field:null,msg:'Action '+(i+1)+' : Ville manquante'});
     if(!a.sessions||!a.sessions.length) errs.push({field:null,msg:'Action '+(i+1)+' : Au moins 1 session requise'});
+    // Contact d'information de l'action (EDOF 30017) : signale si des valeurs factices seraient exportées
+    if(!a.tel) errs.push({field:null,msg:'Action '+(i+1)+' : téléphone de contact manquant — "0000000000" sera exporté par défaut',warn:true});
+    if(!a.email) errs.push({field:null,msg:'Action '+(i+1)+' : email de contact manquant — "contact@organisme.fr" sera exporté par défaut',warn:true});
     (a.sessions||[]).forEach(function(s,j){
       if(!s.num) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : N° session manquant'});
       if(a.entSor!=='1'&&(!s.debut||!s.fin)) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : Dates manquantes'});
+      // Ordre des dates (EDOF 30020 / contrôle 3.3.2)
+      if(a.entSor!=='1'&&s.debut&&s.fin&&new Date(s.debut)>new Date(s.fin))
+        errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : la date de début doit être antérieure ou égale à la date de fin'});
+      // Contact d'inscription de la session (EDOF 30022) : signale si des valeurs factices seraient exportées
+      if(!s.tel&&!a.tel) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : téléphone d\'inscription manquant — valeur factice exportée',warn:true});
+      if(!s.email&&!a.email) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : email d\'inscription manquant — valeur factice exportée',warn:true});
+      // Doublon de dates de session dans la même action (EDOF 10133)
+      (a.sessions||[]).forEach(function(t,k){
+        if(k<=j) return;
+        if(a.entSor!=='1'&&s.debut&&s.fin&&s.debut===t.debut&&s.fin===t.fin)
+          errs.push({field:null,msg:'Action '+(i+1)+' : sessions '+(j+1)+' et '+(k+1)+' ont les mêmes dates de début/fin (EDOF 10133)'});
+      });
     });
     // Anti-doublon action (erreur 30056 EDOF)
     (f.actions||[]).forEach(function(b,j){
@@ -5343,6 +5358,16 @@ function validateFiche(f){
       }
     });
   });
+  // Doublons dans la liste des blocs de compétences (EDOF 30070)
+  if(f.blocsCompetences&&f.blocsCompetences.length){
+    var seenBlocs={};
+    f.blocsCompetences.forEach(function(b){
+      var code=(b&&b.code)?b.code:(typeof b==='string'?b.split('||')[0]:'');
+      if(!code) return;
+      if(seenBlocs[code]) errs.push({field:null,msg:'Bloc de compétences '+code+' renseigné plusieurs fois (EDOF 30070)'});
+      seenBlocs[code]=true;
+    });
+  }
   return errs;
 }
 
