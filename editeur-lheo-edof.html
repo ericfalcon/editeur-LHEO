@@ -5709,12 +5709,12 @@ function toXML(formations){
         // etat-recrutement depuis le champ session
         o+=xf('etat-recrutement',s.etatRecrutement||'1','          ');
         // individuelle-collective
-        if(s.indColl) o+=xf('individuelle-collective',s.indColl,'          ');
+        // NOTE : <individuelle-collective> a ete supprimee du schema LHEO depuis la v1.5 (08/2019).
+        // Ne jamais la regenerer : elle ferait echouer la validation XSD (comme domaine-formation).
         // Places
-        if(s.placesTotal) o+='          <nb-places-total>'+escX(s.placesTotal)+'</nb-places-total>\n';
-        if(s.placesFinancees) o+='          <nb-places-financees>'+escX(s.placesFinancees)+'</nb-places-financees>\n';
-        // URL session
-        if(s.urlSess) o+='          <url-session><urlweb>'+escX(s.urlSess)+'</urlweb></url-session>\n';
+        // NOTE : <nb-places-total>, <nb-places-financees> et <url-session> n'existent pas
+        // dans le schema LHEO V14 (absentes de la table de structure §3.1). Ne pas regenerer :
+        // elles feraient echouer la validation XSD.
         o+='          <extras info="session">\n';
         o+='            <extra info="contact-inscription">\n              <coordonnees numero="'+escX(s.num||'1')+'">\n';
         if(s.contactNom||a.contactNom) o+='                <nom>'+escX(s.contactNom||a.contactNom||'Contact')+'</nom>\n';
