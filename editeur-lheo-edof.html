@@ -6099,7 +6099,7 @@ function generatePyScript(){
     '                self.end_headers()',
     '                self.wfile.write(json.dumps({"error": str(e)}).encode())',
     '            return',
-    '        if path.startswith(\'/proxy/koumoul/\'):',
+    '        if self.path.startswith(\'/proxy/koumoul/\'):',
     '            qs = self.path[len(\'/proxy/koumoul/\'):].lstrip(\'?\')  ',
     '            url = "https://opendata.koumoul.com/data-fair/api/v1/datasets/competences-rncp/lines?" + qs',
     '            req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "EditeurLHEO"})',
@@ -6996,10 +6996,9 @@ function doFetchRncpVae(offset,q,nsfCodes,resEl){
   // que lorsqu'il n'y a pas de recherche par mot-cle.
   if(!q) params+='&sort=NOMENCLATURE_EUROPE_NIVEAU';
 
-  // Via Worker Cloudflare (marche partout, aucune installation) ; repli proxy local si disponible
-  var baseUrl=window.isLocalProxy
-    ?'http://localhost:8765/proxy/koumoul/?'+params
-    :CF_WORKER_PROXY+'/proxy/koumoul/?'+params;
+  // Worker Cloudflare en priorité partout (bureau ou en ligne) ; le proxy local
+  // (lancer-editeur.py) contenait un bug sur cette route et n'est plus utilise ici.
+  var baseUrl=CF_WORKER_PROXY+'/proxy/koumoul/?'+params;
 
   fetch(baseUrl)
     .then(function(r){return r.json().then(function(d){return {ok:r.ok,data:d};});})
