@@ -6,6 +6,8 @@
 
 🔗 **Accès en ligne** : [https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html](https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html)
 
+📥 **Téléchargement** : [dernière version (v2.5.0)](https://github.com/ericfalcon/editeur-LHEO/releases/latest) · [toutes les versions](https://github.com/ericfalcon/editeur-LHEO/releases)
+
 ---
 
 ## ✨ Fonctionnalités
