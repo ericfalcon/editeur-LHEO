@@ -6983,7 +6983,10 @@ function fetchRncpVae(offset, forceCat){
   var qs=qsParts.join(' AND ');
   var params='qs='+encodeURIComponent(qs)+'&size='+(offset||200)+'&select=NUMERO_FICHE,INTITULE,NOMENCLATURE_EUROPE_NIVEAU,CODES_NSF,CERTIFICATEURS';
   if(q) params+='&q='+encodeURIComponent(q);
-  params+='&sort=NOMENCLATURE_EUROPE_NIVEAU';
+  // Le tri explicite par niveau desactive le tri par pertinence d'Elasticsearch,
+  // ce qui rend le mot-cle (q) inoperant comme filtre. On ne l'applique donc
+  // que lorsqu'il n'y a pas de recherche par mot-cle.
+  if(!q) params+='&sort=NOMENCLATURE_EUROPE_NIVEAU';
 
   // Via Worker Cloudflare (marche partout, aucune installation) ; repli proxy local si disponible
   var baseUrl=window.isLocalProxy
