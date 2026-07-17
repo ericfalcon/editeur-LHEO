@@ -1,6 +1,6 @@
 # 📋 Éditeur LHEO / EDOF — Format XML Mon Compte Formation
 
-**Version 2.4.45** · Compatible EDOF 2026 · Format LHEO 2.4
+**Version 2.5.0** · Compatible EDOF 2026 · Format LHEO 2.4
 
 > Outil standalone HTML pour créer et gérer des fiches de formation au format XML LHEO 2.4 compatibles avec la plateforme **Mon Compte Formation (EDOF V14)**.
 
@@ -48,38 +48,15 @@
 
 ## 🚀 Installation et utilisation
 
-### Option 1 — En ligne (sans installation)
+Aucune installation requise. Ouvrir directement :
 
-Ouvrir directement : [https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html](https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html)
+[https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html](https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html)
 
----
+Toutes les fonctionnalités (vérification SIRET, import RNCP/RS, recherche de certifications VAE) fonctionnent directement dans le navigateur, sans serveur local — l'outil s'appuie sur un relais [Cloudflare Worker](https://workers.cloudflare.com/) permanent pour contourner les restrictions CORS des API publiques (France Compétences, Koumoul).
 
-### Option 2 — En local avec le serveur proxy (recommandé)
+Vous pouvez aussi télécharger `editeur-lheo-edof.html` et l'ouvrir en local (double-clic) : toutes les fonctionnalités restent disponibles tant que vous avez une connexion Internet.
 
-**Prérequis** : Python 3.8+ installé sur votre machine
-
-#### Étape 1 — Télécharger les fichiers
-
-- `editeur-lheo-edof.html`
-- `lancer-editeur.py`
-- `lancer-editeur.bat`
-
-#### Étape 2 — Débloquer les fichiers (Windows uniquement)
-
-> ⚠️ Windows bloque par défaut les fichiers téléchargés. Sans cette étape, le `.bat` ne fonctionnera pas.
-
-Pour chaque fichier : clic droit → **Propriétés** → cocher **"Débloquer"** → OK
-
-Ou en PowerShell :
-```powershell
-Get-ChildItem "C:\chemin\vers\vos\fichiers" | Unblock-File
-```
-
-#### Étape 3 — Lancer l'outil
-
-Double-cliquer sur **`lancer-editeur.bat`**
-
-L'outil s'ouvre automatiquement sur `http://localhost:8765`.
+> ℹ️ Avant la version 2.5 (juillet 2026), l'outil nécessitait un serveur Python local (`lancer-editeur.py`). Ce n'est plus le cas.
 
 ---
 
@@ -87,8 +64,6 @@ L'outil s'ouvre automatiquement sur `http://localhost:8765`.
 
 ```
 editeur-lheo-edof.html    # Fichier principal (standalone HTML/CSS/JS)
-lancer-editeur.py         # Serveur proxy Python (localhost:8765)
-lancer-editeur.bat        # Lanceur Windows
 README.md                 # Ce fichier
 CHANGELOG.md              # Historique des versions
 ```

@@ -5,6 +5,20 @@ Format : `[version] — date — description`
 
 ---
 
+## [2.5.0] — 2026-07-17
+- 🚀 **Suppression de la dépendance à Python** — remplacée par un relais [Cloudflare Worker](https://workers.cloudflare.com/) permanent pour l'import RNCP/RS, les blocs de compétences et la recherche VAE. Fonctionne en ligne (GitHub Pages) et en local (`file://`), sans aucune installation.
+- 🗑️ Retrait de `lancer-editeur.py`, `lancer-editeur.bat` et du bouton "Générer lancer-editeur.bat + .py" (obsolètes)
+- 🐛 **Correctifs critiques d'export XML** — retrait de balises absentes du XSD V14 qui faisaient échouer l'import EDOF : `domaine-formation`, `certifiante`, `individuelle-collective` (obsolète depuis LHEO v1.5), `nb-places-total`, `nb-places-financees`, `url-session`
+- 🐛 `parcours-de-formation` : ancienne nomenclature invalide remplacée par les codes officiels PF7N (1 Collectif, 2 Individualisé, 3 Modulaire, 4 Mixte)
+- 🐛 `modalites-enseignement` : codes 1 (Mixte) et 2 (À distance) étaient inversés dans le formulaire
+- 🐛 `code-gfe` : ancienne nomenclature lettrée (A-V) remplacée par les codes numériques officiels (1-24)
+- 🐛 `code-perimetre-recrutement` : codes et libellés corrigés pour correspondre au référentiel EDOF V14
+- 🐛 Générateur `.bat`/`.py` (avant suppression) : variable non définie qui empêchait toute génération
+- 🐛 Recherche VAE par mot-clé inopérante — le tri forcé par niveau désactivait le filtrage par pertinence Elasticsearch
+- 🐛 Clic sur un résultat de recherche VAE sans effet lorsque le titre contient une apostrophe (échappement incorrect cassant le JavaScript généré)
+- ✨ 4 nouvelles validations dans `validateFiche()` : ordre des dates de session, contacts factices signalés (téléphone/email par défaut), doublons de dates de session, doublons de blocs de compétences
+- ✨ Avertissement si recherche VAE lancée sans Formacode sélectionné (risque de timeout sur ~17 000 fiches)
+
 ## [2.4.45] — 2026-06-24
 - 🐛 PDF — marges `@page` 12mm haut/bas sur toutes les pages (catalogue et fiches)
 
