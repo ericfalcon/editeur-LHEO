@@ -6974,6 +6974,14 @@ function fetchRncpVae(offset, forceCat){
   }
 
   resEl.style.display='block';
+  if(!nsfCodes.length&&q){
+    resEl.innerHTML='<div style="padding:8px;color:#e65100;font-size:12px">⚠️ Aucun Formacode/domaine sélectionné : la recherche porte sur l\'ensemble des certifications RNCP (~17000), ce qui peut être lent ou échouer (timeout). Sélectionnez d\'abord une catégorisation VAE pour une recherche plus rapide et pertinente.</div>';
+    setTimeout(function(){doFetchRncpVae(offset,q,nsfCodes,resEl);},1500);
+    return;
+  }
+  doFetchRncpVae(offset,q,nsfCodes,resEl);
+}
+function doFetchRncpVae(offset,q,nsfCodes,resEl){
   resEl.innerHTML='<div style="padding:8px;color:var(--g5);font-size:12px">⏳ Recherche en cours...</div>';
 
   // Construire la query
