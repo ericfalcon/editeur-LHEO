@@ -278,6 +278,9 @@ window.addEventListener('load', function() {
 
 // Initialisation globale des variables d'environnement (avant tout)
 window.isLocalProxy = (location.protocol==='http:' && (location.hostname==='localhost'||location.hostname==='127.0.0.1'));
+// Proxy CORS permanent (Cloudflare Worker) - remplace le besoin d'installer Python pour la plupart des usages.
+// Utilise en priorite ; le proxy local (localhost:8765) et l'appel direct restent des solutions de secours.
+var CF_WORKER_PROXY = 'https://editeur-lheo-proxy.eric-51c.workers.dev';
 window.isGitHubPages = (location.protocol==='https:' && location.hostname.indexOf('github.io')>=0);
 window.isFileLocal = (location.protocol==='file:');
 
@@ -3867,16 +3870,15 @@ window._fetchRncpTitre=function(rncp,titreEl,callback){
     Object.keys(headers||{}).forEach(function(k){xhr.setRequestHeader(k,headers[k]);});
     xhr.send();}catch(e){cb(e,null);}
   }
-  xhrGet('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,
-    {'X-App-Token':API_APPRENTISSAGE_TOKEN},
+  xhrGet(CF_WORKER_PROXY+'/proxy/apprentissage/?identifiant.rncp='+rncp, {},
     function(err,data){
       if(!err&&data){applyTitre(data);}
       else {
-        // Essai 2 : API directe
-        xhrGet('https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant.rncp='+rncp,
-          {'Authorization':'Bearer '+API_APPRENTISSAGE_TOKEN,'Accept':'application/json'},
+        // Repli 1 : proxy local (si lancer-editeur.py encore utilise)
+        xhrGet('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,
+          {'X-App-Token':API_APPRENTISSAGE_TOKEN},
           function(err2,data2){
-            if(!err2&&data2)applyTitre(data2);
+            if(!err2&&data2){applyTitre(data2);}
             else if(callback)callback(false,'');
           });
       }
@@ -6835,20 +6837,15 @@ function fetchBlocs(){
       }catch(e){reject(e);}
     });
   }
-  callApi('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,
-    {'X-App-Token':API_APPRENTISSAGE_TOKEN})
+  callApi(CF_WORKER_PROXY+'/proxy/apprentissage/?identifiant.rncp='+rncp, {})
   .then(function(data){if(st)st.textContent='';applyRncpData(ff,rncp,data,st);})
   .catch(function(e1){
-    callApi('https://api.apprentissage.beta.gouv.fr/api/certification/v1?identifiant.rncp='+rncp,
-      {'Authorization':'Bearer '+API_APPRENTISSAGE_TOKEN,'Accept':'application/json'})
+    callApi('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,
+      {'X-App-Token':API_APPRENTISSAGE_TOKEN})
     .then(function(data){if(st)st.textContent='';applyRncpData(ff,rncp,data,st);})
     .catch(function(e2){
       if(st)st.textContent='Echec';
-      if(e2.message.indexOf('CORS')>=0||e2.message.indexOf('réseau')>=0||e2.message.indexOf('Network')>=0){
-        alert('Import impossible.\n\nCause probable : votre fichier lancer-editeur.py est une ancienne version qui ne supporte pas le proxy.\n\nSolution :\n1. Cliquez sur "Générer lancer-editeur.bat + .py" dans le menu\n2. Remplacez l\'ancien lancer-editeur.py\n3. Redémarrez le serveur (.bat)');
-      } else {
-        alert('Erreur d\'import :\nProxy: '+e1.message+'\nDirect: '+e2.message+'\n\nSi le problème persiste, regénérez le fichier lancer-editeur.py.');
-      }
+      alert('Import impossible.\n\nErreur Worker : '+e1.message+'\nErreur proxy local : '+e2.message+'\n\nVerifiez que le Worker Cloudflare est bien deploye et actif.');
     });});}
 
 function applyRncpData(ff,rncp,data,st){
@@ -6988,10 +6985,10 @@ function fetchRncpVae(offset, forceCat){
   if(q) params+='&q='+encodeURIComponent(q);
   params+='&sort=NOMENCLATURE_EUROPE_NIVEAU';
 
-  // Via proxy si local, direct si non
+  // Via Worker Cloudflare (marche partout, aucune installation) ; repli proxy local si disponible
   var baseUrl=window.isLocalProxy
     ?'http://localhost:8765/proxy/koumoul/?'+params
-    :'https://opendata.koumoul.com/data-fair/api/v1/datasets/competences-rncp/lines?'+params;
+    :CF_WORKER_PROXY+'/proxy/koumoul/?'+params;
 
   fetch(baseUrl)
     .then(function(r){return r.json();})
