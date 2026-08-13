@@ -4496,7 +4496,7 @@ function buildIdent(f){
   // Note : on pré-remplit en mémoire, le formulaire affichera les valeurs mises à jour
   if(isBilan&&(f.objGen==='7')){f.objGen='9';f.certif='N';f.cpf='CPF202';f.rncp='';f.rs='';f.formacode=['22252'];f.nsf=['315'];f.rome=[];f.nivE='0';f.nivS='0';f.parcours='2';}
   if(isVae&&(f.objGen==='7')){f.objGen='6';f.certif='O';f.cpf='CPF200';f.rncp='';f.rs='';}
-  if(isPermis&&(f.objGen==='7')){f.objGen='3';f.certif='N';if(!f.cpf||f.cpf==='')f.cpf='CPF206';}
+  if(isPermis&&(f.objGen==='7')){f.objGen='8';f.certif='N';if(!f.cpf||f.cpf==='')f.cpf='CPF206';}
   // Pour une formation certifiante, f.cpf doit être vide (code RNCP/RS suffit)
 
   return fg(2)+
@@ -5748,8 +5748,8 @@ function toXML(formations){
         // elles feraient echouer la validation XSD.
         o+='          <extras info="session">\n';
         o+='            <extra info="contact-inscription">\n              <coordonnees numero="'+escX(s.num||'1')+'">\n';
-        if(s.contactNom||a.contactNom) o+='                <nom>'+escX(s.contactNom||a.contactNom||'Contact')+'</nom>\n';
-        if(s.contactPrenom||a.contactPrenom) o+='                <prenom>'+escX(s.contactPrenom||a.contactPrenom||'')+'</prenom>\n';
+        o+='                <nom>'+escX(s.contactNom||a.contactNom||f.raisonSociale||'Organisme')+'</nom>\n';
+        o+='                <prenom>'+escX(s.contactPrenom||a.contactPrenom||'Contact')+'</prenom>\n';
         o+='                <telfixe><numtel>'+escX(s.tel||a.tel||'0000000000')+'</numtel></telfixe>\n';
         o+='                <courriel>'+escX(s.email||a.email||'contact@organisme.fr')+'</courriel>\n';
         o+='              </coordonnees>\n            </extra>\n';
@@ -5820,11 +5820,11 @@ function toXML(formations){
     o+='        <extra info="resume-contenu">'+escX(f.resumeContenu||f.intitule||'Résumé de la formation')+'</extra>\n';
     // Blocs de compétences (RNCP uniquement, obligatoire dès 11/06/2026)
     if(f.rncp&&f.blocsCompetences&&f.blocsCompetences.length){
-      o+='        <extra info="blocs-competences">\n';
+      o+='        <extras info="blocs-competences">\n';
       f.blocsCompetences.forEach(function(b){
         var code=b.split('||')[0];
         if(code)o+='          <extra info="code-bloc">'+escX(code)+'</extra>\n';});
-      o+='        </extra>\n';
+      o+='        </extras>\n';
       if(f.blocsModifiables)
         o+='        <extra info="blocs-modifiables">'+escX(f.blocsModifiables)+'</extra>\n';
     }
@@ -5922,7 +5922,7 @@ function doImport(e){
         f.categorisationOffre=extForm?tx(extForm,'extra[info="categorisation-offre"]'):'';
         // Blocs de compétences
         if(extForm){
-          var blocsEl=extForm.querySelector('extra[info="blocs-competences"]');
+          var blocsEl=extForm.querySelector('extras[info="blocs-competences"]')||extForm.querySelector('extra[info="blocs-competences"]');
           f.blocsCompetences=blocsEl?Array.from(blocsEl.querySelectorAll('extra[info="code-bloc"]')).map(function(e){return e.textContent.trim();}).filter(Boolean):[];
           f.blocsModifiables=extForm?tx(extForm,'extra[info="blocs-modifiables"]')||'0':'0';
         }
