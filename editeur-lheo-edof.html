@@ -6682,6 +6682,7 @@ function onTypeOffreChange(val){
     (ff.actions||[]).forEach(function(a){
       a.codesAdm=['92005'];
       if(estInfrep&&(!a.infoAdmission||!a.infoAdmission.trim())) a.infoAdmission=VAE_TEXTE_BASE.infoAdmission;
+      if(estInfrep&&(!a.prereq||!a.prereq.trim())) a.prereq=VAE_TEXTE_BASE.prereq;
       if(!a.codesRythme||!a.codesRythme.length) a.codesRythme=['1','3','6'];
       if(!a.entSor) a.entSor='1';
     });
