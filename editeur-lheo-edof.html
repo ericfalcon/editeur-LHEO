@@ -4982,6 +4982,8 @@ function buildAction(a,i,f){
       '<select data-ai="'+i+'" data-f="aPrereq" id="sel_aprereq_'+i+'" onchange="(function(sel){var ai=sel.dataset.ai;var r=document.getElementById(\'prereq_row_\'+ai);if(r)r.style.display=sel.value===\'1\'?\'\'\':\'none\'})(this)">'+
       so('0','Non',a.aPrereq||'0')+so('1','Oui',a.aPrereq)+
       '</select></div>'+
+    '<div class="fitem full" id="prereq_row_'+i+'" style="'+(a.aPrereq==='1'?'':'display:none')+'"><label>Détails des conditions spécifiques et prérequis <span class="req">*</span></label>'+
+      '<textarea data-ai="'+i+'" data-f="prereq" maxlength="3000" placeholder="Ex : Aucun prérequis particulier. / Accès à un ordinateur et à une connexion internet.">'+esc(a.prereq)+'</textarea></div>'+
     afsel(i,'modEns','Modalité enseignement <span class="req">*</span>',
       so('0','Présentiel',a.modEns)+so('1','Mixte/hybride',a.modEns)+so('2','À distance',a.modEns))+
     '<div class="fitem"><label>Durée totale (heures) <span class="req">*</span></label>'+
@@ -5074,8 +5076,6 @@ function buildAction(a,i,f){
     '<option value="">-- Non renseigné</option>'+
     GFE.map(function(g){return '<option value="'+g[0]+'"'+(a.gfe===g[0]?' selected':'')+'>'+g[1]+'</option>';}).join('')+
     '</select></div>'+
-    '<div class="fitem full" id="prereq_row_'+i+'" style="'+(a.aPrereq==='1'?'':'display:none')+'"><label>Détails des conditions spécifiques et prérequis <span class="req">*</span></label>'+
-      '<textarea data-ai="'+i+'" data-f="prereq" maxlength="3000" placeholder="Ex : Aucun prérequis particulier. / Accès à un ordinateur et à une connexion internet.">'+esc(a.prereq)+'</textarea></div>'+
     '<div class="fitem full"><label>Modalités pédagogiques <span class="bdg b-o">200 car.</span></label>'+
     '<textarea data-ai="'+i+'" data-f="modPed" maxlength="200">'+esc(a.modPed)+'</textarea></div>'+
     '<div class="fitem full"><label>Modalités pédagogiques adaptées aux personnes en situation de handicap</label>'+
