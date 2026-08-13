@@ -5004,6 +5004,10 @@ function buildAction(a,i,f){
       '<label>Montant TTC des frais d\'examen (€)</label>'+
       '<input type="number" id="fraisJury_'+i+'" data-ai="'+i+'" data-f="fraisJury" value="'+esc(a.fraisJury||'')+'" oninput="calcPrix('+i+');calcVaePrix('+i+')" placeholder="0.00">'+
     '</div>'+
+    '<div class="fitem"><label>Montant des frais additionnels non pris en charge (€) <span class="hint" style="font-weight:400">Ex : frais de jury quand ils ne sont pas inclus dans le prix</span></label>'+
+    '<input type="number" data-ai="'+i+'" data-f="fraisAnpec" value="'+esc(a.fraisAnpec||'')+'" placeholder="0.00"></div>'+
+    '<div class="fitem full"><label>Détails des frais additionnels non pris en charge</label>'+
+    '<textarea data-ai="'+i+'" data-f="detailFraisAnpec" rows="2" placeholder="Ex : Frais de jury de 150€ à régler directement au certificateur.">'+esc(a.detailFraisAnpec||'')+'</textarea></div>'+
     (f.typeOffre==='vae'?
       '<div class="fitem full" style="background:#f0f4ff;border:1px solid #c7d7f8;border-radius:6px;padding:10px 12px;margin-top:4px">'+
       '<div style="font-weight:600;color:var(--pri);font-size:12px;margin-bottom:8px">&#128202; Calculateur de prix VAE</div>'+
@@ -5605,7 +5609,7 @@ function emptyAction(){return {
   dureeTotal:'',duree:'',dureeEntreprise:'',
   prix:'',prixHoraire:'',lang:'FR',
   tva:'0.0',certifInclus:'0',gfe:'',tel:'',email:'',
-  codesAdm:['99999'],codesRythme:['5'],fraisJury:'',
+  codesAdm:['99999'],codesRythme:['5'],fraisJury:'',fraisAnpec:'',detailFraisAnpec:'',
   entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'',infoPerim:'',infoRecrutement:'',urlAct:'',
   restauration:'',hebergement:'',transport:'',autresServices:'',
   adr:'',cp:'',ville:'',dep:'',reg:'84',pays:'FR',lat:'',lon:'',sessions:[]};}
@@ -5759,8 +5763,9 @@ function toXML(formations){
       var ryt=(a.codesRythme&&a.codesRythme.length)?a.codesRythme:['1'];
       ryt.forEach(function(c){o+='            <extra info="code-rythme-formation">'+escX(c)+'</extra>\n';});
       o+='          </extras>\n';
+      if(a.fraisAnpec)o+='          <extra info="frais-anpec">'+parseFloat(a.fraisAnpec).toFixed(2)+'</extra>\n';
       o+='          <extra info="frais-certif-inclus-frais-anpec">'+(a.certifInclus==='1'?'1':'0')+'</extra>\n';
-      // frais-jury : non prévu dans la spec EDOF V14 — montant uniquement dans résultats-attendus et IHM
+      if(a.detailFraisAnpec)o+='          <extra info="detail-frais-anpec">'+escX(a.detailFraisAnpec)+'</extra>\n';
       if(a.autresServices)o+='          <extra info="autres-services">'+escX(a.autresServices)+'</extra>\n';
       // Calcul frais TTC selon TVA
       var ht=parseFloat(a.prix||'0');
@@ -5928,6 +5933,8 @@ function doImport(e){
             var frais=extAct.querySelector('extras[info="frais-pedagogiques"]');
             if(frais){a.tva=tx(frais,'extra[info="taux-tva"]')||'0.0';a.prix=tx(frais,'extra[info="frais-ht"]')||'';}
             a.certifInclus=tx(extAct,'extra[info="frais-certif-inclus-frais-anpec"]')||'0';
+            a.fraisAnpec=tx(extAct,'extra[info="frais-anpec"]')||'';
+            a.detailFraisAnpec=tx(extAct,'extra[info="detail-frais-anpec"]')||'';
             var ci=extAct.querySelector('extra[info="contact-information"] coordonnees');
             if(ci){a.tel=tx(ci,'numtel');a.email=tx(ci,'courriel');}
           }
@@ -6401,6 +6408,8 @@ function exportPDF(ficheId){
         row('Prix horaire HT (€)',a.prixHoraire),
         row('Prix inclut les frais d\'examen / frais de jury ?',a.certifInclus==='1'?'Oui':a.certifInclus==='2'?'Aucuns frais d\'examen attendus':'Non'),
         a.certifInclus==='1'?row('Montant TTC des frais d\'examen (€)',a.fraisJury):'',
+        a.fraisAnpec?row('Frais additionnels non pris en charge (€)',a.fraisAnpec):'',
+        a.detailFraisAnpec?row('Détails frais additionnels non pris en charge',a.detailFraisAnpec):'',
         isVae?row('Frais de recevabilité (€)',a.vaeRecevab):'',
         isVae?row('Frais post-jury (€)',a.vaePostJury):'',
         isVae?row('Formation obligatoire (€)',a.vaeFormOb):'',
