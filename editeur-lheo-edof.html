@@ -3791,8 +3791,8 @@ window.calcPrix=function(ai){
   var centre=parseFloat(centreEl.value)||0;
   var tva=parseFloat(tvaEl.value)||0;
   // Frais jury : inclus dans HT si certifInclus=1 et champ visible
-  var juryRow=document.getElementById('jury_row_'+ai);
-  var jury=(juryEl&&juryRow&&juryRow.style.display!=='none')?parseFloat(juryEl.value)||0:0;
+  var certifSel=document.getElementById('sel_certif_'+ai);
+  var jury=(juryEl&&certifSel&&certifSel.value==='1')?parseFloat(juryEl.value)||0:0;
   if(ph===0||centre===0) return;
   // Prix horaire est TOUJOURS HT
   // Montant HT = (prix horaire HT × heures centre) + frais examen HT
@@ -5000,10 +5000,12 @@ function buildAction(a,i,f){
       '<select data-ai="'+i+'" data-f="certifInclus" id="sel_certif_'+i+'" onchange="(function(sel){var ai=sel.dataset.ai;var r=document.getElementById(\'jury_row_\'+ai);if(r)r.style.display=sel.value===\'1\'?\'\'\':\'none\'})(this)">'+
       so('0','Non',a.certifInclus||'0')+so('1','Oui',a.certifInclus)+so('2','Aucuns frais d\'examen attendus',a.certifInclus)+
       '</select></div>'+
-    '<div class="fitem" id="jury_row_'+i+'" style="'+(a.certifInclus==='1'?'':'display:none')+'">'+
+    (f.typeOffre!=='vae'?
+      '<div class="fitem" id="jury_row_'+i+'" style="'+(a.certifInclus==='1'?'':'display:none')+'">'+
       '<label>Montant TTC des frais d\'examen (€)</label>'+
       '<input type="number" id="fraisJury_'+i+'" data-ai="'+i+'" data-f="fraisJury" value="'+esc(a.fraisJury||'')+'" oninput="calcPrix('+i+');calcVaePrix('+i+')" placeholder="0.00">'+
-    '</div>'+
+      '</div>'
+    :'')+
     '<div class="fitem"><label>Montant des frais additionnels non pris en charge (€) <span class="hint" style="font-weight:400">Ex : frais de jury quand ils ne sont pas inclus dans le prix</span></label>'+
     '<input type="number" data-ai="'+i+'" data-f="fraisAnpec" value="'+esc(a.fraisAnpec||'')+'" placeholder="0.00"></div>'+
     '<div class="fitem full"><label>Détails des frais additionnels non pris en charge</label>'+
@@ -5014,6 +5016,8 @@ function buildAction(a,i,f){
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
       '<div><label style="font-size:11px;color:var(--g6)">Frais de recevabilit\u00e9 (\u20ac)</label>'+
       '<input type="number" id="vae_recevab_'+i+'" data-ai="'+i+'" data-f="vaeRecevab" value="'+esc(a.vaeRecevab||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
+      '<div><label style="font-size:11px;color:var(--g6)">Montant des frais d\'examen / jury (\u20ac) <span style="color:var(--pri)">'+(a.certifInclus==='1'?'':'\u26a0 non inclus dans le prix')+'</span></label>'+
+      '<input type="number" id="fraisJury_'+i+'" data-ai="'+i+'" data-f="fraisJury" value="'+esc(a.fraisJury||'')+'" oninput="calcPrix('+i+');calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
 
       '<div><label style="font-size:11px;color:var(--g6)">Frais post-jury (\u20ac)</label>'+
       '<input type="number" id="vae_postjury_'+i+'" data-ai="'+i+'" data-f="vaePostJury" value="'+esc(a.vaePostJury||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
@@ -5021,7 +5025,7 @@ function buildAction(a,i,f){
       '<input type="number" id="vae_formob_'+i+'" data-ai="'+i+'" data-f="vaeFormOb" value="'+esc(a.vaeFormOb||'')+'" oninput="calcVaePrix('+i+')" placeholder="0.00" style="width:100%"></div>'+
       '</div>'+
       '<div id="vae_total_'+i+'" style="margin-top:8px;padding:6px 10px;background:var(--pri);color:#fff;border-radius:4px;font-size:12px;font-weight:600">'+
-      'Total VAE : '+((parseFloat(a.vaeRecevab||0)+parseFloat(a.vaeJury||0)+parseFloat(a.vaePostJury||0)+parseFloat(a.vaeFormOb||0)).toFixed(2))+' \u20ac</div>'+
+      'Total VAE : '+((parseFloat(a.vaeRecevab||0)+parseFloat(a.fraisJury||0)+parseFloat(a.vaePostJury||0)+parseFloat(a.vaeFormOb||0)).toFixed(2))+' \u20ac</div>'+
       '</div>'
     :'')+
     aif(i,'lang','text',a.lang||'FR','Langue enseignement','2','FR')+
