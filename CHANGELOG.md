@@ -5,6 +5,17 @@ Format : `[version] — date — description`
 
 ---
 
+## [2.6.0] — 2026-08-13
+- 🐛 **Encodage réel ISO-8859-1** — le fichier exporté déclarait `encoding="ISO-8859-1"` dans le prologue mais était en réalité généré en UTF-8 : tout caractère accentué (é, à, ç, œ...) était corrompu à l'import EDOF, qui exige explicitement cet encodage (§2 du CDC). Corrigé dans les deux sens : export en octets Latin-1 réels (`toLatin1Bytes`), import relu en ISO-8859-1 au lieu d'UTF-8 par défaut.
+- 🐛 **Ordre des balises dans `<extras info="action">`** — `modalites-handicap`, `autres-services`, `duree-apprentissage` et `code-gfe` étaient générés après `existence-prerequis`, qui doit pourtant être le tout dernier élément de la séquence. Fichier rejeté par la validation XSD d'EDOF dès que l'un de ces champs optionnels était renseigné. Réordonné pour suivre exactement la séquence de l'exemple officiel EDOF.
+- 🐛 Permis de conduire — `objectif-general-formation` utilisait le code `3`, inexistant dans le référentiel officiel (valeurs valides : 2,4,5,6,7,8,9) ; remplacé par `8` (Préparation à la qualification)
+- ✨ Permis de conduire — liste des types complétée : 5 → 13 codes CPF officiels (ajout B1, BE, C1, C1E, CE, D1, D1E, DE)
+- ✨ Permis de conduire — rappel du numéro d'agrément préfectoral à mentionner dans le champ Objectif pédagogique
+- 🐛 `etat-recrutement` — code `3` ("Complet") retiré, absent du référentiel officiel (seuls 1-Ouvert et 2-Fermé existent)
+- 🐛 `code-perimetre-recrutement` — valeur par défaut invalide (`0`, code inexistant) remplacée par valeur vide (champ optionnel)
+- 🔒 Sécurité — résultats de recherche RNCP (VAE) désormais échappés avant insertion HTML (faille XSS via l'API externe France Compétences)
+- 🔒 Sécurité — garde-fou anti-injection de formule sur l'export CSV Excel (préfixe apostrophe sur `=`, `+`, `-`, `@`)
+
 ## [2.5.0] — 2026-07-17
 - 🚀 **Suppression de la dépendance à Python** — remplacée par un relais [Cloudflare Worker](https://workers.cloudflare.com/) permanent pour l'import RNCP/RS, les blocs de compétences et la recherche VAE. Fonctionne en ligne (GitHub Pages) et en local (`file://`), sans aucune installation.
 - 🗑️ Retrait de `lancer-editeur.py`, `lancer-editeur.bat` et du bouton "Générer lancer-editeur.bat + .py" (obsolètes)
