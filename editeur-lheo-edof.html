@@ -5598,7 +5598,7 @@ function emptyAction(){return {
   prix:'',prixHoraire:'',lang:'FR',
   tva:'0.0',certifInclus:'0',gfe:'',tel:'',email:'',
   codesAdm:['99999'],codesRythme:['5'],fraisJury:'',
-  entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'0',infoPerim:'',infoRecrutement:'',urlAct:'',
+  entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'',infoPerim:'',infoRecrutement:'',urlAct:'',
   restauration:'',hebergement:'',transport:'',autresServices:'',
   adr:'',cp:'',ville:'',dep:'',reg:'84',pays:'FR',lat:'',lon:'',sessions:[]};}
 function emptySess(){return {num:'',debut:'',fin:'',etatRecrutement:'1',garantie:'0',
@@ -5734,11 +5734,18 @@ function toXML(formations){
       o+='              <telfixe><numtel>'+escX(a.tel||'0000000000')+'</numtel></telfixe>\n';
       o+='              <courriel>'+escX(a.email||'contact@organisme.fr')+'</courriel>\n';
       o+='            </coordonnees>\n          </extra>\n';
+      // Ordre officiel EDOF V14 (cf. exemple_de_catalogue_a_importer_v6r0.xml) :
+      // contact-information, modalites-handicap, codes-modalites-admission, code-gfe,
+      // duree-apprentissage, codes-rythme-formation, frais-certif-inclus-frais-anpec,
+      // autres-services, frais-pedagogiques, existence-prerequis (DOIT etre en dernier)
+      if(a.modHandicap)o+='          <extra info="modalites-handicap">'+escX(a.modHandicap)+'</extra>\n';
       // codes-modalites-admission (dynamiques)
       o+='          <extras info="codes-modalites-admission">\n';
       var adm=(a.codesAdm&&a.codesAdm.length)?a.codesAdm:['92002'];
       adm.forEach(function(c){o+='            <extra info="code-modalites-admission">'+escX(c)+'</extra>\n';});
       o+='          </extras>\n';
+      if(a.gfe) o+='          <extra info="code-gfe">'+escX(a.gfe)+'</extra>\n';
+      if(a.dureeTotal)o+='          <extra info="duree-apprentissage">'+escX(a.dureeTotal)+'</extra>\n';
       // codes-rythme-formation (dynamiques)
       o+='          <extras info="codes-rythme-formation">\n';
       var ryt=(a.codesRythme&&a.codesRythme.length)?a.codesRythme:['1'];
@@ -5746,6 +5753,7 @@ function toXML(formations){
       o+='          </extras>\n';
       o+='          <extra info="frais-certif-inclus-frais-anpec">'+(a.certifInclus==='1'?'1':'0')+'</extra>\n';
       // frais-jury : non prévu dans la spec EDOF V14 — montant uniquement dans résultats-attendus et IHM
+      if(a.autresServices)o+='          <extra info="autres-services">'+escX(a.autresServices)+'</extra>\n';
       // Calcul frais TTC selon TVA
       var ht=parseFloat(a.prix||'0');
       var tva=parseFloat(a.tva||'0.0');
@@ -5755,12 +5763,8 @@ function toXML(formations){
       o+='            <extra info="frais-ht">'+ht.toFixed(2)+'</extra>\n';
       o+='            <extra info="frais-ttc">'+ttc.toFixed(2)+'</extra>\n';
       o+='          </extras>\n';
-        o+='          <extra info="existence-prerequis">'+(a.aPrereq==='1'?'1':'0')+'</extra>\n';
-        if(a.modHandicap)o+='          <extra info="modalites-handicap">'+escX(a.modHandicap)+'</extra>\n';
-        if(a.autresServices)o+='          <extra info="autres-services">'+escX(a.autresServices)+'</extra>\n';
-        if(a.dureeTotal)o+='          <extra info="duree-apprentissage">'+escX(a.dureeTotal)+'</extra>\n';
-        if(a.gfe) o+='          <extra info="code-gfe">'+escX(a.gfe)+'</extra>\n';
-        o+='        </extras>\n      </action>\n';});
+      o+='          <extra info="existence-prerequis">'+(a.aPrereq==='1'?'1':'0')+'</extra>\n';
+      o+='        </extras>\n      </action>\n';});
     // Organisme responsable
     o+='      <organisme-formation-responsable>\n';
     o+='        <SIRET-organisme-formation><SIRET>'+escX(f.siret)+'</SIRET></SIRET-organisme-formation>\n';
@@ -5820,8 +5824,22 @@ function doExportAll(){
   dl(toXML(cat),(cat[0].siret||'SIRET')+'_catalogue.xml');
   toast(cat.length+' formation(s) exportée(s)');
 }
+// Convertit une chaine JS (UTF-16) en octets ISO-8859-1 (Latin-1), comme l'exige EDOF (§2 du CDC :
+// "le fichier est attendu dans l'encodage ISO-8859-1"). Les caracteres hors Latin-1 (guillemets typographiques,
+// ligatures oe/OE, tirets longs, euro...) sont translitteres vers leur equivalent ASCII le plus proche.
+function toLatin1Bytes(str){
+  var repl={0x2019:0x27,0x2018:0x27,0x201C:0x22,0x201D:0x22,0x201A:0x27,0x2013:0x2D,0x2014:0x2D,
+    0x2026:0x2E,0x0153:0x6F,0x0152:0x4F,0x20AC:0x45,0x2022:0x2D};
+  var bytes=[];
+  for(var i=0;i<str.length;i++){
+    var code=str.charCodeAt(i);
+    if(code<=0xFF) bytes.push(code);
+    else bytes.push(repl[code]!==undefined?repl[code]:0x3F);
+  }
+  return new Uint8Array(bytes);
+}
 function dl(content,name){
-  var b=new Blob([content],{type:'application/xml;charset=utf-8'});
+  var b=new Blob([toLatin1Bytes(content)],{type:'application/xml;charset=iso-8859-1'});
   var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
 
 /* ==============================================================
@@ -5924,7 +5942,7 @@ function doImport(e){
       persist();drawList();toast(n+' formation(s) importee(s)');
       if(last)openEditor(last);}
     catch(err){toast('Erreur : '+err.message,true);}};
-  r.readAsText(file);e.target.value='';}
+  r.readAsText(file,'ISO-8859-1');e.target.value='';}
 
 /* ==============================================================
    INIT
