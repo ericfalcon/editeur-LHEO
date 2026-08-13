@@ -5721,8 +5721,15 @@ function toXML(formations){
       if(a.lat&&a.lon)o+='              <geolocalisation><latitude>'+escX(a.lat)+'</latitude><longitude>'+escX(a.lon)+'</longitude></geolocalisation>\n';
       o+='              <extras info="adresse">\n';
       if(a.cp&&a.ville){
-        o+='                <extra info="code-nature-voie">RUE</extra>\n';
-        o+='                <extra info="libelle-voie">'+escX(a.adr||'')+'</extra>\n';}
+        var voie1=parseVoie(a.adr);
+        if(voie1){
+          o+='                <extra info="numero-voie">'+escX(voie1.numero)+'</extra>\n';
+          o+='                <extra info="code-nature-voie">'+escX(voie1.nature)+'</extra>\n';
+          o+='                <extra info="libelle-voie">'+escX(voie1.libelle)+'</extra>\n';
+        } else {
+          o+='                <extra info="ligne5-adresse">'+escX(a.adr||'')+'</extra>\n';
+        }
+      }
       o+='                <extra info="conformite-reglementaire">'+(a.cp?'1':'0')+'</extra>\n';
       o+='              </extras>\n            </adresse>\n';
       o+='            <telfixe><numtel>'+escX(a.tel||'0000000000')+'</numtel></telfixe>\n';
@@ -5741,7 +5748,17 @@ function toXML(formations){
           o+='              <codepostal>'+escX(a.cp||'00000')+'</codepostal>\n';
           o+='              <ville>'+escX((a.ville||'VILLE').toUpperCase())+'</ville>\n';}
         else o+='              <pays>'+escX(a.pays)+'</pays>\n';
-        o+='              <extras info="adresse"><extra info="conformite-reglementaire">'+(a.cp?'1':'0')+'</extra></extras>\n';
+        o+='              <extras info="adresse">\n';
+        var voie2=parseVoie(a.adr);
+        if(voie2){
+          o+='                <extra info="numero-voie">'+escX(voie2.numero)+'</extra>\n';
+          o+='                <extra info="code-nature-voie">'+escX(voie2.nature)+'</extra>\n';
+          o+='                <extra info="libelle-voie">'+escX(voie2.libelle)+'</extra>\n';
+        } else if(a.adr) {
+          o+='                <extra info="ligne5-adresse">'+escX(a.adr)+'</extra>\n';
+        }
+        o+='                <extra info="conformite-reglementaire">'+(a.cp?'1':'0')+'</extra>\n';
+        o+='              </extras>\n';
         o+='            </adresse>\n          </adresse-inscription>\n';
         // etat-recrutement depuis le champ session
         o+=xf('etat-recrutement',s.etatRecrutement||'1','          ');
@@ -5888,7 +5905,31 @@ function doExportAll(){
   dl(toXML(cat),(cat[0].siret||'SIRET')+'_catalogue.xml');
   toast(cat.length+' formation(s) exportée(s)');
 }
-// Convertit une chaine JS (UTF-16) en octets ISO-8859-1 (Latin-1), comme l'exige EDOF (§2 du CDC :
+// Analyse une adresse en texte libre ("13 Rue Edith Piaf") pour en extraire numero-voie / code-nature-voie / libelle-voie
+// conformement au referentiel officiel "Nature de voie" (§3.4.17 CDC EDOF). Necessaire pour reconstituer la "ligne 4"
+// exigee par le controle EDOF 30013 ("le libelle de voie... ou la 5eme ligne est obligatoire sur une adresse en France").
+var NATURE_VOIE_MOTS = {
+  'rue':'RUE','avenue':'AV','boulevard':'BD','chemin':'CHE','impasse':'IMP','allee':'ALL','allée':'ALL',
+  'place':'PL','route':'RTE','quai':'QUAI','square':'SQ','villa':'VLA','cours':'CRS','passage':'PAS',
+  'residence':'RES','résidence':'RES','lotissement':'LOT','hameau':'HAM','faubourg':'FG','domaine':'DOM',
+  'esplanade':'ESP','sentier':'SEN','sente':'SEN','traverse':'TRA','voie':'VOIE','ruelle':'RLE',
+  'rond-point':'RPT','carrefour':'CAR','montee':'MTE','montée':'MTE','parc':'PARC','village':'VLGE',
+  'parvis':'PRV','mail':'MAIL','marche':'MAR','marché':'MAR','plateau':'PLT','plaine':'PLN'
+};
+function parseVoie(adr){
+  if(!adr) return null;
+  var m=adr.trim().match(/^(\d+\s*(?:bis|ter|quater|b|t|q)?)\s+(.+)$/i);
+  if(!m) return null;
+  var numero=m[1].trim();
+  var reste=m[2].trim();
+  var mots=reste.split(/\s+/);
+  var premier=mots[0].toLowerCase().replace(/[^a-zàâäéèêëïîôöùûüç-]/g,'');
+  var code=NATURE_VOIE_MOTS[premier];
+  if(!code) return null;
+  var libelle=mots.slice(1).join(' ').trim();
+  if(!libelle) return null;
+  return {numero:numero.replace(/\s/g,''),nature:code,libelle:libelle};
+}
 // "le fichier est attendu dans l'encodage ISO-8859-1"). Les caracteres hors Latin-1 (guillemets typographiques,
 // ligatures oe/OE, tirets longs, euro...) sont translitteres vers leur equivalent ASCII le plus proche.
 function toLatin1Bytes(str){
