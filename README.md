@@ -1,12 +1,12 @@
 # 📋 Éditeur LHEO / EDOF — Format XML Mon Compte Formation
 
-**Version 2.7.0** · Compatible EDOF 2026 · Format LHEO 2.4
+**Version 2.7.1** · Compatible EDOF 2026 · Format LHEO 2.4
 
 > Outil standalone HTML pour créer et gérer des fiches de formation au format XML LHEO 2.4 compatibles avec la plateforme **Mon Compte Formation (EDOF V14)**.
 
 🔗 **Accès en ligne** : [https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html](https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html)
 
-📥 **Téléchargement** : [dernière version (v2.7.0)](https://github.com/ericfalcon/editeur-LHEO/releases/latest) · [toutes les versions](https://github.com/ericfalcon/editeur-LHEO/releases)
+📥 **Téléchargement** : [dernière version (v2.7.1)](https://github.com/ericfalcon/editeur-LHEO/releases/latest) · [toutes les versions](https://github.com/ericfalcon/editeur-LHEO/releases)
 
 ---
 
