@@ -4994,7 +4994,7 @@ function buildAction(a,i,f){
     afsel(i,'niveauEntreeObl','Y a-t-il un niveau requis à l\'entrée ?',
       so('0','Non',a.niveauEntreeObl||'0')+so('1','Oui',a.niveauEntreeObl))+
     '<div class="fitem"><label>Conditions spécifiques et prérequis ?</label>'+
-      '<select data-ai="'+i+'" data-f="aPrereq" id="sel_aprereq_'+i+'" onchange="(function(sel){var ai=sel.dataset.ai;var r=document.getElementById(\'prereq_row_\'+ai);if(r)r.style.display=sel.value===\'1\'?\'\'\':\'none\'})(this)">'+
+      '<select data-ai="'+i+'" data-f="aPrereq" id="sel_aprereq_'+i+'" onchange="(function(sel){var ai=sel.dataset.ai;var r=document.getElementById(\'prereq_row_\'+ai);if(r)r.style.display=sel.value===\'1\'?\'\':\'none\'})(this)">'+
       so('0','Non',a.aPrereq||'0')+so('1','Oui',a.aPrereq)+
       '</select></div>'+
     '<div class="fitem full" id="prereq_row_'+i+'" style="'+(a.aPrereq==='1'?'':'display:none')+'"><label>Détails des conditions spécifiques et prérequis <span class="req">*</span></label>'+
@@ -5024,7 +5024,7 @@ function buildAction(a,i,f){
     '<input type="number" id="prixH_'+i+'" data-ai="'+i+'" data-f="prixHoraire" value="'+esc(a.prixHoraire||'')+'" oninput="calcPrix('+i+');calcVaePrix('+i+')" placeholder="72"></div>'+
     '</div></div>'+
     '<div class="fitem"><label>Prix inclut les frais d\'examen / frais de jury ? <span class="bdg b-o">Impacte les résultats attendus VAE</span></label>'+
-      '<select data-ai="'+i+'" data-f="certifInclus" id="sel_certif_'+i+'" onchange="(function(sel){var ai=sel.dataset.ai;var r=document.getElementById(\'jury_row_\'+ai);if(r)r.style.display=sel.value===\'1\'?\'\'\':\'none\'})(this)">'+
+      '<select data-ai="'+i+'" data-f="certifInclus" id="sel_certif_'+i+'" onchange="(function(sel){var ai=sel.dataset.ai;var r=document.getElementById(\'jury_row_\'+ai);if(r)r.style.display=sel.value===\'1\'?\'\':\'none\'})(this)">'+
       so('0','Non',a.certifInclus||'0')+so('1','Oui',a.certifInclus)+so('2','Aucuns frais d\'examen attendus',a.certifInclus)+
       '</select></div>'+
     (f.typeOffre!=='vae'?
