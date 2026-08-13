@@ -5,6 +5,11 @@ Format : `[version] — date — description`
 
 ---
 
+## [2.7.1] — 2026-08-13
+- 🐛 **Import XML — SIRET jamais relu** — le parsing XML est sensible à la casse et le code cherchait `<siret>` en minuscules alors que la vraie balise est `<SIRET>` en majuscules ; le champ restait donc toujours vide après import
+- 🐛 **Import XML — adresse de l'action jamais relue** — mauvais nom de balise (`lieu-formation` au lieu de `lieu-de-formation`) ; adresse, code postal, ville, région, pays n'étaient jamais réimportés
+- 🐛 **Import XML — raison sociale jamais relue** — le code cherchait une balise `raison-sociale` qui n'existe pas dans LHEO ; le nom de l'organisme est en réalité dans `<nom>` à l'intérieur de `<coordonnees>`, désormais lu au bon endroit
+
 ## [2.7.0] — 2026-08-13
 - ✨ **SIRET dans Personnalisation PDF** — nouveau champ SIRET organisme (avec validation 14 chiffres), repris automatiquement comme valeur par défaut dans chaque nouvelle fiche créée
 - ✨ Bouton « Appliquer aux fiches existantes » — complète le SIRET sur les fiches actuelles qui n'en ont pas, sans écraser celles déjà renseignées
