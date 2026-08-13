@@ -5,6 +5,10 @@ Format : `[version] — date — description`
 
 ---
 
+## [2.7.0] — 2026-08-13
+- ✨ **SIRET dans Personnalisation PDF** — nouveau champ SIRET organisme (avec validation 14 chiffres), repris automatiquement comme valeur par défaut dans chaque nouvelle fiche créée
+- ✨ Bouton « Appliquer aux fiches existantes » — complète le SIRET sur les fiches actuelles qui n'en ont pas, sans écraser celles déjà renseignées
+
 ## [2.6.0] — 2026-08-13
 - 🐛 **Encodage réel ISO-8859-1** — le fichier exporté déclarait `encoding="ISO-8859-1"` dans le prologue mais était en réalité généré en UTF-8 : tout caractère accentué (é, à, ç, œ...) était corrompu à l'import EDOF, qui exige explicitement cet encodage (§2 du CDC). Corrigé dans les deux sens : export en octets Latin-1 réels (`toLatin1Bytes`), import relu en ISO-8859-1 au lieu d'UTF-8 par défaut.
 - 🐛 **Ordre des balises dans `<extras info="action">`** — `modalites-handicap`, `autres-services`, `duree-apprentissage` et `code-gfe` étaient générés après `existence-prerequis`, qui doit pourtant être le tout dernier élément de la séquence. Fichier rejeté par la validation XSD d'EDOF dès que l'un de ces champs optionnels était renseigné. Réordonné pour suivre exactement la séquence de l'exemple officiel EDOF.
