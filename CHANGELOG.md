@@ -5,6 +5,10 @@ Format : `[version] — date — description`
 
 ---
 
+## [2.7.2] — 2026-08-13
+- ✨ **Frais additionnels non pris en charge** — nouveaux champs « Montant » et « Détails » dans la fiche action (`frais-anpec` / `detail-frais-anpec`), correspondant à ce qu'affiche réellement EDOF dans l'espace organisme (section Montants du catalogue). Utile notamment pour préciser des frais de jury non inclus dans le prix, quand leur montant n'est pas connu à l'avance.
+- ✨ Import/export XML + affichage dans le PDF récapitulatif de l'action
+
 ## [2.7.1] — 2026-08-13
 - 🐛 **Import XML — SIRET jamais relu** — le parsing XML est sensible à la casse et le code cherchait `<siret>` en minuscules alors que la vraie balise est `<SIRET>` en majuscules ; le champ restait donc toujours vide après import
 - 🐛 **Import XML — adresse de l'action jamais relue** — mauvais nom de balise (`lieu-formation` au lieu de `lieu-de-formation`) ; adresse, code postal, ville, région, pays n'étaient jamais réimportés
