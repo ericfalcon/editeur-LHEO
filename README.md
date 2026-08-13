@@ -1,12 +1,12 @@
 # 📋 Éditeur LHEO / EDOF — Format XML Mon Compte Formation
 
-**Version 2.5.0** · Compatible EDOF 2026 · Format LHEO 2.4
+**Version 2.7.0** · Compatible EDOF 2026 · Format LHEO 2.4
 
 > Outil standalone HTML pour créer et gérer des fiches de formation au format XML LHEO 2.4 compatibles avec la plateforme **Mon Compte Formation (EDOF V14)**.
 
 🔗 **Accès en ligne** : [https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html](https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html)
 
-📥 **Téléchargement** : [dernière version (v2.5.0)](https://github.com/ericfalcon/editeur-LHEO/releases/latest) · [toutes les versions](https://github.com/ericfalcon/editeur-LHEO/releases)
+📥 **Téléchargement** : [dernière version (v2.7.0)](https://github.com/ericfalcon/editeur-LHEO/releases/latest) · [toutes les versions](https://github.com/ericfalcon/editeur-LHEO/releases)
 
 ---
 
@@ -16,7 +16,7 @@
 - 🎓 **Formation certifiante** (RNCP / Répertoire Spécifique)
 - ✅ **Bilan de compétences** (CPF202) — champs contraints (FORMACODE 22252, NSF 315, 3 phases légales)
 - 🔍 **Accompagnement VAE** (CPF200) — certifications RNCP visées, calculateur de prix, résultats attendus auto
-- 🚗 **Permis de conduire** (CPF206 et variantes)
+- 🚗 **Permis de conduire** (13 catégories officielles : B, C, D, A1, A2, B1, BE, C1, C1E, CE, D1, D1E, DE)
 
 ### VAE — Fonctionnalités avancées
 - Sélection du domaine par **Formacode sémantique V14** (65 champs officiels Centre Inffo)
@@ -27,10 +27,10 @@
 
 ### Validation et export
 - **Bouton ✔ Valider** : vérification avant export avec bandeau erreurs/avertissements
-- **Export XML LHEO 2.4** individuel ou global (ISO-8859-1, compatible EDOF)
+- **Export XML LHEO 2.4** individuel ou global — encodage ISO-8859-1 réel et ordre des balises strictement conforme au schéma EDOF V14 (évite les rejets d'import)
 - **Export PDF** : fiche individuelle ou catalogue complet via impression navigateur
 - **Export CSV** : tableau récapitulatif de toutes les formations
-- **Personnalisation PDF** : couleur, logo, nom organisme, pied de page — appliqués aussi à l'interface
+- **Personnalisation PDF** : couleur, logo, nom organisme, SIRET (repris automatiquement dans les nouvelles fiches), pied de page — appliqués aussi à l'interface
 
 ### Référentiels intégrés
 - 93 codes NSF · 230+ FORMACODE · 530+ codes ROME en listes filtrables
