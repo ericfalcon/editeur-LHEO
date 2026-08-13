@@ -6667,14 +6667,19 @@ function onTypeOffreChange(val){
   else if(val==='vae'){
     ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';
     ff.parcours='2'; // Individualisé
-    // Texte de base standard INFREP pour toutes les offres VAE (ne remplace pas un texte déjà personnalisé)
-    if(!ff.objectif||!ff.objectif.trim()) ff.objectif=VAE_TEXTE_BASE.objectif;
-    if(!ff.contenu||!ff.contenu.trim()) ff.contenu=VAE_TEXTE_BASE.contenu;
+    // Résultats attendus : base générique (valable pour tout organisme)
     if(!ff.resultats||!ff.resultats.trim()) ff.resultats=VAE_TEXTE_BASE.resultatsBase;
-    // Pré-sélectionner "Admission après entretien" sur toutes les actions existantes
+    // Objectif pédagogique / Contenu : texte propre au process INFREP — ne s'applique qu'à l'organisme INFREP
+    // (l'éditeur est un outil générique, pas question d'imposer ce texte à d'autres organismes de formation)
+    var estInfrep=(ff.siret==='32441928201365');
+    if(estInfrep){
+      if(!ff.objectif||!ff.objectif.trim()) ff.objectif=VAE_TEXTE_BASE.objectif;
+      if(!ff.contenu||!ff.contenu.trim()) ff.contenu=VAE_TEXTE_BASE.contenu;
+    }
+    // Pré-sélectionner "Admission après entretien" sur toutes les actions existantes (générique)
     (ff.actions||[]).forEach(function(a){
       a.codesAdm=['92005'];
-      if(!a.infoAdmission||!a.infoAdmission.trim()) a.infoAdmission=VAE_TEXTE_BASE.infoAdmission;
+      if(estInfrep&&(!a.infoAdmission||!a.infoAdmission.trim())) a.infoAdmission=VAE_TEXTE_BASE.infoAdmission;
       if(!a.codesRythme||!a.codesRythme.length) a.codesRythme=['1','3','6'];
       if(!a.entSor) a.entSor='1';
     });
