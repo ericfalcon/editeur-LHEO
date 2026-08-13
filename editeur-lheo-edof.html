@@ -4486,7 +4486,7 @@ function buildIdent(f){
     '<div class="fitem"><label>SIRET organisme <span class="req">*</span></label>'+
     '<input type="text" id="E_siret" maxlength="14" value="'+esc(f.siret||'')+'" placeholder="14 chiffres">'+
     '<div id="E_siret_status"></div></div>'+
-    (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'9':isVae?'6':'3')+'">')+
+    (!isBilan&&!isVae&&!isPermis?fsel('Objectif général','E_objgen',sOpts(OBJ_GEN,f.objGen),true):'<input type="hidden" id="E_objgen" value="'+(isBilan?'9':isVae?'6':'8')+'">')+
     '<div class="fitem"><label>Type de parcours</label>'+
     (isBilan?
       '<input type="hidden" id="E_parcours" value="2">'+
@@ -4564,11 +4564,20 @@ function buildCertif(f){
     // CPF : affiché pour tous mais pré-rempli et verrouillé pour Bilan/VAE/Permis
     (isPermis?
       fsel('Type de permis <span class="req">*</span>','E_cpf',
-        '<option value="CPF206"'+(f.cpf==='CPF206'?' selected':'')+'>CPF206 - Permis B (voiture)</option>'+
-        '<option value="CPF210"'+(f.cpf==='CPF210'?' selected':'')+'>CPF210 - Permis C (poids lourd)</option>'+
-        '<option value="CPF214"'+(f.cpf==='CPF214'?' selected':'')+'>CPF214 - Permis D (bus)</option>'+
         '<option value="CPF219"'+(f.cpf==='CPF219'?' selected':'')+'>CPF219 - Permis A1 (moto légère)</option>'+
-        '<option value="CPF220"'+(f.cpf==='CPF220'?' selected':'')+'>CPF220 - Permis A2 (moto inter.)</option>')
+        '<option value="CPF220"'+(f.cpf==='CPF220'?' selected':'')+'>CPF220 - Permis A2 (moto inter.)</option>'+
+        '<option value="CPF206"'+(f.cpf==='CPF206'?' selected':'')+'>CPF206 - Permis B (voiture, inclut B78 boîte auto)</option>'+
+        '<option value="CPF221"'+(f.cpf==='CPF221'?' selected':'')+'>CPF221 - Permis B1 (quadricycle lourd)</option>'+
+        '<option value="CPF222"'+(f.cpf==='CPF222'?' selected':'')+'>CPF222 - Permis BE (voiture + remorque)</option>'+
+        '<option value="CPF210"'+(f.cpf==='CPF210'?' selected':'')+'>CPF210 - Permis C (poids lourd)</option>'+
+        '<option value="CPF211"'+(f.cpf==='CPF211'?' selected':'')+'>CPF211 - Permis C1 (poids lourd léger)</option>'+
+        '<option value="CPF212"'+(f.cpf==='CPF212'?' selected':'')+'>CPF212 - Permis C1E (C1 + remorque)</option>'+
+        '<option value="CPF213"'+(f.cpf==='CPF213'?' selected':'')+'>CPF213 - Permis CE (C + remorque)</option>'+
+        '<option value="CPF214"'+(f.cpf==='CPF214'?' selected':'')+'>CPF214 - Permis D (bus)</option>'+
+        '<option value="CPF215"'+(f.cpf==='CPF215'?' selected':'')+'>CPF215 - Permis D1 (minibus)</option>'+
+        '<option value="CPF216"'+(f.cpf==='CPF216'?' selected':'')+'>CPF216 - Permis D1E (D1 + remorque)</option>'+
+        '<option value="CPF217"'+(f.cpf==='CPF217'?' selected':'')+'>CPF217 - Permis DE (D + remorque)</option>')+
+      '<div class="hint" style="display:block;margin-top:4px">⚠ Le numéro d\'agrément préfectoral de l\'auto-école doit être mentionné dans le champ <strong>Objectif pédagogique</strong> (ex. "Autorisation d\'exploiter N° X XX XXX X").</div>'
     :isBilan?
       '<div class="fitem"><label>Dispositif CPF</label>'+
       '<input type="hidden" id="E_cpf" value="CPF202">'+
@@ -5094,7 +5103,6 @@ function buildSess(s,ai,si,isPerm){
     '<select data-ai="'+ai+'" data-si="'+si+'" data-fs="etatRecrutement">'+
     so('1','1 - Ouvert',s.etatRecrutement||'1')+
     so('2','2 - Fermé',s.etatRecrutement)+
-    so('3','3 - Complet',s.etatRecrutement)+
     '</select></div>'+
     '<div class="fitem"><label>Individuelle / Collective</label>'+
     '<select data-ai="'+ai+'" data-si="'+si+'" data-fs="indColl">'+
@@ -5843,7 +5851,7 @@ function doImport(e){
         // Reconstruction du typeOffre depuis les données XML
         if(f.cpf==='CPF200'||f.categorisationOffre) f.typeOffre='vae';
         else if(f.cpf==='CPF202') f.typeOffre='bilan';
-        else if(f.cpf&&/^CPF20[6-9]|CPF21[0-9]|CPF220$/.test(f.cpf)) f.typeOffre='permis';
+        else if(f.cpf&&/^CPF(206|21[0-7]|219|220|221|222)$/.test(f.cpf)) f.typeOffre='permis';
         else if(f.rncp||f.rs) f.typeOffre='certification';
         else f.typeOffre='certification';
         // extras formation V14
@@ -5986,7 +5994,10 @@ function doExportExcel(){
   });
   var csv=rows.map(function(r){
     return r.map(function(c){
-      var s=String(c||'').replace(/"/g,'""');
+      var s=String(c||'');
+      // Anti-injection formule Excel/Calc : neutralise =,+,-,@ en début de champ
+      if(/^[=+\-@\t\r]/.test(s)) s="'"+s;
+      s=s.replace(/"/g,'""');
       return s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0?'"'+s+'"':s;
     }).join(',');
   }).join('\n');
@@ -6179,7 +6190,7 @@ function exportPDF(ficheId){
   var ENTSOR={'0':'Dates fixes','1':'Permanentes'};
   var PERIM_L={'1':'Commune','2':'Département','3':'Région','4':'Interrégion','5':'National','6':'International','7':'Autres'};
   var NIVEAUX_L={'0':'Non communiqué','1':'Sans niveau spécifique','2':'Niveau VI (illettrisme)','3':'Niveau V bis (préqualification)','4':'Niveau V (CAP, BEP)','5':'Niveau IV (Bac pro, BP, BT)','14':'14 - Niveau 4 EQF (baccalauréat)','6':'Niveau III (BTS, DUT / Bac+2)','7':'Niveau II (Licence, Maîtrise / Bac+3/4)','8':'Niveau I (supérieur Maîtrise / Bac+5+)'};
-  var ETAT_REC={'1':'1 - Ouvert','2':'2 - Fermé','3':'3 - Complet'};
+  var ETAT_REC={'1':'1 - Ouvert','2':'2 - Fermé'};
   var IND_COLL={'0':'Individuelle','1':'Collective'};
   var GARANTIE={'0':'Non garantie','1':'Garantie'};
   var GFE_L={'1':'Agriculture','2':'Pêche, Mer','3':'Bâtiment : gros oeuvre, travaux publics','4':'Bâtiment : second oeuvre','5':'Travail des métaux','6':'Mécanique','7':'Electromécanique','8':'Electricité, énergie','9':'Appui à la production des industries','10':'Transformation des matériaux, procédés','11':'Production alimentaire','12':'Textile, habillement, cuir','13':'Travail du bois, matériaux de synthèse','14':'Techniques graphiques, impression','15':'Transport, logistique','16':'Gestion et traitement de l\'information','17':'Commerce','18':'Santé, social, soins personnels','19':'Hôtellerie, tourisme, loisirs','20':'Environnement, nettoyage, sécurité','21':'Communication, médias','22':'Création et production artistique','23':'Autres professions, professions d\'enseignement et de la magistrature','24':'Formation d\'insertion'};
@@ -6587,7 +6598,7 @@ function onTypeOffreChange(val){
     // Pré-sélectionner 92001 sur toutes les actions existantes
     (ff.actions||[]).forEach(function(a){a.codesAdm=['99999'];});
   }
-  else if(val==='permis'){ff.objGen='3';ff.certif='N';ff.parcours='2';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
+  else if(val==='permis'){ff.objGen='8';ff.certif='N';if(!ff.parcours||!/^[1-4]$/.test(ff.parcours))ff.parcours='4';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
   else{
     // Formation certifiante : vider CPF (code RNCP/RS suffit), remettre parcours par défaut
     ff.objGen='6';ff.certif='O';ff.cpf='';
@@ -6823,11 +6834,11 @@ function doFetchRncpVae(offset,q,nsfCodes,resEl){
       Object.keys(byLevel).sort(function(a,b){return parseInt(a.replace('NIV',''))-parseInt(b.replace('NIV',''));}).forEach(function(lv){
         html+='<div style="padding:3px 8px;background:var(--g1);font-size:10px;font-weight:600;color:var(--g5)">Niveau '+lv.replace('NIV','')+'</div>';
         byLevel[lv].forEach(function(r){
-          var cert=r.CERTIFICATEURS?r.CERTIFICATEURS.split(';')[0].trim():'';
+          var cert=r.CERTIFICATEURS?escEl(r.CERTIFICATEURS.split(';')[0].trim()):'';
           html+='<div class="vae-rncp-result" data-rncp="'+r.NUMERO_FICHE+'" style="padding:5px 10px;cursor:pointer;border-bottom:1px solid var(--g2);font-size:12px" '+
             'onmouseover="this.style.background=\'var(--g1)\';" onmouseout="this.style.background=\'\';" '+
             'onclick="selectRncpVae(\''+r.NUMERO_FICHE+'\',\''+r.INTITULE.replace(/'/g,"\\'").replace(/"/g,'&quot;')+'\')">' +
-            '<strong>'+r.NUMERO_FICHE+'</strong> — '+r.INTITULE+
+            '<strong>'+r.NUMERO_FICHE+'</strong> — '+escEl(r.INTITULE)+
             (cert?'<br><span style="color:var(--g5);font-size:10px">'+cert+'</span>':'')+
             '</div>';
         });
@@ -6848,11 +6859,11 @@ function doFetchRncpVae(offset,q,nsfCodes,resEl){
             newHtml+='<div style="padding:3px 8px;background:var(--g1);font-size:10px;font-weight:600;color:var(--g5)">Niveau '+lv.replace('NIV','')+'</div>';
             prevLevel=lv;
           }
-          var cert=r.CERTIFICATEURS?r.CERTIFICATEURS.split(';')[0].trim():'';
+          var cert=r.CERTIFICATEURS?escEl(r.CERTIFICATEURS.split(';')[0].trim()):'';
           newHtml+='<div class="vae-rncp-result" data-rncp="'+r.NUMERO_FICHE+'" style="padding:5px 10px;cursor:pointer;border-bottom:1px solid var(--g2);font-size:12px" '+
             'onmouseover="this.style.background=\'var(--g1)\';" onmouseout="this.style.background=\'\';" '+
             'onclick="selectRncpVae(\''+r.NUMERO_FICHE+'\',\''+r.INTITULE.replace(/'/g,"\\'").replace(/"/g,'&quot;')+'\')">' +
-            '<strong>'+r.NUMERO_FICHE+'</strong> — '+r.INTITULE+
+            '<strong>'+r.NUMERO_FICHE+'</strong> — '+escEl(r.INTITULE)+
             (cert?'<br><span style="color:var(--g5);font-size:10px">'+cert+'</span>':'')+
             '</div>';
         });
