@@ -3520,7 +3520,8 @@ var VAE_TEXTE_BASE = {
   objectif: "Accompagnement individualisé pour la préparation à la validation de l'expérience : Rédaction du dossier de demande avec la description des différentes activités du candidats - préparation à l'entretien avec le jury.\n- Acquérir la méthodologie et la technique pour l'élaboration du dossier VAE\n- Savoir décrire et expliciter son expérience professionnelle\n- Rédiger son dossier VAE\n- Se préparer à l'entretien oral avec le jury de validation",
   contenu: "- Analyse de la demande et du parcours professionnel\n- Présentation de l'accompagnement VAE proposé\n- Réalisation du rétro planning et des échéances à respecter\n- Confirmation du choix de la certification\n- Aide méthodologique :\n  - À la description des activités et de l'expérience du candidat correspondant aux exigences du référentiel de la certification visée\n  - À la formalisation de son dossier de validation\n  - À la préparation de l'entretien avec le jury\nPhase de constitution du dossier de faisabilité : 2h maximum\n- Relire le parcours professionnel du candidat pour repérer les éléments essentiels de la certification visée\n- Faciliter l'identification des activités les plus en adéquation avec le référentiel métier\n- Guider le candidat dans les démarches à entreprendre, les travaux à conduire.\nPhase de constitution du dossier de validation : 25 heures maximum\n- Contribuer à repérer et à formaliser les expériences les plus probantes de l'activité en cohérence avec le référentiel\n- Lever les difficultés rédactionnelles\n- Apporter une aide méthodologique pour impulser le travail d'intersession\n- Sensibiliser et préparer le candidat à l'évaluation de ses compétences par le jury VAE : 5h00 maximum\n- Entretien post-jury (en cas d'échec) : maximum 2h",
   resultatsBase: "Passage devant un jury pour les certifications :",
-  infoAdmission: "Entretien en visio-conférence suite à demande sur France VAE"
+  infoAdmission: "Entretien en visio-conférence suite à demande sur France VAE",
+  prereq: "Accès à un ordinateur. Possibilité d'utiliser un outil de visio-conférence"
 };
 
 var PARCOURS = [
@@ -6680,6 +6681,7 @@ function onTypeOffreChange(val){
     (ff.actions||[]).forEach(function(a){
       a.codesAdm=['92005'];
       if(estInfrep&&(!a.infoAdmission||!a.infoAdmission.trim())) a.infoAdmission=VAE_TEXTE_BASE.infoAdmission;
+      if(estInfrep&&(!a.prereq||!a.prereq.trim())){a.prereq=VAE_TEXTE_BASE.prereq;a.aPrereq='1';}
       if(!a.codesRythme||!a.codesRythme.length) a.codesRythme=['1','3','6'];
       if(!a.entSor) a.entSor='1';
     });
