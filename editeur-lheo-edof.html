@@ -5036,7 +5036,7 @@ function buildAction(a,i,f){
     '<div class="fitem"><label>Montant des frais additionnels non pris en charge (€) <span class="hint" style="font-weight:400">Ex : frais de jury quand ils ne sont pas inclus dans le prix</span></label>'+
     '<input type="number" data-ai="'+i+'" data-f="fraisAnpec" value="'+esc(a.fraisAnpec||'')+'" placeholder="0.00"></div>'+
     '<div class="fitem full"><label>Détails des frais additionnels non pris en charge</label>'+
-    '<textarea data-ai="'+i+'" data-f="detailFraisAnpec" rows="2" placeholder="Ex : Frais de jury de 150€ à régler directement au certificateur.">'+esc(a.detailFraisAnpec||'')+'</textarea></div>'+
+    '<textarea data-ai="'+i+'" data-f="detailFraisAnpec" maxlength="3000" rows="2" placeholder="Ex : Frais de jury de 150€ à régler directement au certificateur.">'+esc(a.detailFraisAnpec||'')+'</textarea></div>'+
     (f.typeOffre==='vae'?
       '<div class="fitem full" style="background:#f0f4ff;border:1px solid #c7d7f8;border-radius:6px;padding:10px 12px;margin-top:4px">'+
       '<div style="font-weight:600;color:var(--pri);font-size:12px;margin-bottom:8px">&#128202; Calculateur de prix VAE</div>'+
@@ -5074,7 +5074,7 @@ function buildAction(a,i,f){
     }).join('')+
     '</div></div>'+
     '<div class="fitem full"><label>Informations sur l\'admission</label>'+
-    '<textarea data-ai="'+i+'" data-f="infoAdmission" rows="2" placeholder="Ex : Entretien en visio-conférence suite à demande sur France VAE">'+esc(a.infoAdmission||'')+'</textarea></div>'+
+    '<textarea data-ai="'+i+'" data-f="infoAdmission" maxlength="250" rows="2" placeholder="Ex : Entretien en visio-conférence suite à demande sur France VAE">'+esc(a.infoAdmission||'')+'</textarea></div>'+
     '<div class="fitem full"><label>Rythme de formation <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
     '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px" id="rythme_'+i+'">'+
     ['1:Journalier','2:Hebdomadaire','3:En semaine','4:Le week-end','5:Temps plein','6:Temps partiel','7:Plusieurs rythmes'].map(function(item){
@@ -5362,6 +5362,10 @@ function validateFiche(f){
     // Contact d'information de l'action (EDOF 30017) : signale si des valeurs factices seraient exportées
     if(!a.tel) errs.push({field:null,msg:'Action '+(i+1)+' : téléphone de contact manquant — "0000000000" sera exporté par défaut',warn:true});
     if(!a.email) errs.push({field:null,msg:'Action '+(i+1)+' : email de contact manquant — "contact@organisme.fr" sera exporté par défaut',warn:true});
+    // Format courriel (EDOF : XXX@YYY.ZZ, 3 à 160 caractères)
+    if(a.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.email)) errs.push({field:null,msg:'Action '+(i+1)+' : format d\'email de contact invalide'});
+    // Format téléphone (EDOF : chiffres uniquement, + optionnel en 1ère position, 1-15 car.)
+    if(a.tel&&!/^\+?\d{1,15}$/.test(a.tel.replace(/[\s.]/g,''))) errs.push({field:null,msg:'Action '+(i+1)+' : format de téléphone de contact invalide (chiffres uniquement, + optionnel en début)'});
     if(a.aPrereq==='1'&&(!a.prereq||!a.prereq.trim())) errs.push({field:null,msg:'Action '+(i+1)+' : "Conditions spécifiques et prérequis" est sur Oui mais le détail est vide'});
     (a.sessions||[]).forEach(function(s,j){
       if(!s.num) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : N° session manquant'});
@@ -5372,6 +5376,8 @@ function validateFiche(f){
       // Contact d'inscription de la session (EDOF 30022) : signale si des valeurs factices seraient exportées
       if(!s.tel&&!a.tel) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : téléphone d\'inscription manquant — valeur factice exportée',warn:true});
       if(!s.email&&!a.email) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : email d\'inscription manquant — valeur factice exportée',warn:true});
+      if(s.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email)) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : format d\'email d\'inscription invalide'});
+      if(s.tel&&!/^\+?\d{1,15}$/.test(s.tel.replace(/[\s.]/g,''))) errs.push({field:null,msg:'Action '+(i+1)+' / Session '+(j+1)+' : format de téléphone d\'inscription invalide'});
       // Doublon de dates de session dans la même action (EDOF 10133)
       (a.sessions||[]).forEach(function(t,k){
         if(k<=j) return;
@@ -5860,6 +5866,20 @@ function doExportAll(){
   cat.forEach(function(f){
     var errs=validateFiche(f);
     if(errs.length) allErrs.push({fiche:f.intitule||f.numIntOf||f.id, count:errs.length, errs:errs});
+  });
+  // Contrôle catalogue : le SIRET doit être identique pour toutes les formations du fichier (§3.3.3 CDC EDOF)
+  var sirets={};
+  cat.forEach(function(f){if(f.siret)sirets[f.siret]=true;});
+  if(Object.keys(sirets).length>1){
+    allErrs.push({fiche:'Catalogue', count:1, errs:[{msg:'Plusieurs SIRET différents détectés ('+Object.keys(sirets).join(', ')+') — le SIRET doit être identique pour toutes les formations du fichier'}]});
+  }
+  // Contrôle catalogue : une seule offre CPF200 par valeur de categorisation-offre (§3.3.3 / erreur EDOF 30077)
+  var vaeCats={};
+  cat.forEach(function(f){
+    if(f.typeOffre==='vae'&&f.categorisationOffre){
+      if(vaeCats[f.categorisationOffre]) allErrs.push({fiche:'Catalogue', count:1, errs:[{msg:'Deux fiches VAE ("'+vaeCats[f.categorisationOffre]+'" et "'+(f.intitule||f.numIntOf)+'") partagent la même catégorisation "'+f.categorisationOffre+'" (EDOF 30077) — il ne peut y avoir qu\'une offre CPF200 par catégorisation'}]});
+      vaeCats[f.categorisationOffre]=f.intitule||f.numIntOf;
+    }
   });
   if(allErrs.length){
     var msg=allErrs.map(function(e){return e.fiche+' : '+e.count+' erreur(s)';}).join('\n');
