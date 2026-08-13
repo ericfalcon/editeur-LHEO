@@ -262,10 +262,16 @@ textarea{resize:vertical;min-height:68px;line-height:1.5}
         <input type="text" id="theme_org" placeholder="INFREP Puy-de-Dôme" maxlength="100">
       </div>
       <div class="fitem">
+        <label>SIRET organisme</label>
+        <input type="text" id="theme_siret" placeholder="14 chiffres" maxlength="14">
+        <span class="hint">Pré-rempli automatiquement dans chaque nouvelle fiche créée.</span>
+      </div>
+      <div class="fitem">
         <label>Texte de pied de page</label>
         <input type="text" id="theme_footer" placeholder="Ex: Organisme certifié Qualiopi" maxlength="200">
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button class="btn" id="J_theme_apply_existing" style="font-size:11px" title="Renseigne le SIRET dans les fiches existantes qui n'en ont pas">Appliquer aux fiches existantes</button>
         <button class="btn" id="J_theme_reset">↺ Réinitialiser</button>
         <button class="btn btn-ok" id="J_theme_save">✓ Enregistrer</button>
       </div>
@@ -4165,7 +4171,9 @@ function showWelcome(){
 function newFiche(){var f=emptyFiche();cat.push(f);persist();drawList();openEditor(f.id);}
 
 function emptyFiche(){return {
-  id:uid(),intitule:'',numIntOf:'',siret:'',raisonSociale:'',numActivite:'',codeUAI:'',
+  id:uid(),intitule:'',numIntOf:'',siret:(typeof PDF_THEME!=='undefined'&&PDF_THEME.siret)||'',
+  raisonSociale:(typeof PDF_THEME!=='undefined'&&PDF_THEME.siret)?(PDF_THEME.org||''):'',
+  numActivite:'',codeUAI:'',
   typeOffre:'certification',
   objGen:'6',certif:'N',parcours:'2',
   rncp:'',rs:'',cpf:'',certifinfo:'',
@@ -6495,6 +6503,7 @@ var PDF_THEME = {
   color: '#1a56db',
   logo: null,
   org: 'INFREP Puy-de-Dôme',
+  siret: '',
   footer: ''
 };
 
@@ -6516,6 +6525,7 @@ function loadTheme(){
     if(t.color) PDF_THEME.color=t.color;
     if(t.logo) PDF_THEME.logo=t.logo;
     if(t.org) PDF_THEME.org=t.org;
+    if(t.siret) PDF_THEME.siret=t.siret;
     if(t.footer) PDF_THEME.footer=t.footer;
   }catch(e){}
   applyThemeToUI();
@@ -6526,7 +6536,7 @@ function saveTheme(){
   toast('Personnalisation enregistrée ✓');
 }
 function resetTheme(){
-  PDF_THEME={color:'#1a56db',logo:null,org:'INFREP Puy-de-Dôme',footer:''};
+  PDF_THEME={color:'#1a56db',logo:null,org:'INFREP Puy-de-Dôme',siret:'',footer:''};
   localStorage.removeItem('lheo_pdf_theme');
   initThemeModal();
   applyThemeToUI();
@@ -6537,6 +6547,7 @@ function initThemeModal(){
   $('theme_color_hex').value=PDF_THEME.color;
   $('theme_color_preview').style.background=PDF_THEME.color;
   $('theme_org').value=PDF_THEME.org||'';
+  $('theme_siret').value=PDF_THEME.siret||'';
   $('theme_footer').value=PDF_THEME.footer||'';
   $('theme_logo_url').value=(PDF_THEME.logo&&!PDF_THEME.logo.startsWith('data:'))?PDF_THEME.logo:'';
   if(PDF_THEME.logo){
@@ -6587,11 +6598,26 @@ $('theme_logo_file').addEventListener('change',function(){
 });
 $('J_theme_save').addEventListener('click',function(){
   PDF_THEME.org=$('theme_org').value.trim()||'INFREP';
+  var siretVal=$('theme_siret').value.replace(/\s/g,'');
+  if(siretVal&&!/^\d{14}$/.test(siretVal)){
+    toast('SIRET invalide : 14 chiffres requis',true);return;
+  }
+  PDF_THEME.siret=siretVal;
   PDF_THEME.footer=$('theme_footer').value.trim();
   saveTheme();
   $('J_theme_modal').classList.remove('open');
 });
 $('J_theme_reset').addEventListener('click',function(){resetTheme();});
+$('J_theme_apply_existing').addEventListener('click',function(){
+  var siretVal=$('theme_siret').value.replace(/\s/g,'');
+  if(!siretVal||!/^\d{14}$/.test(siretVal)){
+    toast('Renseignez d\'abord un SIRET valide (14 chiffres)',true);return;
+  }
+  var n=0;
+  cat.forEach(function(f){ if(!f.siret){ f.siret=siretVal; n++; } });
+  if(n){ persist(); if(curId) openEditor(curId); }
+  toast(n?(n+' fiche(s) mise(s) à jour avec le SIRET'):'Aucune fiche sans SIRET à compléter');
+});
 
 
 var xlsBtn=$('J_expXls');if(xlsBtn)xlsBtn.addEventListener('click',doExportExcel);
