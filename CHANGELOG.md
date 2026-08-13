@@ -5,6 +5,17 @@ Format : `[version] — date — description`
 
 ---
 
+## [2.7.3] — 2026-08-13
+- 🐛 **Correctif confirmé par import réel sur EDOF (erreur 30013)** — `code-nature-voie` était figé sur "RUE" et `libelle-voie` recopiait l'adresse complète, sans jamais renseigner `numero-voie` : la "ligne 4" reconstituée par EDOF était donc toujours incomplète. Ajout d'un analyseur d'adresse (numéro + type de voie + libellé), avec repli automatique sur `ligne5-adresse` quand l'adresse ne peut pas être décomposée avec confiance. Appliqué au lieu de formation et à l'adresse d'inscription.
+- ✅ **Conformité CDC EDOF v15 (09/07/2026), validée avec le XSD officiel** :
+  - `extras info="blocs-competences"` corrigé (devait avoir un "s", cf. changelog EDOF v15)
+  - `<nom>`/`<prenom>` désormais toujours écrits dans les coordonnées de contact d'inscription (obligatoires selon le XSD, étaient conditionnels)
+  - Second correctif résiduel de `objectif-general-formation` invalide pour le permis (une fonction de migration distincte avait été oubliée lors du correctif précédent)
+- ✨ Contrôles de validation complétés après comparaison exhaustive au CDC EDOF : longueur max sur `info-admission`/`detail-frais-anpec`, format email et téléphone (action et session), cohérence du SIRET unique dans un catalogue exporté, doublon de `categorisation-offre` entre fiches VAE (erreur EDOF 30077)
+- ✨ Prérequis obligatoire à préciser dès que "Conditions spécifiques et prérequis" est sur Oui, avec affichage immédiat du champ texte (bug d'affichage corrigé — apostrophe surnumérotée dans le JS empêchait l'exécution du `onchange`)
+- ✨ SIRET dans Personnalisation PDF, repris automatiquement dans les nouvelles fiches
+- ✨ Champs "Frais additionnels non pris en charge" (montant + détails)
+
 ## [2.7.2] — 2026-08-13
 - ✨ **Frais additionnels non pris en charge** — nouveaux champs « Montant » et « Détails » dans la fiche action (`frais-anpec` / `detail-frais-anpec`), correspondant à ce qu'affiche réellement EDOF dans l'espace organisme (section Montants du catalogue). Utile notamment pour préciser des frais de jury non inclus dans le prix, quand leur montant n'est pas connu à l'avance.
 - ✨ Import/export XML + affichage dans le PDF récapitulatif de l'action
