@@ -4224,6 +4224,21 @@ function renderEditor(f){
   bindSF('nsf',NSF,3,f.nsf||[]);
   bindSF('rome',ROME,5,f.rome||[]);
 
+  // Resynchronise l'affichage des champs conditionnels avec la vraie valeur des <select>.
+  // Necessaire car apres un rechargement de page, Chrome/Firefox restaurent parfois visuellement
+  // le dernier choix de l'utilisateur dans un <select> sans redeclencher l'evenement 'change' —
+  // ce qui laisse le panneau conditionnel (ex: details des prerequis) cache alors que "Oui" est affiche.
+  document.querySelectorAll('select[id^="sel_aprereq_"]').forEach(function(sel){
+    var ai=sel.id.replace('sel_aprereq_','');
+    var r=document.getElementById('prereq_row_'+ai);
+    if(r) r.style.display=(sel.value==='1'?'':'none');
+  });
+  document.querySelectorAll('select[id^="sel_certif_"]').forEach(function(sel){
+    var ai=sel.id.replace('sel_certif_','');
+    var r=document.getElementById('jury_row_'+ai);
+    if(r) r.style.display=sel.value==='1'?'':'none';
+  });
+
   // Suggestion type de parcours selon modalité d'enseignement (1ère action)
   (function(){
     var parcoursEl=$('E_parcours');
@@ -6652,6 +6667,22 @@ $('J_theme_apply_existing').addEventListener('click',function(){
 var xlsBtn=$('J_expXls');if(xlsBtn)xlsBtn.addEventListener('click',doExportExcel);
 $('file-in').addEventListener('change',doImport);
 showWelcome();drawList();
+
+// Resynchronise les panneaux conditionnels si la page est restaurée depuis le cache
+// navigateur (retour/avance) — cas où les <select> retrouvent leur valeur sans "change".
+window.addEventListener('pageshow',function(ev){
+  if(!ev.persisted) return;
+  document.querySelectorAll('select[id^="sel_aprereq_"]').forEach(function(sel){
+    var ai=sel.id.replace('sel_aprereq_','');
+    var r=document.getElementById('prereq_row_'+ai);
+    if(r) r.style.display=(sel.value==='1'?'':'none');
+  });
+  document.querySelectorAll('select[id^="sel_certif_"]').forEach(function(sel){
+    var ai=sel.id.replace('sel_certif_','');
+    var r=document.getElementById('jury_row_'+ai);
+    if(r) r.style.display=sel.value==='1'?'':'none';
+  });
+});
 
 function onTypeOffreChange(val){
   var L=window._lheo;if(!L)return;
