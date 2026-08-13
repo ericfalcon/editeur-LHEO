@@ -3520,8 +3520,7 @@ var VAE_TEXTE_BASE = {
   objectif: "Accompagnement individualisé pour la préparation à la validation de l'expérience : Rédaction du dossier de demande avec la description des différentes activités du candidats - préparation à l'entretien avec le jury.\n- Acquérir la méthodologie et la technique pour l'élaboration du dossier VAE\n- Savoir décrire et expliciter son expérience professionnelle\n- Rédiger son dossier VAE\n- Se préparer à l'entretien oral avec le jury de validation",
   contenu: "- Analyse de la demande et du parcours professionnel\n- Présentation de l'accompagnement VAE proposé\n- Réalisation du rétro planning et des échéances à respecter\n- Confirmation du choix de la certification\n- Aide méthodologique :\n  - À la description des activités et de l'expérience du candidat correspondant aux exigences du référentiel de la certification visée\n  - À la formalisation de son dossier de validation\n  - À la préparation de l'entretien avec le jury\nPhase de constitution du dossier de faisabilité : 2h maximum\n- Relire le parcours professionnel du candidat pour repérer les éléments essentiels de la certification visée\n- Faciliter l'identification des activités les plus en adéquation avec le référentiel métier\n- Guider le candidat dans les démarches à entreprendre, les travaux à conduire.\nPhase de constitution du dossier de validation : 25 heures maximum\n- Contribuer à repérer et à formaliser les expériences les plus probantes de l'activité en cohérence avec le référentiel\n- Lever les difficultés rédactionnelles\n- Apporter une aide méthodologique pour impulser le travail d'intersession\n- Sensibiliser et préparer le candidat à l'évaluation de ses compétences par le jury VAE : 5h00 maximum\n- Entretien post-jury (en cas d'échec) : maximum 2h",
   resultatsBase: "Passage devant un jury pour les certifications :",
-  infoAdmission: "Entretien en visio-conférence suite à demande sur France VAE",
-  prereq: "Accès à un ordinateur. Possibilité d'utiliser un outil de visio-conférence"
+  infoAdmission: "Entretien en visio-conférence suite à demande sur France VAE"
 };
 
 var PARCOURS = [
@@ -4979,10 +4978,17 @@ function buildAction(a,i,f){
     aif(i,'num','text',a.num,'N° interne OF action <span class="req">*</span>','30','')+
     afsel(i,'niveauEntreeObl','Y a-t-il un niveau requis à l\'entrée ?',
       so('0','Non',a.niveauEntreeObl||'0')+so('1','Oui',a.niveauEntreeObl))+
-    '<div class="fitem"><label>Conditions spécifiques et prérequis ?</label>'+
+    (f.typeOffre==='vae'&&f.siret==='32441928201365'?
+      '<input type="hidden" id="sel_aprereq_'+i+'" data-ai="'+i+'" data-f="aPrereq" value="1">'+
+      '<div class="fitem"><label>Conditions spécifiques et prérequis ?</label>'+
+      '<div style="padding:6px 10px;background:var(--g1);border:1px solid var(--g2);border-radius:5px;font-size:12px;color:var(--g7)">'+
+      '<span style="color:var(--ok);font-weight:600">✓ Oui</span> — obligatoire pour l\'accompagnement VAE (accès ordinateur/visio)'+
+      '</div></div>'
+    :
+      '<div class="fitem"><label>Conditions spécifiques et prérequis ?</label>'+
       '<select data-ai="'+i+'" data-f="aPrereq" id="sel_aprereq_'+i+'" onchange="(function(sel){var ai=sel.dataset.ai;var r=document.getElementById(\'prereq_row_\'+ai);if(r)r.style.display=sel.value===\'1\'?\'\'\':\'none\'})(this)">'+
       so('0','Non',a.aPrereq||'0')+so('1','Oui',a.aPrereq)+
-      '</select></div>'+
+      '</select></div>')+
     afsel(i,'modEns','Modalité enseignement <span class="req">*</span>',
       so('0','Présentiel',a.modEns)+so('1','Mixte/hybride',a.modEns)+so('2','À distance',a.modEns))+
     '<div class="fitem"><label>Durée totale (heures) <span class="req">*</span></label>'+
@@ -5075,7 +5081,7 @@ function buildAction(a,i,f){
     '<option value="">-- Non renseigné</option>'+
     GFE.map(function(g){return '<option value="'+g[0]+'"'+(a.gfe===g[0]?' selected':'')+'>'+g[1]+'</option>';}).join('')+
     '</select></div>'+
-    '<div class="fitem full" id="prereq_row_'+i+'" style="'+(a.aPrereq==='1'?'':'display:none')+'"><label>Détails des conditions spécifiques et prérequis <span class="req">*</span></label>'+
+    '<div class="fitem full" id="prereq_row_'+i+'" style="'+((a.aPrereq==='1'||(f.typeOffre==='vae'&&f.siret==='32441928201365'))?'':'display:none')+'"><label>Détails des conditions spécifiques et prérequis <span class="req">*</span></label>'+
       '<textarea data-ai="'+i+'" data-f="prereq" maxlength="3000">'+esc(a.prereq)+'</textarea></div>'+
     '<div class="fitem full"><label>Modalités pédagogiques <span class="bdg b-o">200 car.</span></label>'+
     '<textarea data-ai="'+i+'" data-f="modPed" maxlength="200">'+esc(a.modPed)+'</textarea></div>'+
@@ -6681,7 +6687,6 @@ function onTypeOffreChange(val){
     (ff.actions||[]).forEach(function(a){
       a.codesAdm=['92005'];
       if(estInfrep&&(!a.infoAdmission||!a.infoAdmission.trim())) a.infoAdmission=VAE_TEXTE_BASE.infoAdmission;
-      if(estInfrep&&(!a.prereq||!a.prereq.trim())){a.prereq=VAE_TEXTE_BASE.prereq;a.aPrereq='1';}
       if(!a.codesRythme||!a.codesRythme.length) a.codesRythme=['1','3','6'];
       if(!a.entSor) a.entSor='1';
     });
