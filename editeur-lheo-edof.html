@@ -3515,6 +3515,14 @@ var NIVEAUX = [
 
 // Parcours-de-formation (section Identification - nomenclature LHEO)
 // Type de parcours de formation (nomenclature officielle EDOF V14 §3.4.1 - table PF7N)
+// Texte de base standard applique a toutes les nouvelles offres VAE (INFREP)
+var VAE_TEXTE_BASE = {
+  objectif: "Accompagnement individualisé pour la préparation à la validation de l'expérience : Rédaction du dossier de demande avec la description des différentes activités du candidats - préparation à l'entretien avec le jury.\n- Acquérir la méthodologie et la technique pour l'élaboration du dossier VAE\n- Savoir décrire et expliciter son expérience professionnelle\n- Rédiger son dossier VAE\n- Se préparer à l'entretien oral avec le jury de validation",
+  contenu: "- Analyse de la demande et du parcours professionnel\n- Présentation de l'accompagnement VAE proposé\n- Réalisation du rétro planning et des échéances à respecter\n- Confirmation du choix de la certification\n- Aide méthodologique :\n  - À la description des activités et de l'expérience du candidat correspondant aux exigences du référentiel de la certification visée\n  - À la formalisation de son dossier de validation\n  - À la préparation de l'entretien avec le jury\nPhase de constitution du dossier de faisabilité : 2h maximum\n- Relire le parcours professionnel du candidat pour repérer les éléments essentiels de la certification visée\n- Faciliter l'identification des activités les plus en adéquation avec le référentiel métier\n- Guider le candidat dans les démarches à entreprendre, les travaux à conduire.\nPhase de constitution du dossier de validation : 25 heures maximum\n- Contribuer à repérer et à formaliser les expériences les plus probantes de l'activité en cohérence avec le référentiel\n- Lever les difficultés rédactionnelles\n- Apporter une aide méthodologique pour impulser le travail d'intersession\n- Sensibiliser et préparer le candidat à l'évaluation de ses compétences par le jury VAE : 5h00 maximum\n- Entretien post-jury (en cas d'échec) : maximum 2h",
+  resultatsBase: "Passage devant un jury pour les certifications :",
+  infoAdmission: "Entretien en visio-conférence suite à demande sur France VAE"
+};
+
 var PARCOURS = [
   ['1','Collectif — sans personnalisation'],
   ['2','Individualisé — selon les objectifs individuels'],
@@ -5046,6 +5054,8 @@ function buildAction(a,i,f){
         code+' – '+lbl+'</label>';
     }).join('')+
     '</div></div>'+
+    '<div class="fitem full"><label>Informations sur l\'admission</label>'+
+    '<textarea data-ai="'+i+'" data-f="infoAdmission" rows="2" placeholder="Ex : Entretien en visio-conférence suite à demande sur France VAE">'+esc(a.infoAdmission||'')+'</textarea></div>'+
     '<div class="fitem full"><label>Rythme de formation <span class="req">*</span> <span class="bdg b-o">plusieurs possibles</span></label>'+
     '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px" id="rythme_'+i+'">'+
     ['1:Journalier','2:Hebdomadaire','3:En semaine','4:Le week-end','5:Temps plein','6:Temps partiel','7:Plusieurs rythmes'].map(function(item){
@@ -5614,7 +5624,7 @@ function emptyAction(){return {
   prix:'',prixHoraire:'',lang:'FR',
   tva:'0.0',certifInclus:'0',gfe:'',tel:'',email:'',
   codesAdm:['99999'],codesRythme:['5'],fraisJury:'',fraisAnpec:'',detailFraisAnpec:'',
-  entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'',infoPerim:'',infoRecrutement:'',urlAct:'',
+  entSor:'0',prereq:'',modPed:'',handicap:'',modHandicap:'',priseCharge:'',perim:'',infoPerim:'',infoRecrutement:'',infoAdmission:'',urlAct:'',
   restauration:'',hebergement:'',transport:'',autresServices:'',
   adr:'',cp:'',ville:'',dep:'',reg:'84',pays:'FR',lat:'',lon:'',sessions:[]};}
 function emptySess(){return {num:'',debut:'',fin:'',etatRecrutement:'1',garantie:'0',
@@ -5751,10 +5761,11 @@ function toXML(formations){
       o+='              <courriel>'+escX(a.email||'contact@organisme.fr')+'</courriel>\n';
       o+='            </coordonnees>\n          </extra>\n';
       // Ordre officiel EDOF V14 (cf. exemple_de_catalogue_a_importer_v6r0.xml) :
-      // contact-information, modalites-handicap, codes-modalites-admission, code-gfe,
-      // duree-apprentissage, codes-rythme-formation, frais-certif-inclus-frais-anpec,
-      // autres-services, frais-pedagogiques, existence-prerequis (DOIT etre en dernier)
+      // contact-information, modalites-handicap, info-admission, codes-modalites-admission, code-gfe,
+      // duree-apprentissage, codes-rythme-formation, frais-anpec, frais-certif-inclus-frais-anpec,
+      // detail-frais-anpec, autres-services, frais-pedagogiques, existence-prerequis (DOIT etre en dernier)
       if(a.modHandicap)o+='          <extra info="modalites-handicap">'+escX(a.modHandicap)+'</extra>\n';
+      if(a.infoAdmission)o+='          <extra info="info-admission">'+escX(a.infoAdmission)+'</extra>\n';
       // codes-modalites-admission (dynamiques)
       o+='          <extras info="codes-modalites-admission">\n';
       var adm=(a.codesAdm&&a.codesAdm.length)?a.codesAdm:['92002'];
@@ -5939,6 +5950,8 @@ function doImport(e){
             a.certifInclus=tx(extAct,'extra[info="frais-certif-inclus-frais-anpec"]')||'0';
             a.fraisAnpec=tx(extAct,'extra[info="frais-anpec"]')||'';
             a.detailFraisAnpec=tx(extAct,'extra[info="detail-frais-anpec"]')||'';
+            a.modHandicap=tx(extAct,'extra[info="modalites-handicap"]')||'';
+            a.infoAdmission=tx(extAct,'extra[info="info-admission"]')||'';
             var ci=extAct.querySelector('extra[info="contact-information"] coordonnees');
             if(ci){a.tel=tx(ci,'numtel');a.email=tx(ci,'courriel');}
           }
@@ -6430,6 +6443,7 @@ function exportPDF(ficheId){
         a.aPrereq==='1'?row('Détails des conditions spécifiques et prérequis',a.prereq):'',
         row('Modalités pédagogiques',a.modPed),
         row('Modalités pédagogiques adaptées aux personnes en situation de handicap',a.modHandicap),
+        a.infoAdmission?row('Informations sur l\'admission',a.infoAdmission):'',
         row('Accessibilité handicap',a.handicap),
         row('Informations sur le recrutement',a.infoRecrutement),
         row('Périmètre géographique de recrutement',PERIM_L[a.perim]||a.perim),
@@ -6653,8 +6667,17 @@ function onTypeOffreChange(val){
   else if(val==='vae'){
     ff.objGen='6';ff.certif='O';ff.cpf='CPF200';ff.rncp='';ff.rs='';
     ff.parcours='2'; // Individualisé
-    // Pré-sélectionner 92001 sur toutes les actions existantes
-    (ff.actions||[]).forEach(function(a){a.codesAdm=['99999'];});
+    // Texte de base standard INFREP pour toutes les offres VAE (ne remplace pas un texte déjà personnalisé)
+    if(!ff.objectif||!ff.objectif.trim()) ff.objectif=VAE_TEXTE_BASE.objectif;
+    if(!ff.contenu||!ff.contenu.trim()) ff.contenu=VAE_TEXTE_BASE.contenu;
+    if(!ff.resultats||!ff.resultats.trim()) ff.resultats=VAE_TEXTE_BASE.resultatsBase;
+    // Pré-sélectionner "Admission après entretien" sur toutes les actions existantes
+    (ff.actions||[]).forEach(function(a){
+      a.codesAdm=['92005'];
+      if(!a.infoAdmission||!a.infoAdmission.trim()) a.infoAdmission=VAE_TEXTE_BASE.infoAdmission;
+      if(!a.codesRythme||!a.codesRythme.length) a.codesRythme=['1','3','6'];
+      if(!a.entSor) a.entSor='1';
+    });
   }
   else if(val==='permis'){ff.objGen='8';ff.certif='N';if(!ff.parcours||!/^[1-4]$/.test(ff.parcours))ff.parcours='4';if(!ff.cpf||ff.cpf==='CPF200'||ff.cpf==='CPF202')ff.cpf='CPF206';}
   else{
