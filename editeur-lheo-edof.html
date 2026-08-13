@@ -5868,7 +5868,7 @@ function doImport(e){
         var f=emptyFiche();
         f.numIntOf=fEl.getAttribute('numero')||'';
         f.intitule=tx(fEl,'intitule-formation');
-        var sEl=fEl.querySelector('siret');f.siret=sEl?sEl.textContent.trim():'';
+        var sEl=fEl.querySelector('SIRET');f.siret=sEl?sEl.textContent.trim():'';
         f.objGen=tx(fEl,'objectif-general-formation')||'7';
         f.certif=tx(fEl,'certifiante')||'N';
         f.parcours=tx(fEl,'parcours-de-formation')||'2';
@@ -5902,13 +5902,14 @@ function doImport(e){
             if(m) f.vaeRncpList.push({code:m[1].trim(),titre:(m[2]||'').trim()});
           });
         }f.rythme=tx(fEl,'rythme-formation');
-        f.raisonSociale=tx(fEl,'raison-sociale')||tx(fEl,'raison-sociale-formateur');
+        var lieuCoord=fEl.querySelector('lieu-de-formation coordonnees');
+        f.raisonSociale=lieuCoord?tx(lieuCoord,'nom'):'';
         f.numActivite=tx(fEl,'numero-activite');
         f.formacode=Array.from(fEl.querySelectorAll('code-FORMACODE')).map(function(c){return c.textContent.trim();});
         f.nsf=Array.from(fEl.querySelectorAll('code-NSF')).map(function(c){return c.textContent.trim();});
         f.rome=Array.from(fEl.querySelectorAll('code-ROME')).map(function(c){return c.textContent.trim();});
         fEl.querySelectorAll('action').forEach(function(aEl){
-          var lieu=aEl.querySelector('lieu-formation');var a=emptyAction();
+          var lieu=aEl.querySelector('lieu-de-formation');var a=emptyAction();
           a.num=aEl.getAttribute('numero')||'';
           a.modEns=tx(aEl,'modalites-enseignement')||'0';
           a.entSor=tx(aEl,'modalites-entrees-sorties')||'0';
