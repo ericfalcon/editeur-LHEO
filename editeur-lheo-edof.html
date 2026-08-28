@@ -4435,7 +4435,7 @@ function renderEditor(f){
   $('E_prev').addEventListener('click',function(){doPreview(f.id);});
   $('E_prev2').addEventListener('click',function(){doPreview(f.id);});
   $('E_pdf').addEventListener('click',function(){exportPDF(f.id);});
-  $('E_valid').addEventListener('click',function(){var errs=validateFiche(f);showValidation(errs);if(!errs.length)toast('Fiche valide ✓');else if(errs.filter(function(e){return !e.warn;}).length===0)toast(errs.length+' avertissement(s) — export possible');else toast(errs.filter(function(e){return !e.warn;}).length+' erreur(s) bloquante(s)',true);});
+  $('E_valid').addEventListener('click',function(){collect(f.id);var errs=validateFiche(f);showValidation(errs);if(!errs.length)toast('Fiche valide ✓');else if(errs.filter(function(e){return !e.warn;}).length===0)toast(errs.length+' avertissement(s) — export possible');else toast(errs.filter(function(e){return !e.warn;}).length+' erreur(s) bloquante(s)',true);});
   $('E_exp').addEventListener('click',function(){doExport1(f.id);});
   // E_addAct géré par délégation permanente sur J_main
   // Binder la zone d'import habilitations
