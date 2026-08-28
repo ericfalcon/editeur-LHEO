@@ -4249,10 +4249,10 @@ function renderEditor(f){
     document.querySelectorAll('[data-f="modEns"]').forEach(function(sel){
       sel.addEventListener('change',function(){
         if(!parcoursEl||!hint) return;
-        var suggestions={'0':'Collectif (présentiel sans personnalisation)',
-                         '1':'Individualisé (à distance)',
-                         '2':'Mixte (présentiel + distanciel)'};
-        var parcoursCodes={'0':'3','1':'1','2':'4'};
+        var suggestions={'0':'Collectif (présentiel, formation en groupe)',
+                         '1':'Mixte (présentiel + distanciel)',
+                         '2':'Individualisé (parcours à distance personnalisé)'};
+        var parcoursCodes={'0':'1','1':'4','2':'2'};
         var mod=sel.value;
         if(suggestions[mod]){
           hint.textContent='Suggestion : '+suggestions[mod];
