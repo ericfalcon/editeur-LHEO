@@ -61,6 +61,7 @@ footer{text-align:center;color:var(--g5);font-size:12px;padding:24px;border-top:
     <a href="#creer">Créer une fiche</a>
     <a href="#types">Types d'offre</a>
     <a href="#identification">Identification</a>
+    <a href="#certification">Certification et codes</a>
     <a href="#actions">Actions et sessions</a>
     <a href="#vae">Cas particulier : la VAE</a>
     <a href="#perso">Personnaliser le PDF</a>
@@ -105,11 +106,29 @@ footer{text-align:center;color:var(--g5);font-size:12px;padding:24px;border-top:
       <ul>
         <li><b>Intitulé</b> — le titre affiché aux candidats sur Mon Compte Formation (255 caractères max)</li>
         <li><b>N° interne OF</b> — votre propre référence, libre, doit rester unique dans votre catalogue</li>
-        <li><b>SIRET organisme</b> — pré-rempli automatiquement si vous l'avez renseigné dans <a href="#perso">Personnaliser le PDF</a></li>
+        <li><b>SIRET organisme</b> — pré-rempli automatiquement si vous l'avez renseigné dans <a href="#perso">Personnaliser le PDF</a>. Dès que les 14 chiffres saisis forment un SIRET valide, l'éditeur <b>recherche automatiquement l'entreprise</b> (aucun bouton à cliquer) : la raison sociale et l'adresse se complètent toutes seules si elles sont encore vides, et un encart apparaît sous le champ indiquant le nom de l'établissement, son NDA (numéro de déclaration d'activité), et s'il est <span style="color:#2e7d32">✓ Qualiopi</span> ou non. Un SIRET invalide (mauvaise longueur ou clé de contrôle incorrecte) affiche un message d'erreur à la place.</li>
         <li><b>Type de parcours</b> — Collectif / Individualisé / Modulaire / Mixte (référentiel officiel EDOF, indépendant de la modalité présentiel/distance)</li>
         <li><b>Objectif pédagogique, Contenu, Résultats attendus</b> — les trois textes descriptifs affichés aux candidats (3000 caractères max chacun)</li>
       </ul>
       <div class="tip"><b>Astuce</b> — pour une fiche VAE au SIRET de l'INFREP, ces trois champs peuvent se pré-remplir automatiquement avec un texte standard (modifiable ensuite).</div>
+    </section>
+
+    <section id="certification">
+      <h2><span class="num">3<span style="font-size:9px">bis</span></span>Certification et codes</h2>
+      <p>Pour une formation <span class="badge badge-certif">Certification</span>, vous saisissez un code <b>RNCP</b> (ex : <code>RNCP41426</code> ou juste <code>41426</code>) ou <b>RS</b> (ex : <code>RS5267</code>). Une fois le code saisi et la fiche enregistrée, deux boutons permettent de récupérer automatiquement les informations officielles depuis France Compétences :</p>
+      <table>
+        <tr><th>Bouton</th><th>Ce qu'il importe</th></tr>
+        <tr>
+          <td>⬇ <b>Import RNCP</b></td>
+          <td>Intitulé (si le champ est encore vide), niveau de sortie, jusqu'à 5 codes FORMACODE, jusqu'à 3 codes NSF, jusqu'à 5 codes ROME, <b>et la liste complète des blocs de compétences</b> de la certification</td>
+        </tr>
+        <tr>
+          <td>⬇ <b>Import RS</b></td>
+          <td>Mêmes champs qu'Import RNCP (intitulé, niveau, FORMACODE, NSF, ROME), à l'exception des blocs de compétences — non applicables aux certifications du Répertoire Spécifique</td>
+        </tr>
+      </table>
+      <div class="tip"><b>À savoir</b> — un message récapitule les champs effectivement mis à jour après chaque import. Les champs FORMACODE, NSF, ROME et blocs de compétences sont <b>toujours écrasés</b> par l'import (pour rester synchronisés avec le référentiel officiel) ; seul l'intitulé est laissé intact s'il contient déjà du texte.</div>
+      <p>Ces deux boutons interrogent France Compétences en direct (voir <a href="#apis">Services en ligne utilisés</a>) — une connexion internet est nécessaire.</p>
     </section>
 
     <section id="actions">
