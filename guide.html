@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mode d'emploi — Éditeur LHEO / EDOF</title>
+<style>
+:root{--pri:#1a56db;--prl:#e8f0fe;--prd:#1648c0;--ok:#0e7a4e;--okl:#e6f4ee;--err:#b91c1c;--errl:#fdecec;--warn:#92400e;--warnl:#fef3e2;
+  --g0:#f9fafb;--g1:#f3f4f6;--g2:#e5e7eb;--g3:#d1d5db;--g5:#6b7280;--g7:#374151;--g9:#111827;--r:8px}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:var(--g9);background:var(--g0);line-height:1.6}
+.topbar{background:#fff;border-bottom:1px solid var(--g2);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar h1{font-size:18px;margin:0;color:var(--pri)}
+.topbar p{margin:2px 0 0;font-size:12px;color:var(--g5)}
+.topbar a.back{font-size:13px;color:var(--pri);text-decoration:none;font-weight:600;white-space:nowrap;padding:8px 14px;border:1px solid var(--pri);border-radius:var(--r)}
+.topbar a.back:hover{background:var(--prl)}
+.wrap{max-width:920px;margin:0 auto;padding:32px 24px 80px;display:grid;grid-template-columns:200px 1fr;gap:36px}
+@media(max-width:800px){.wrap{grid-template-columns:1fr}.toc{position:static;order:2}}
+.toc{position:sticky;top:80px;align-self:start;font-size:13px}
+.toc h2{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--g5);margin:0 0 10px}
+.toc a{display:block;color:var(--g7);text-decoration:none;padding:5px 0;border-left:2px solid transparent;padding-left:10px}
+.toc a:hover{color:var(--pri);border-left-color:var(--g3)}
+main section{margin-bottom:44px;scroll-margin-top:80px}
+main h2{font-size:22px;margin:0 0 6px;color:var(--g9);display:flex;align-items:center;gap:10px}
+main h2 .num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--prl);color:var(--pri);border-radius:50%;font-size:13px;font-weight:700;flex-shrink:0}
+main h3{font-size:15px;margin:22px 0 8px;color:var(--g9)}
+main p{margin:0 0 12px;color:var(--g7);font-size:14.5px}
+main ul,main ol{margin:0 0 14px;padding-left:22px;color:var(--g7);font-size:14.5px}
+main li{margin-bottom:5px}
+.lead{font-size:15.5px;color:var(--g7);margin-bottom:20px}
+.card{background:#fff;border:1px solid var(--g2);border-radius:var(--r);padding:16px 18px;margin:14px 0}
+.tip{background:var(--prl);border-left:3px solid var(--pri);padding:12px 16px;border-radius:0 var(--r) var(--r) 0;margin:14px 0;font-size:14px}
+.tip b{color:var(--prd)}
+.warn{background:var(--warnl);border-left:3px solid var(--warn);padding:12px 16px;border-radius:0 var(--r) var(--r) 0;margin:14px 0;font-size:14px;color:#78350f}
+.warn b{color:var(--warn)}
+.ok{background:var(--okl);border-left:3px solid var(--ok);padding:12px 16px;border-radius:0 var(--r) var(--r) 0;margin:14px 0;font-size:14px;color:#065f46}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--g2)}
+th{color:var(--g5);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+code{background:var(--g1);padding:1px 6px;border-radius:4px;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--prd)}
+.kbd{display:inline-block;background:#fff;border:1px solid var(--g3);border-bottom-width:2px;border-radius:5px;padding:2px 7px;font-size:12px;font-family:ui-monospace,monospace;color:var(--g7)}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+.badge-vae{background:#ede9fe;color:#5b21b6}
+.badge-certif{background:var(--prl);color:var(--prd)}
+.badge-bilan{background:#fef3c7;color:#92400e}
+.badge-permis{background:#dcfce7;color:#166534}
+footer{text-align:center;color:var(--g5);font-size:12px;padding:24px;border-top:1px solid var(--g2)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div><h1>📋 Mode d'emploi</h1><p>Éditeur LHEO / EDOF — création de fiches formation pour Mon Compte Formation</p></div>
+  <a class="back" href="editeur-lheo-edof.html">← Retour à l'éditeur</a>
+</div>
+
+<div class="wrap">
+  <nav class="toc">
+    <h2>Sommaire</h2>
+    <a href="#intro">Présentation</a>
+    <a href="#creer">Créer une fiche</a>
+    <a href="#types">Types d'offre</a>
+    <a href="#identification">Identification</a>
+    <a href="#actions">Actions et sessions</a>
+    <a href="#vae">Cas particulier : la VAE</a>
+    <a href="#perso">Personnaliser le PDF</a>
+    <a href="#valider">Vérifier avant export</a>
+    <a href="#exporter">Exporter</a>
+    <a href="#importer">Importer un XML</a>
+    <a href="#sauvegarder">Sauvegarder / restaurer</a>
+    <a href="#erreurs">Erreurs fréquentes</a>
+  </nav>
+
+  <main>
+
+    <section id="intro">
+      <h2><span class="num">·</span>Présentation</h2>
+      <p class="lead">Cet outil permet de créer et gérer vos fiches de formation au format XML LHEO 2.4, compatible avec la plateforme EDOF (espace organisme de formation de Mon Compte Formation). Il fonctionne entièrement dans votre navigateur, sans connexion à un serveur — vos données restent sur votre poste.</p>
+      <div class="tip"><b>À savoir</b> — l'éditeur enregistre automatiquement vos fiches dans la mémoire de votre navigateur (le <i>localStorage</i>). Si vous changez d'ordinateur ou de navigateur, pensez à utiliser <b>Sauvegarder fiches</b> / <b>Restaurer fiches</b> (voir plus bas) pour ne rien perdre.</div>
+    </section>
+
+    <section id="creer">
+      <h2><span class="num">1</span>Créer une fiche</h2>
+      <p>Cliquez sur <b>+ Nouvelle fiche</b> en haut de la colonne de gauche. Une fiche vide s'ouvre, avec un formulaire divisé en plusieurs blocs dépliables : <i>Identification</i>, <i>Certification et codes</i>, <i>Actions de formation</i>.</p>
+      <p>Chaque fiche que vous créez apparaît dans la liste à gauche, avec son intitulé et le nombre d'actions qu'elle contient.</p>
+    </section>
+
+    <section id="types">
+      <h2><span class="num">2</span>Types d'offre</h2>
+      <p>Le premier champ à renseigner est le <b>Type d'offre</b>. C'est lui qui détermine automatiquement plusieurs réglages (dispositif CPF, objectif général, champs obligatoires) :</p>
+      <table>
+        <tr><th>Type</th><th>Dispositif</th><th>Particularité</th></tr>
+        <tr><td><span class="badge badge-certif">Certification</span></td><td>Code RNCP ou RS</td><td>Nécessite un code de certification France Compétences</td></tr>
+        <tr><td><span class="badge badge-vae">VAE</span></td><td>CPF200 (fixe)</td><td>Une seule fiche par domaine (Formacode) — voir la section dédiée plus bas</td></tr>
+        <tr><td><span class="badge badge-bilan">Bilan de compétences</span></td><td>CPF202 (fixe)</td><td>Formacode/NSF figés automatiquement (22252 / 315)</td></tr>
+        <tr><td><span class="badge badge-permis">Permis de conduire</span></td><td>CPF20x selon catégorie</td><td>13 catégories disponibles (A1 à DE) ; le numéro d'agrément préfectoral doit figurer dans l'objectif pédagogique</td></tr>
+      </table>
+      <p>Changer le type d'offre en cours de saisie réajuste ces réglages automatiquement — vérifiez toujours les champs après un changement de type.</p>
+    </section>
+
+    <section id="identification">
+      <h2><span class="num">3</span>Identification</h2>
+      <p>Les champs de cette section décrivent la formation dans son ensemble (pas encore une session ou un lieu précis) :</p>
+      <ul>
+        <li><b>Intitulé</b> — le titre affiché aux candidats sur Mon Compte Formation (255 caractères max)</li>
+        <li><b>N° interne OF</b> — votre propre référence, libre, doit rester unique dans votre catalogue</li>
+        <li><b>SIRET organisme</b> — pré-rempli automatiquement si vous l'avez renseigné dans <a href="#perso">Personnaliser le PDF</a></li>
+        <li><b>Type de parcours</b> — Collectif / Individualisé / Modulaire / Mixte (référentiel officiel EDOF, indépendant de la modalité présentiel/distance)</li>
+        <li><b>Objectif pédagogique, Contenu, Résultats attendus</b> — les trois textes descriptifs affichés aux candidats (3000 caractères max chacun)</li>
+      </ul>
+      <div class="tip"><b>Astuce</b> — pour une fiche VAE au SIRET de l'INFREP, ces trois champs peuvent se pré-remplir automatiquement avec un texte standard (modifiable ensuite).</div>
+    </section>
+
+    <section id="actions">
+      <h2><span class="num">4</span>Actions et sessions</h2>
+      <p>Une <b>action</b> correspond à une modalité de mise en œuvre concrète de la formation (par exemple : à distance temps plein, ou en présentiel). Une même formation peut avoir <b>plusieurs actions</b> — utile si vous proposez la même certification sous plusieurs formats.</p>
+      <p>Chaque action contient à son tour une ou plusieurs <b>sessions</b> (dates, état de recrutement, contact d'inscription).</p>
+      <h3>Champs clés d'une action</h3>
+      <ul>
+        <li><b>Modalité d'enseignement</b> — Présentiel / Mixte / À distance (référentiel officiel, 3 valeurs uniquement)</li>
+        <li><b>Conditions spécifiques et prérequis</b> — champ libre facultatif, mais si vous répondez "Oui", le détail devient obligatoire</li>
+        <li><b>Frais pédagogiques</b> — taux de TVA, montant HT et TTC calculés automatiquement, prix horaire</li>
+        <li><b>Modalités d'admission</b> et <b>Rythme de formation</b> — cases à cocher, plusieurs choix possibles</li>
+        <li><b>Coordonnées de contact</b> et <b>Lieu de formation</b> — affichés aux candidats ; la géolocalisation se calcule automatiquement depuis l'adresse</li>
+      </ul>
+      <div class="warn"><b>Attention aux doublons d'actions</b> — EDOF rejette une action si une autre a exactement les mêmes modalités d'enseignement, lieu, langue et durée (à moins de 10h d'écart). L'éditeur vous avertit dans ce cas au moment de la validation.</div>
+    </section>
+
+    <section id="vae">
+      <h2><span class="num">5</span>Cas particulier : la VAE</h2>
+      <p>Le fonctionnement de la VAE (Validation des Acquis de l'Expérience) diffère des autres types d'offre sur un point important, imposé par EDOF :</p>
+      <div class="card">
+        <b>Une seule fiche VAE par domaine de formation (Formacode).</b><br>
+        Vous ne choisissez pas un code RNCP unique, mais une <b>catégorisation</b> à 3 chiffres (ex : 434 – Santé, 440 – Action sociale, 154 – Activité physique et sportive). EDOF interdit d'avoir deux fiches VAE actives avec la même catégorisation pour votre organisme.
+      </div>
+      <p>Concrètement, si vous accompagnez la VAE pour plusieurs certifications d'un même secteur (par exemple CQP Assistant Médical <i>et</i> Secrétaire médico-administratif, tous deux en Santé), elles doivent être regroupées dans <b>une seule et même fiche</b> : le champ <b>Résultats attendus</b> liste alors toutes les certifications visées, une par ligne.</p>
+      <h3>Où renseigner les certifications visées ?</h3>
+      <p>Dans la section <i>Certification et codes</i>, utilisez <b>Rechercher certifications</b> pour trouver et ajouter chaque code RNCP à la liste "Certifications RNCP visées". Le texte des résultats attendus se génère automatiquement à partir de cette liste.</p>
+      <h3>Prérequis et frais de jury</h3>
+      <ul>
+        <li>Le champ <b>Conditions spécifiques et prérequis</b> doit toujours être renseigné pour une VAE (accès à un ordinateur, outil de visioconférence...).</li>
+        <li>Le <b>montant</b> exact des frais de jury ne se saisit <b>pas</b> dans le catalogue : EDOF le demande directement dans le dossier d'inscription du candidat. Le catalogue ne porte que la case "Prix inclut les frais d'examen ?" (Oui/Non).</li>
+        <li>Si des frais restent à la charge du candidat en dehors du prix affiché, utilisez <b>Montant des frais additionnels non pris en charge</b> pour l'indiquer.</li>
+      </ul>
+    </section>
+
+    <section id="perso">
+      <h2><span class="num">6</span>Personnaliser le PDF</h2>
+      <p>Le bouton <b>⚙ Personnaliser le PDF</b> (colonne de gauche) permet de régler une fois pour toutes :</p>
+      <ul>
+        <li>La couleur et le logo utilisés dans les PDF générés</li>
+        <li>Le nom de votre organisme</li>
+        <li><b>Le SIRET</b> — une fois renseigné ici, il se répercute automatiquement dans le champ SIRET de chaque <i>nouvelle</i> fiche que vous créez</li>
+        <li>Un texte de pied de page (ex : mention Qualiopi)</li>
+      </ul>
+      <p>Le bouton <b>Appliquer aux fiches existantes</b> complète le SIRET sur vos fiches actuelles qui n'en ont pas encore, sans écraser celles déjà renseignées.</p>
+    </section>
+
+    <section id="valider">
+      <h2><span class="num">7</span>Vérifier avant export</h2>
+      <p>Le bouton <b>✔ Valider</b> (en haut de chaque fiche) relit l'ensemble du formulaire et affiche :</p>
+      <ul>
+        <li><span style="color:var(--err);font-weight:600">Erreurs bloquantes</span> — champs obligatoires manquants, formats invalides (email, téléphone), incohérences qui empêcheraient l'import sur EDOF</li>
+        <li><span style="color:var(--warn);font-weight:600">Avertissements</span> — champs facultatifs mais recommandés (ex : téléphone de contact manquant, une valeur par défaut sera exportée à la place)</li>
+      </ul>
+      <p>Ce contrôle est une aide locale, basée sur le cahier des charges officiel EDOF — il ne remplace pas la validation finale faite par EDOF lui-même à l'import, mais il évite la grande majorité des rejets.</p>
+    </section>
+
+    <section id="exporter">
+      <h2><span class="num">8</span>Exporter</h2>
+      <p>Deux façons d'exporter :</p>
+      <ul>
+        <li><b>Exporter</b> (dans une fiche) — génère le XML d'une seule formation, nommé <code>SIRET_numéro.xml</code></li>
+        <li><b>📤 Exporter tout</b> (colonne de gauche) — génère le catalogue complet, nommé <code>SIRET_catalogue.xml</code></li>
+      </ul>
+      <div class="warn">
+        <b>Important — logique "annule et remplace" d'EDOF.</b><br>
+        Quand vous déposez un fichier XML sur EDOF, la plateforme compare son contenu à votre catalogue déjà en ligne. Toute formation <b>absente</b> du fichier déposé est automatiquement <b>archivée</b> (retirée de votre catalogue en ligne) — même si vous n'avez envoyé qu'une seule fiche par erreur.<br><br>
+        <b>Utilisez donc toujours "Exporter tout" pour envoyer l'intégralité de votre catalogue</b>, sauf si vous avez une raison précise de vouloir retirer volontairement certaines formations.
+      </div>
+      <p>D'autres formats sont aussi disponibles : <b>Export PDF</b> (fiche imprimable), <b>Export CSV</b> (tableur), <b>Aperçu MCF</b> (rendu proche de ce que verra le candidat sur Mon Compte Formation).</p>
+    </section>
+
+    <section id="importer">
+      <h2><span class="num">9</span>Importer un XML</h2>
+      <p>Le bouton <b>Importer XML</b> permet de recharger un fichier déjà exporté (par l'éditeur ou téléchargé depuis EDOF) pour le modifier. L'import reconnaît les fiches existantes par leur numéro : une formation déjà présente dans votre liste sera mise à jour, une nouvelle sera ajoutée.</p>
+      <div class="tip"><b>Habilitations à former</b> — vous pouvez aussi importer le CSV des habilitations, téléchargeable depuis EDOF (Tableau de bord → Votre organisme de formation → Habilitations à former → bouton "Exporter les certifications"). L'éditeur l'utilise pour vérifier que vous êtes bien habilité sur les codes RNCP/RS que vous saisissez.</div>
+    </section>
+
+    <section id="sauvegarder">
+      <h2><span class="num">10</span>Sauvegarder / restaurer</h2>
+      <p>Vos fiches sont stockées dans le navigateur (localStorage), propre à chaque appareil et navigateur. Pour les conserver ou les transférer :</p>
+      <ul>
+        <li><b>Sauvegarder fiches</b> — télécharge un fichier de sauvegarde complet (toutes vos fiches, réglages compris)</li>
+        <li><b>Restaurer fiches</b> — recharge une sauvegarde précédente (utile après un changement de navigateur, un nettoyage de cache, ou pour revenir à un état antérieur)</li>
+      </ul>
+      <p>Pensez à faire une sauvegarde régulièrement, et systématiquement avant une mise à jour importante de vos fiches.</p>
+    </section>
+
+    <section id="erreurs">
+      <h2><span class="num">11</span>Erreurs fréquentes</h2>
+      <table>
+        <tr><th>Message</th><th>Explication</th></tr>
+        <tr><td>Au moins 1 code NSF requis</td><td>Sélectionnez un code dans la liste NSF (section Certification et codes) — pour la VAE, il se déduit normalement de la catégorisation</td></tr>
+        <tr><td>SIRET invalide</td><td>Doit faire 14 chiffres et respecter la clé de contrôle Luhn</td></tr>
+        <tr><td>Conditions spécifiques sur Oui mais détail vide</td><td>Complétez le texte des prérequis, ou repassez le champ sur Non</td></tr>
+        <tr><td>Format d'email / téléphone invalide</td><td>Email au format nom@domaine.fr ; téléphone en chiffres uniquement (le + est toléré en début)</td></tr>
+        <tr><td>Deux fiches VAE avec la même catégorisation</td><td>Regroupez les certifications concernées dans une seule fiche VAE (voir la section dédiée)</td></tr>
+      </table>
+      <p>Si EDOF renvoie une erreur qui n'apparaît pas ici après un import, le plus efficace est de copier le message exact (code + libellé du compte-rendu CSV) et de le partager pour diagnostic.</p>
+    </section>
+
+  </main>
+</div>
+
+<footer>Éditeur LHEO / EDOF — <a href="https://github.com/ericfalcon/editeur-LHEO" style="color:var(--pri)">github.com/ericfalcon/editeur-LHEO</a></footer>
+</body>
+</html>
