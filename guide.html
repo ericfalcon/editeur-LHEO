@@ -129,6 +129,7 @@ footer{text-align:center;color:var(--g5);font-size:12px;padding:24px;border-top:
       </table>
       <div class="tip"><b>À savoir</b> — un message récapitule les champs effectivement mis à jour après chaque import. Les champs FORMACODE, NSF, ROME et blocs de compétences sont <b>toujours écrasés</b> par l'import (pour rester synchronisés avec le référentiel officiel) ; seul l'intitulé est laissé intact s'il contient déjà du texte.</div>
       <p>Ces deux boutons interrogent France Compétences en direct (voir <a href="#apis">Services en ligne utilisés</a>) — une connexion internet est nécessaire.</p>
+      <div class="tip"><b>Vérification d'habilitation en temps réel</b> — si vous avez importé votre CSV d'habilitations (voir <a href="#importer">Importer un XML</a>), tapez un code RNCP ou RS dans le champ correspondant : un message apparaît instantanément sous le champ — <span style="color:var(--ok)">✓ Habilité</span>, <span style="color:var(--warn)">⚠ habilitation expirée</span> (avec la date), ou <span style="color:var(--err)">⚠ non trouvé dans vos habilitations EDOF</span>. Sans CSV importé, aucun message ne s'affiche — ce n'est pas bloquant pour la saisie.</div>
     </section>
 
     <section id="actions">
@@ -139,10 +140,11 @@ footer{text-align:center;color:var(--g5);font-size:12px;padding:24px;border-top:
       <ul>
         <li><b>Modalité d'enseignement</b> — Présentiel / Mixte / À distance (référentiel officiel, 3 valeurs uniquement)</li>
         <li><b>Conditions spécifiques et prérequis</b> — champ libre facultatif, mais si vous répondez "Oui", le détail devient obligatoire</li>
-        <li><b>Frais pédagogiques</b> — taux de TVA, montant HT et TTC calculés automatiquement, prix horaire</li>
+        <li><b>Frais pédagogiques</b> — taux de TVA, montant HT et TTC. Les deux montants se calculent <b>automatiquement l'un depuis l'autre</b> selon le taux de TVA choisi : modifiez le HT, le TTC suit ; modifiez le TTC (via l'icône ↔), le HT est recalculé. Le prix horaire HT se déduit lui aussi du montant HT et de la durée en centre.</li>
         <li><b>Modalités d'admission</b> et <b>Rythme de formation</b> — cases à cocher, plusieurs choix possibles</li>
         <li><b>Coordonnées de contact</b> et <b>Lieu de formation</b> — affichés aux candidats ; la géolocalisation se calcule automatiquement depuis l'adresse</li>
       </ul>
+      <div class="tip"><b>Suggestion de type de parcours</b> — quand vous choisissez la modalité d'enseignement d'une action, l'éditeur propose automatiquement (si le champ <b>Type de parcours</b> de la fiche est encore vide) une valeur cohérente : Présentiel → Collectif, Mixte → Mixte, À distance → Individualisé. C'est une suggestion de départ, modifiable à tout moment — elle ne s'impose pas si vous avez déjà choisi un type de parcours vous-même.</div>
       <div class="warn"><b>Attention aux doublons d'actions</b> — EDOF rejette une action si une autre a exactement les mêmes modalités d'enseignement, lieu, langue et durée (à moins de 10h d'écart). L'éditeur vous avertit dans ce cas au moment de la validation.</div>
     </section>
 
