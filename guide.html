@@ -67,6 +67,7 @@ footer{text-align:center;color:var(--g5);font-size:12px;padding:24px;border-top:
     <a href="#valider">Vérifier avant export</a>
     <a href="#exporter">Exporter</a>
     <a href="#importer">Importer un XML</a>
+    <a href="#apis">Services en ligne utilisés</a>
     <a href="#sauvegarder">Sauvegarder / restaurer</a>
     <a href="#erreurs">Erreurs fréquentes</a>
   </nav>
@@ -185,6 +186,38 @@ footer{text-align:center;color:var(--g5);font-size:12px;padding:24px;border-top:
       <h2><span class="num">9</span>Importer un XML</h2>
       <p>Le bouton <b>Importer XML</b> permet de recharger un fichier déjà exporté (par l'éditeur ou téléchargé depuis EDOF) pour le modifier. L'import reconnaît les fiches existantes par leur numéro : une formation déjà présente dans votre liste sera mise à jour, une nouvelle sera ajoutée.</p>
       <div class="tip"><b>Habilitations à former</b> — vous pouvez aussi importer le CSV des habilitations, téléchargeable depuis EDOF (Tableau de bord → Votre organisme de formation → Habilitations à former → bouton "Exporter les certifications"). L'éditeur l'utilise pour vérifier que vous êtes bien habilité sur les codes RNCP/RS que vous saisissez.</div>
+    </section>
+
+    <section id="apis">
+      <h2><span class="num">9<span style="font-size:9px">bis</span></span>Services en ligne utilisés</h2>
+      <p>Pour rester un fichier autonome sans base de données propre, l'éditeur interroge en direct, depuis votre navigateur, quatre services publics. Aucune donnée n'est envoyée vers un serveur intermédiaire — les requêtes partent de votre poste vers ces services officiels (sauf mention contraire ci-dessous).</p>
+      <table>
+        <tr><th>Service</th><th>Utilisé pour</th><th>Où dans l'éditeur</th></tr>
+        <tr>
+          <td><b>Recherche d'entreprises</b><br><span style="color:var(--g5);font-size:12px">recherche-entreprises.api.gouv.fr</span></td>
+          <td>Vérifier un SIRET saisi et pré-remplir automatiquement la raison sociale et l'adresse de l'organisme</td>
+          <td>Champ <b>SIRET organisme</b> (Identification)</td>
+        </tr>
+        <tr>
+          <td><b>Base Adresse Nationale</b><br><span style="color:var(--g5);font-size:12px">api-adresse.data.gouv.fr</span></td>
+          <td>Convertir l'adresse saisie en coordonnées GPS (latitude/longitude)</td>
+          <td>Bouton <b>📍 Géolocaliser depuis l'adresse</b> (Lieu de formation)</td>
+        </tr>
+        <tr>
+          <td><b>Liste publique des organismes de formation (DGEFP)</b><br><span style="color:var(--g5);font-size:12px">dgefp.opendatasoft.com</span></td>
+          <td>Vérifier le numéro de déclaration d'activité (NDA) et les certifications Qualiopi (VAE, Bilan, Actions de formation) associées au SIRET</td>
+          <td>Encart de confirmation sous le champ SIRET (✓ NDA, badge Qualiopi)</td>
+        </tr>
+        <tr>
+          <td><b>France Compétences (via un relais Cloudflare)</b><br><span style="color:var(--g5);font-size:12px">proxy vers l'API Koumoul</span></td>
+          <td>Rechercher les certifications RNCP/RS par mot-clé ou par code, filtrées par domaine NSF</td>
+          <td>Bouton <b>Rechercher certifications</b> (VAE) et champs <b>Code RNCP/RS</b></td>
+        </tr>
+      </table>
+      <div class="tip"><b>Pourquoi un relais pour France Compétences ?</b> — l'API Koumoul ne peut pas être appelée directement depuis un navigateur pour des raisons techniques (CORS). Un petit relais (Cloudflare Worker) fait uniquement transiter la requête sans la stocker ni la modifier.</div>
+      <div class="warn"><b>Ces services nécessitent une connexion internet.</b> Sans connexion, la création et l'édition de fiches restent possibles, mais la recherche de certifications, la vérification de SIRET et la géolocalisation automatique seront indisponibles — les champs concernés restent alors à remplir manuellement.</div>
+      <h3>Habilitations à former (import, pas une API)</h3>
+      <p>Le bouton <b>Importer habilitations EDOF (.csv)</b> ne fait pas appel à un service en ligne : il lit un fichier CSV que <i>vous</i> téléchargez vous-même depuis EDOF (Tableau de bord → Votre organisme de formation → Habilitations à former → bouton "Exporter les certifications"). L'éditeur l'utilise ensuite localement pour indiquer si un code RNCP/RS saisi correspond bien à une habilitation active.</p>
     </section>
 
     <section id="sauvegarder">
