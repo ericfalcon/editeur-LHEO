@@ -6,6 +6,8 @@
 
 🔗 **Accès en ligne** : [https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html](https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html)
 
+📖 **Mode d'emploi** : [guide.html](https://ericfalcon.github.io/editeur-LHEO/guide.html) (utilisateur, accessible aussi depuis l'éditeur) · [Wiki technique](https://github.com/ericfalcon/editeur-LHEO/wiki) (référentiels, format XML, FAQ)
+
 📥 **Téléchargement** : [dernière version (v2.7.3)](https://github.com/ericfalcon/editeur-LHEO/releases/latest) · [toutes les versions](https://github.com/ericfalcon/editeur-LHEO/releases)
 
 ---
@@ -66,18 +68,22 @@ Vous pouvez aussi télécharger `editeur-lheo-edof.html` et l'ouvrir en local (d
 
 ```
 editeur-lheo-edof.html    # Fichier principal (standalone HTML/CSS/JS)
+guide.html                 # Mode d'emploi utilisateur, accessible depuis l'éditeur
 README.md                 # Ce fichier
 CHANGELOG.md              # Historique des versions
 ```
+
+Documentation technique complémentaire (référentiels, structure XML détaillée, FAQ) : [Wiki du projet](https://github.com/ericfalcon/editeur-LHEO/wiki).
 
 ---
 
 ## 📋 Spécifications techniques
 
-- **Format XML** : LHEO 2.4, namespace `https://www.of.moncompteformation.gouv.fr`
-- **Encodage** : ISO-8859-1 (requis par EDOF)
-- **API EDOF** : V14 (2026)
+- **Format XML** : LHEO, namespace `https://www.of.moncompteformation.gouv.fr`
+- **Encodage** : ISO-8859-1 réel (déclaré *et* effectif — requis par EDOF)
+- **CDC EDOF** : V15 (09/07/2026)
 - **Formacode** : V14 (Centre Inffo, décembre 2024)
+- **Conformité validée** avec le XSD officiel (`lheo_import_fichier_xml_optimise_v5r2.xsd`) et par import réel réussi sur la plateforme EDOF
 
 ---
 
