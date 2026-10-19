@@ -1,0 +1,67 @@
+/* Thème épure, aligné sur l'éditeur LHEO : mêmes couleurs, sans ombre, coins à 8px. */
+.qlo {
+  --qlo-pri: #1a56db;
+  --qlo-prl: #e8f0fe;
+  --qlo-g2: #e5e7eb;
+  --qlo-g5: #6b7280;
+  --qlo-g9: #111827;
+  max-width: 960px;
+  color: var(--qlo-g9);
+}
+
+.qlo-intro {
+  margin: 0 0 24px;
+  color: var(--qlo-g5);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.qlo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.qlo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--qlo-g2);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.qlo-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--qlo-prl);
+  color: var(--qlo-pri);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.qlo-title {
+  margin: 0;
+  color: var(--qlo-g9);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.qlo-status {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--qlo-g2);
+  border-radius: 4px;
+  color: var(--qlo-g5);
+  font-size: 11px;
+}
