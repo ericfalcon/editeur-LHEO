@@ -1,0 +1,15 @@
+{
+  "name": "chatbot-reglementaire",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chatbot gratuit qui répond aux questions à partir des textes d'un site web",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "index": "node build-index.mjs"
+  },
+  "dependencies": {
+    "linkedom": "0.18.15",
+    "pdfjs-dist": "4.10.38"
+  }
+}
