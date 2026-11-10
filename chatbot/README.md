@@ -6,6 +6,7 @@ Un chatbot qui répond aux questions de réglementation des visiteurs **en citan
 - **Rien à saisir** : il lit tout seul les pages du site (via le plan du site / sitemap ou WordPress) et les **PDF** qui y sont liés.
 - **Fiable** : il n'invente rien. Il affiche le passage exact trouvé, mots-clés surlignés, avec un lien vers la page (ou la page du PDF).
 - **Toujours à jour** : quand vous modifiez un texte, le chatbot le prend en compte (cache de 24 h par visiteur).
+- **Calculatrices** : il repère les calculatrices / simulateurs du site et les propose quand la question s'y prête (« combien d'animateurs pour 30 enfants ? » → calculatrice d'encadrement). Un bouton « 🧮 Calculatrices » les liste toutes.
 - Respecte la vie privée : aucune question n'est envoyée à un service extérieur.
 
 > Ce n'est pas une IA « conversationnelle » de type ChatGPT. Il ne rédige pas de réponse : c'est un moteur de recherche intelligent sur vos textes (synonymes, pluriels, « six » = « 6 »…), présenté sous forme de chat. Si aucun texte ne correspond, il le dit et propose de vous contacter.
@@ -48,9 +49,28 @@ Vous pouvez aussi copier `chatbot.js` sur votre propre hébergement et changer l
 | `urls` | Liste fixe de pages à lire (sinon : automatique) | auto |
 | `pdf` | Lire aussi les PDF liés depuis les pages | `true` |
 | `maxPages`, `maxPdfs` | Limites de lecture | 150 / 30 |
+| `tools` | Calculatrices ajoutées à la main (voir ci-dessous) | `[]` |
+| `autoTools` | Détecter automatiquement les calculatrices | `true` |
 | `synonymsExtra` | Vos propres synonymes, ex. `[['cvl', 'colonie de vacances']]` | — |
 | `indexUrl` | Index pré-calculé (voir ci-dessous) | — |
 | `cacheHours` | Durée du cache chez le visiteur | 24 |
+
+## Calculatrices
+
+Le chatbot considère comme calculatrice toute page du site dont **le titre ou l'adresse contient « calcul », « simulateur » ou « estimation »**, ou qui contient des **champs de saisie numériques**. Il les propose :
+
+- quand on les demande (« calculatrice », « quels outils ? », bouton « 🧮 Calculatrices » de l'en-tête, suggestion « Voir les calculatrices ») ;
+- quand une question correspond au sujet d'une calculatrice et ressemble à un calcul (« combien… », un nombre, « prix », « coût »…). La calculatrice s'affiche alors au-dessus des extraits de textes.
+
+Si une calculatrice n'est pas détectée (par exemple un outil intégré dans une autre page), ou pour mieux la décrire, déclarez-la :
+
+```js
+tools: [
+  { title: "Calculatrice du taux d'encadrement", url: '/calculatrice-encadrement/',
+    description: "Nombre d'animateurs nécessaires selon l'âge et le nombre d'enfants",
+    keywords: 'encadrement animateurs enfants effectif quota' }
+]
+```
 
 ## Comment ça marche
 

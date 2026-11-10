@@ -139,7 +139,8 @@
     var root = null;
     if (!isFragment) for (var k = 0; k < MAIN.length && !root; k++) root = doc.querySelector(MAIN[k]);
     root = root || doc.body || doc.documentElement;
-    return { u: url, t: title, blocks: extractBlocks(root), links: links };
+    var nInputs = root.querySelectorAll ? root.querySelectorAll('input[type=number],input[type=range]').length : 0;
+    return { u: url, t: title, blocks: extractBlocks(root), links: links, inputs: nInputs };
   }
 
   /* =====================================================================
@@ -337,8 +338,23 @@
         } catch (e) { /* PDF illisible : ignoré */ }
       });
     }
-    return { v: 1, site: o.origin, built: new Date().toISOString(), pages: pages.length, pdfs: pdfs.size, chunks: chunks };
+    var tools = pages.filter(isToolPage).map(function (pg) {
+      var first = pg.blocks.filter(function (b) { return !b.h && b.x.length > 30; })[0];
+      return { u: pg.u, t: pg.t, d: first ? first.x.slice(0, 140).replace(/\s+\S*$/, '') + (first.x.length > 140 ? '…' : '') : '' };
+    });
+    return { v: 2, site: o.origin, built: new Date().toISOString(), pages: pages.length, pdfs: pdfs.size, chunks: chunks, tools: tools };
   }
+
+  /* Calculatrices : page dont le titre ou l'adresse parle de calcul/simulation,
+     ou qui contient des champs numériques. */
+  var TOOL_WORDS = /calcul|simulat|estimat|calculette/;
+  function isToolPage(pg) {
+    var path = ''; try { path = new URL(pg.u).pathname; } catch (e) { /* */ }
+    return TOOL_WORDS.test(fold(pg.t + ' ' + path)) || pg.inputs > 0;
+  }
+  var GENERIC = new Set(tokens('calcul calculer calculatrice calculatrices calculette calculateur simulateur ' +
+    'simulation simuler estimation estimer outil outils page site'));
+  var CALC_INTENT = /\b(combien|montant|cout|coute|couter|prix|tarif|nombre|total)\b/;
 
   /* =====================================================================
    * 5. Moteur de recherche (BM25 + synonymes + bonus d'expression)
@@ -408,6 +424,40 @@
     return { terms: Array.from(terms.keys()), results: out };
   };
 
+  Engine.prototype.setTools = function (tools) {
+    var seen = new Set();
+    this.tools = (tools || []).filter(function (t) {
+      var k = t.u.replace(/[?#].*$/, '').replace(/\/$/, '');
+      if (!t.u || seen.has(k)) return false;
+      seen.add(k); return true;
+    }).map(function (t) {
+      return { tool: t, tk: new Set(tokens(t.t + ' ' + (t.d || '') + ' ' + (t.k || '')).filter(function (x) { return !GENERIC.has(x); })) };
+    });
+    return this;
+  };
+  /* -> { all: true } si on demande « les calculatrices », sinon les 2 plus pertinentes */
+  Engine.prototype.matchTools = function (q, expanded) {
+    var tools = this.tools || [];
+    if (!tools.length) return { all: false, list: [] };
+    var qt = tokens(q), f = fold(q);
+    var named = qt.some(function (t) { return GENERIC.has(t); });
+    var specific = qt.filter(function (t) { return !GENERIC.has(t); });
+    if (named && !specific.length) return { all: true, list: tools.map(function (x) { return x.tool; }) };
+    var intent = named || /\d/.test(q) || CALC_INTENT.test(f);
+    var own = new Set(specific);
+    var terms = new Set((expanded || specific).filter(function (t) { return !GENERIC.has(t); }));
+    var res = [];
+    tools.forEach(function (x) {
+      // mot de la question = 1 point, synonyme = 0,5 point
+      var n = 0; terms.forEach(function (t) { if (x.tk.has(t)) n += own.has(t) ? 1 : 0.5; });
+      if (n >= 1 && (intent || n >= 2)) res.push({ tool: x.tool, n: n });
+    });
+    res.sort(function (a, b) { return b.n - a.n; });
+    res = res.filter(function (r) { return r.n >= res[0].n * 0.75; });
+    if (named && !res.length) return { all: true, list: tools.map(function (x) { return x.tool; }) };
+    return { all: false, list: res.slice(0, 2).map(function (r) { return r.tool; }) };
+  };
+
   /* Meilleur extrait (≈ 450 caractères) autour des mots recherchés */
   function excerpt(text, termSet, size) {
     size = size || 450;
@@ -435,7 +485,7 @@
   }
 
   var core = { VERSION: VERSION, fold: fold, stem: stem, tokens: tokens, extractBlocks: extractBlocks,
-    pageFromHTML: pageFromHTML, chunkPage: chunkPage, pdfChunks: pdfChunks, buildIndex: buildIndex,
+    pageFromHTML: pageFromHTML, isToolPage: isToolPage, chunkPage: chunkPage, pdfChunks: pdfChunks, buildIndex: buildIndex,
     Engine: Engine, excerpt: excerpt, DEFAULT_SYNONYMS: DEFAULT_SYNONYMS };
   G.PAChatbotCore = core;
 
@@ -464,6 +514,8 @@
     cacheHours: 24,
     suggestions: ['Quel est le taux d\'encadrement en accueil de loisirs ?', 'Comment se passe le BAFA ?', 'Quelles règles pour la baignade ?'],
     synonyms: null,
+    tools: [],          // calculatrices ajoutées à la main : [{ title, url, keywords }]
+    autoTools: true,    // détecter automatiquement les calculatrices du site
     disclaimer: 'Réponses extraites automatiquement des pages du site : vérifiez toujours le texte source.'
   }, G.PAChatbotConfig || {});
   ['title', 'subtitle', 'welcome', 'color', 'position', 'contactUrl', 'contactLabel', 'indexUrl', 'source'].forEach(function (k) {
@@ -471,7 +523,7 @@
   });
   var synonyms = (cfg.synonyms || DEFAULT_SYNONYMS).concat(cfg.synonymsExtra || []);
 
-  var CACHE_KEY = 'pacb-index-v1:' + location.host;
+  var CACHE_KEY = 'pacb-index-v2:' + location.host;
   var engine = null, loading = null;
 
   function esc(s) {
@@ -554,6 +606,9 @@
       }
       engine = new Engine(idx.chunks, synonyms);
       engine.meta = idx;
+      engine.setTools((cfg.tools || []).map(function (t) {
+        return { u: new URL(t.url, location.href).href, t: t.title, d: t.description || '', k: t.keywords || '' };
+      }).concat(cfg.autoTools ? (idx.tools || []) : []));
       return engine;
     })();
     loading.catch(function () { loading = null; });
@@ -574,10 +629,15 @@
     '#pacb-root *{box-sizing:border-box}' +
     '#pacb-btn{width:60px;height:60px;border-radius:50%;border:0;background:var(--c);color:#fff;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;transition:transform .15s}' +
     '#pacb-btn:hover{transform:scale(1.06)}#pacb-btn svg{width:28px;height:28px}' +
-    '#pacb-panel{position:absolute;bottom:76px;' + (cfg.position === 'left' ? 'left' : 'right') + ':0;width:380px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 110px);background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);display:none;flex-direction:column;overflow:hidden}' +
+    '#pacb-panel{position:absolute;bottom:76px;' + (cfg.position === 'left' ? 'left' : 'right') + ':0;width:400px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 110px);background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);display:none;flex-direction:column;overflow:hidden}' +
     '#pacb-root.open #pacb-panel{display:flex}' +
     '#pacb-head{background:var(--c);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:10px}' +
-    '#pacb-head b{display:block;font-size:16px}#pacb-head small{opacity:.85;font-size:12.5px}' +
+    '#pacb-head>div{min-width:0}#pacb-head b{display:block;font-size:15.5px}#pacb-head small{display:block;opacity:.85;font-size:12.5px;line-height:1.3}' +
+    '#pacb-tools{margin-left:auto;background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:8px;padding:4px 8px;font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap;flex-shrink:0}' +
+    '#pacb-tools:hover{background:rgba(255,255,255,.3)}#pacb-tools[hidden]{display:none}#pacb-tools:not([hidden])+#pacb-close{margin-left:0}' +
+    '.pacb-tool{display:block;margin-top:8px;padding:9px 11px;border:1px solid var(--c);border-radius:10px;background:#fff;color:inherit;text-decoration:none;white-space:normal}' +
+    '.pacb-tool:hover{background:#f3f7ff}.pacb-tool b{color:var(--c);display:block}.pacb-tool span{display:block;font-size:13px;color:#5b6576;margin-top:2px}' +
+    '.pacb-tool i{font-style:normal;font-size:13px;font-weight:600;color:var(--c);display:block;margin-top:4px}' +
     '#pacb-close{margin-left:auto;background:transparent;border:0;color:#fff;font-size:24px;line-height:1;cursor:pointer;padding:4px 6px}' +
     '#pacb-msgs{flex:1;overflow-y:auto;padding:14px;background:#f5f7fa;display:flex;flex-direction:column;gap:10px}' +
     '.pacb-m{max-width:92%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}' +
@@ -610,6 +670,7 @@
     root.innerHTML =
       '<div id="pacb-panel" role="dialog" aria-label="' + esc(cfg.title) + '">' +
         '<div id="pacb-head"><div><b>' + esc(cfg.title) + '</b><small>' + esc(cfg.subtitle) + '</small></div>' +
+        '<button id="pacb-tools" type="button" hidden>🧮 Calculatrices</button>' +
         '<button id="pacb-close" aria-label="Fermer">×</button></div>' +
         '<div id="pacb-msgs" aria-live="polite"></div>' +
         '<div id="pacb-sugg"></div>' +
@@ -620,7 +681,7 @@
     document.body.appendChild(root);
 
     var msgs = root.querySelector('#pacb-msgs'), input = root.querySelector('#pacb-in'),
-      btn = root.querySelector('#pacb-btn'), sugg = root.querySelector('#pacb-sugg'), started = false, status = null;
+      btn = root.querySelector('#pacb-btn'), sugg = root.querySelector('#pacb-sugg'), started = false, asked = false, status = null;
 
     function add(html, who) {
       var d = document.createElement('div');
@@ -648,8 +709,16 @@
           b.onclick = function () { ask(s); };
           sugg.appendChild(b);
         });
-        ensureIndex(setStatus).then(function () {
+        ensureIndex(setStatus).then(function (eng) {
           if (status) { status.remove(); status = null; }
+          if (eng.tools.length) {
+            root.querySelector('#pacb-tools').hidden = false;
+            if (!asked) {
+              var b = document.createElement('button'); b.type = 'button'; b.textContent = '🧮 Voir les calculatrices';
+              b.onclick = function () { ask('Quelles calculatrices proposez-vous ?'); };
+              sugg.appendChild(b);
+            }
+          }
         }).catch(function () {
           if (status) { status.firstChild.textContent = 'Impossible de lire les textes du site pour le moment.'; }
         });
@@ -658,8 +727,16 @@
     }
     function close() { root.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); btn.focus(); }
 
+    function toolsHtml(list) {
+      return list.map(function (t) {
+        return '<a class="pacb-tool" href="' + esc(t.u) + '"><b>🧮 ' + esc(t.t) + '</b>' +
+          (t.d ? '<span>' + esc(t.d) + '</span>' : '') + '<i>Ouvrir la calculatrice ›</i></a>';
+      }).join('');
+    }
+
     async function ask(q) {
       q = q.trim(); if (!q) return;
+      asked = true;
       sugg.innerHTML = '';
       add(esc(q), 'me');
       input.value = '';
@@ -674,13 +751,25 @@
       try {
         var eng = await ensureIndex(setStatus);
         if (status) { status.remove(); status = null; }
-        var r = eng.search(q, 3), termSet = new Set(r.terms);
+        var r = eng.search(q, 3), termSet = new Set(r.terms), mt = eng.matchTools(q, r.terms);
+        if (mt.all) {
+          wait.innerHTML = 'Voici les calculatrices disponibles sur le site :' + toolsHtml(mt.list);
+          msgs.scrollTop = msgs.scrollHeight;
+          return;
+        }
+        var tHtml = mt.list.length ? '<div>' + (mt.list.length > 1 ? 'Ces calculatrices peuvent vous aider :' : 'Cette calculatrice peut vous aider :') + toolsHtml(mt.list) + '</div>' : '';
+        if (!r.results.length && tHtml) {
+          wait.innerHTML = tHtml;
+          msgs.scrollTop = msgs.scrollHeight;
+          return;
+        }
         if (!r.results.length) {
           wait.innerHTML = 'Je n\'ai pas trouvé de réponse dans les textes du site. Essayez de reformuler avec d\'autres mots-clés' +
             (cfg.contactUrl ? ', ou' + contactHtml() : '') + '.';
           return;
         }
-        var html = r.results.length > 1 ? 'Voici ce que disent nos textes :' : 'Voici ce que dit notre texte :';
+        var html = tHtml + (tHtml ? '<div style="margin-top:12px">' : '<div>') +
+          (r.results.length > 1 ? 'Voici ce que disent nos textes :' : 'Voici ce que dit notre texte :') + '</div>';
         r.results.forEach(function (res) {
           var c = res.chunk, label = c.t + (c.h ? ' › ' + c.h : '');
           html += '<div class="pacb-card">' + highlight(excerpt(c.x, termSet), termSet) +
@@ -696,6 +785,7 @@
 
     btn.onclick = function () { root.classList.contains('open') ? close() : open(); };
     root.querySelector('#pacb-close').onclick = close;
+    root.querySelector('#pacb-tools').onclick = function () { ask('Quelles calculatrices proposez-vous ?'); };
     root.querySelector('#pacb-form').onsubmit = function (e) { e.preventDefault(); ask(input.value); };
     root.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   }
