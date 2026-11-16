@@ -15,6 +15,12 @@ Format : `[version] — date — description`
   - Seuls les champs vides sont remplis ; le récapitulatif liste les champs conservés. HTML de la fiche converti en texte (listes à tirets), troncature propre aux longueurs EDOF
 - ✨ Import RS plus robuste : intitulé, niveau, NSF, FORMACODE, ROME repris de la fiche France Compétences quand l'API principale ne répond pas (auparavant l'import affichait « OK » sans rien importer)
 - 🐛 Saisie dans le champ Code RS : erreur JavaScript `checkHabInput is not defined` (fonction inexistante) — remplacée par la vérification d'habilitation utilisée pour le RNCP
+- 🐛 **Vérification d'habilitation en temps réel réparée** :
+  - la liste d'habilitations importée était effacée à chaque rechargement de la page (réinitialisation de la variable après sa lecture dans le localStorage) — la vérification et les avertissements de validation ne fonctionnaient donc qu'avant le premier rechargement
+  - champ Code RS : un code saisi sans préfixe (ex. `5267`) était recherché comme `RNCP5267` au lieu de `RS5267`
+  - champ Code RNCP : aucun message ne s'affichait si la fiche avait été ouverte sans code RNCP (zone de message absente)
+  - « Habilité — undefined » : l'intitulé est lu dans le bon champ du CSV importé
+  - comparaison des codes insensible à la casse et aux espaces ; message effacé quand le champ est vidé
 - ✨ **Numérotation automatique** — N° interne OF proposé à la création d'une fiche (incrément de la dernière référence, ex. `FORM-007` → `FORM-008`, en évitant les doublons) ; numéros d'action (`FORM-008-A1`) et de session (`FORM-008-A1-S1`) générés à l'ajout
 - ✨ **Nouvelle fiche pré-remplie** — SIRET, raison sociale, NDA et UAI repris de la fiche la plus récente du même organisme ; une première action et une première session sont créées d'emblée
 - ✨ **Nouvelle action pré-remplie** — contact, lieu de formation, géolocalisation, langue, TVA, frais d'examen, modalités d'admission/rythme, prérequis, accessibilité handicap, services et périmètre repris de l'action précédente (jamais la durée, le prix ni la modalité d'enseignement). Première action d'une fiche : contact/lieu/accessibilité repris d'une autre fiche du même SIRET, sinon adresse de l'établissement issue du SIRET

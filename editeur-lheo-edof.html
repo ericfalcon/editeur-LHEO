@@ -3609,11 +3609,13 @@ window.calcDureeAuto=function(ai){
     }
   }
 };
-window.checkHabilitation=function(code,statusId){
+window.checkHabilitation=function(code,statusId,prefix){
   var el=document.getElementById(statusId);
-  if(!el||!habList.length||!code) return;
-  code=code.trim().toUpperCase();
-  if(/^\d+$/.test(code)) code='RNCP'+code;
+  if(!el||!habList.length) return;
+  code=(code||'').trim().toUpperCase();
+  if(!code){el.textContent='';return;}
+  // Code saisi sans préfixe : RNCP par défaut, RS pour le champ Code RS
+  if(/^\d+$/.test(code)) code=(prefix||'RNCP')+code;
   if(!/^(RNCP|RS)\d+$/.test(code)){el.textContent='';return;}
   var h=isHabilite(code);
   if(h===false){
@@ -3624,7 +3626,7 @@ window.checkHabilitation=function(code,statusId){
     el.textContent='⚠ Habilitation expirée le '+h.dateFin;
   } else if(h){
     el.className='hab-actif';
-    el.textContent='✓ Habilité — '+h.intitule;
+    el.textContent='✓ Habilité'+((h.intitule||h.titre)?' — '+(h.intitule||h.titre):'');
   } else {
     el.textContent='';
   }
@@ -4598,11 +4600,11 @@ function buildCertif(f){
       '</div>'+
       '<div id="E_blocs_status2" class="rs-status"></div>'+
       (function(){
-        if(!habList.length||!f.rncp) return '';
+        if(!habList.length||!f.rncp) return '<div id="E_rncp_hab"></div>';
         var h=isHabilite(f.rncp);
         if(h===false) return '<div id="E_rncp_hab" class="siret-err">⚠ '+esc(f.rncp)+' non trouvé dans vos habilitations EDOF</div>';
         if(h&&h.dateFin&&new Date(h.dateFin)<new Date()) return '<div id="E_rncp_hab" class="hab-expire">⚠ Habilitation expirée le '+esc(h.dateFin)+'</div>';
-        if(h) return '<div id="E_rncp_hab" class="hab-actif">✓ Habilité — '+esc(h.intitule)+'</div>';
+        if(h) return '<div id="E_rncp_hab" class="hab-actif">✓ Habilité — '+esc(h.intitule||h.titre||'')+'</div>';
         return '<div id="E_rncp_hab"></div>';
       })()+
       '</div>'+
@@ -4610,7 +4612,7 @@ function buildCertif(f){
       '<div class="fitem"><label>Code RS (repertoire specifique)</label>'+
       '<div style="display:flex;gap:5px;align-items:center">'+
       '<input type="text" id="E_rs" value="'+esc(f.rs||'')+
-        '" placeholder="RS5287" style="flex:1" oninput="window.checkHabilitation(this.value,\'hab_status_rs\')">'+
+        '" placeholder="RS5287" style="flex:1" oninput="window.checkHabilitation(this.value,\'hab_status_rs\',\'RS\')">'+
       '<button class="rs-btn" onclick="fetchRS()" title="Importer depuis France Competences">⬇ Import RS</button>'+
       '</div>'+
       '<div id="E_rs_status" class="rs-status"></div>'+
@@ -4880,7 +4882,8 @@ function buildVaeRncpRow(code,titre,idx){
    ============================================================== */
 
 // Stockage des habilitations : tableau d'objets {type,code,intitule,etat,dateDebut,dateFin}
-var habList=[];
+// Ne pas réinitialiser : la liste a déjà été relue depuis le localStorage au démarrage
+var habList=Array.isArray(habList)?habList:[];
 
 function buildHabZone(f){
   var count=habList.length;
@@ -4936,7 +4939,8 @@ function isHabilite(code){
   // Retourne l'objet habilitation si trouvé et ACTIF, null sinon
   // Si aucune habilitation chargée, on ne bloque pas
   if(!habList.length) return null; // pas de liste = pas de contrôle
-  var h=habList.find(function(x){return x.code===code&&x.etat==='ACTIF';});
+  var n=habNormCode(code);
+  var h=habList.find(function(x){return habNormCode(x.code)===n&&String(x.etat||'').toUpperCase()==='ACTIF';});
   return h||false; // false = liste chargée mais code absent
 }
 
@@ -6423,7 +6427,9 @@ function habIsActive(h){
   if(h.dateFin){var fin=new Date(h.dateFin);if(!isNaN(fin)&&fin<new Date())return false;}
   return true;
 }
-function habFind(code){return habList.find(function(h){return h.code===code;});}
+// Compare les codes sans tenir compte de la casse ni des espaces (ex. "rs 5267" = "RS5267")
+function habNormCode(c){return String(c||'').toUpperCase().replace(/\s+/g,'');}
+function habFind(code){var n=habNormCode(code);return habList.find(function(h){return habNormCode(h.code)===n;});}
 function habCheck(code){
   if(!habList.length) return 'none';
   var h=habFind(code);
