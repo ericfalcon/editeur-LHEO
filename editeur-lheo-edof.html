@@ -3609,11 +3609,12 @@ window.calcDureeAuto=function(ai){
     }
   }
 };
-window.checkHabilitation=function(code,statusId){
+window.checkHabilitation=function(code,statusId,prefix){
   var el=document.getElementById(statusId);
   if(!el||!habList.length||!code) return;
+  prefix=prefix||'RNCP'; // 'RS' pour le champ Code RS
   code=code.trim().toUpperCase();
-  if(/^\d+$/.test(code)) code='RNCP'+code;
+  if(/^\d+$/.test(code)) code=prefix+code;
   if(!/^(RNCP|RS)\d+$/.test(code)){el.textContent='';return;}
   var h=isHabilite(code);
   if(h===false){
@@ -3624,7 +3625,7 @@ window.checkHabilitation=function(code,statusId){
     el.textContent='⚠ Habilitation expirée le '+h.dateFin;
   } else if(h){
     el.className='hab-actif';
-    el.textContent='✓ Habilité — '+h.intitule;
+    el.textContent='✓ Habilité — '+(h.intitule||h.titre||'');
   } else {
     el.textContent='';
   }
@@ -4573,7 +4574,7 @@ function buildCertif(f){
       '<div class="fitem"><label>Code RS (repertoire specifique)</label>'+
       '<div style="display:flex;gap:5px;align-items:center">'+
       '<input type="text" id="E_rs" value="'+esc(f.rs||'')+
-        '" placeholder="RS5287" style="flex:1" oninput="checkHabInput(\'E_rs\',\'hab_status_rs\')">'+
+        '" placeholder="RS5287" style="flex:1" oninput="window.checkHabilitation(this.value,\'hab_status_rs\',\'RS\')">'+
       '<button class="rs-btn" onclick="fetchRS()" title="Importer depuis France Competences">⬇ Import RS</button>'+
       '</div>'+
       '<div id="E_rs_status" class="rs-status"></div>'+
