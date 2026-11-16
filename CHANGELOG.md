@@ -5,6 +5,17 @@ Format : `[version] — date — description`
 
 ---
 
+## [2.8.0] — 2026-11-16
+- ✨ **Numérotation automatique** — N° interne OF proposé à la création d'une fiche (incrément de la dernière référence, ex. `FORM-007` → `FORM-008`, en évitant les doublons) ; numéros d'action (`FORM-008-A1`) et de session (`FORM-008-A1-S1`) générés à l'ajout
+- ✨ **Nouvelle fiche pré-remplie** — SIRET, raison sociale, NDA et UAI repris de la fiche la plus récente du même organisme ; une première action et une première session sont créées d'emblée
+- ✨ **Nouvelle action pré-remplie** — contact, lieu de formation, géolocalisation, langue, TVA, frais d'examen, modalités d'admission/rythme, prérequis, accessibilité handicap, services et périmètre repris de l'action précédente (jamais la durée, le prix ni la modalité d'enseignement). Première action d'une fiche : contact/lieu/accessibilité repris d'une autre fiche du même SIRET, sinon adresse de l'établissement issue du SIRET
+- ✨ **Nouvelle session pré-remplie** — contact d'inscription, capacité, garantie et état de recrutement repris de la session précédente ; à défaut, contact de l'action et type de session déduit du type de parcours
+- ✨ **Code postal → ville, département, région** (API Découpage administratif geo.api.gouv.fr, repli hors ligne pour le département et la région, Corse et DROM compris) ; liste de choix quand plusieurs communes partagent le code postal
+- ✨ **Géolocalisation automatique** du lieu de formation dès que adresse + code postal + ville sont renseignés (plus besoin de cliquer sur 📍)
+- ✨ Le téléphone / courriel saisi sur une action complète les contacts d'inscription vides de ses sessions
+- ✨ SIRET : l'adresse de l'établissement est mémorisée pour les actions créées ensuite ; département, région et coordonnées GPS sont aussi complétés
+- 🐛 Géolocalisation : le département n'était jamais renseigné (la propriété lue n'existe pas dans la réponse de la Base Adresse Nationale) — désormais lu depuis `context`, avec la région correspondante
+
 ## [2.7.3] — 2026-08-13
 - 🐛 **Correctif confirmé par import réel sur EDOF (erreur 30013)** — `code-nature-voie` était figé sur "RUE" et `libelle-voie` recopiait l'adresse complète, sans jamais renseigner `numero-voie` : la "ligne 4" reconstituée par EDOF était donc toujours incomplète. Ajout d'un analyseur d'adresse (numéro + type de voie + libellé), avec repli automatique sur `ligne5-adresse` quand l'adresse ne peut pas être décomposée avec confiance. Appliqué au lieu de formation et à l'adresse d'inscription.
 - ✅ **Conformité CDC EDOF v15 (09/07/2026), validée avec le XSD officiel** :

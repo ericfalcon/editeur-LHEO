@@ -3645,17 +3645,17 @@ window.calcPrixHT=function(ai){
   if(elHT) elHT.value=isNaN(ht)||ht===0?'':ht.toFixed(2);
 };
 // Géolocalisation automatique depuis adresse (API adresse.data.gouv.fr)
-window.geolocAction=function(ai){
+window.geolocAction=function(ai,quiet){
   var L=window._lheo;if(!L)return;
   L.doSave(L.curId,true);
   var ff=L.cat.find(function(x){return x.id===L.curId;});
   if(!ff||!ff.actions[ai])return;
   var a=ff.actions[ai];
   var q=[a.adr,a.cp,a.ville].filter(Boolean).join(' ');
-  if(!q){alert('Renseignez l\'adresse, le code postal et la ville d\'abord');return;}
+  if(!q){if(!quiet)alert('Renseignez l\'adresse, le code postal et la ville d\'abord');return;}
   var st=document.getElementById('geo_status_'+ai);
-  if(st)st.textContent='Recherche...';
-  fetch('https://api-adresse.data.gouv.fr/search/?q='+encodeURIComponent(q)+'&limit=1')
+  if(st)st.textContent=quiet?'Géolocalisation automatique...':'Recherche...';
+  fetch('https://api-adresse.data.gouv.fr/search/?q='+encodeURIComponent(q)+(/^\d{5}$/.test(a.cp||'')?'&postcode='+a.cp:'')+'&limit=1')
     .then(function(r){return r.json();})
     .then(function(data){
       if(data.features&&data.features.length){
@@ -3666,8 +3666,12 @@ window.geolocAction=function(ai){
         a.lat=String(coords[1]);
         // Auto-remplir ville et département depuis la réponse
         if(!a.ville&&props.city) a.ville=props.city;
-        if(!a.dep&&props.departement) a.dep=props.departement;
         if(!a.cp&&props.postcode) a.cp=props.postcode;
+        // Département / région : le champ "context" vaut "63, Puy-de-Dôme, Auvergne-Rhône-Alpes"
+        var depCtx=(props.context||'').split(',')[0].trim();
+        if(depCtx){a.dep=depCtx;var regCtx=REG_BY_DEP[depCtx];if(regCtx)a.reg=regCtx;}
+        ['ville','cp','dep','reg'].forEach(function(k){
+          var el=document.querySelector('[data-ai="'+ai+'"][data-f="'+k+'"]');if(el&&a[k])el.value=a[k];});
         L.persist();
         if(st)st.innerHTML='<span style="color:var(--ok)">✓ '+a.lat+', '+a.lon+' — '+escEl(props.label||'')+'</span>';
         // Mettre à jour les champs visibles sans rechargement complet
@@ -3735,9 +3739,15 @@ window.applySiretData=function(data){
         // Pré-remplir la première action si les champs sont vides
         var L=window._lheo;if(!L)return;
         var ff2=L.cat.find(function(x){return x.id===L.curId;});
-        if(!ff2||!ff2.actions||!ff2.actions.length) return;
-        var aChanged=[];
+        if(!ff2) return;
+        // Mémoriser l'adresse de l'établissement : servira pour les actions créées ensuite
+        var depS=depFromCp(cp);
+        ff2.adrOrg={adr:adr,cp:cp,ville:(ville||'').toUpperCase(),dep:depS,reg:regFromDep(depS)};
+        L.persist();
+        if(!ff2.actions||!ff2.actions.length) return;
+        var aChanged=[],aGeo=[];
         ff2.actions.forEach(function(a,i){
+          var vide=!a.adr&&!a.cp&&!a.ville;
           if(adr&&!a.adr){
             a.adr=adr;
             var el=document.querySelector('[data-ai="'+i+'"][data-f="adr"]');
@@ -3756,7 +3766,14 @@ window.applySiretData=function(data){
             if(el3) el3.value=ville.toUpperCase();
             if(i===0) aChanged.push('ville');
           }
+          if(vide&&a.cp){
+            var d=depFromCp(a.cp);
+            if(d){setActField(i,'dep',d);var rg=regFromDep(d);if(rg)setActField(i,'reg',rg);}
+            if(a.adr&&a.ville)aGeo.push(i);
+          }
         });
+        L.persist();
+        aGeo.forEach(function(i){window.geolocAction(i,true);});
         if(aChanged.length) toast('Adresse pré-remplie depuis SIRET : '+aChanged.join(', '));
       })
       .catch(function(){});
@@ -4178,7 +4195,26 @@ function showWelcome(){
   $('J_imp_w').addEventListener('click',function(){$('file-in').click();});
 }
 
-function newFiche(){var f=emptyFiche();cat.push(f);persist();drawList();openEditor(f.id);}
+function newFiche(){
+  var f=emptyFiche();
+  f.numIntOf=nextFicheNum();
+  // Reprendre les infos organisme d'une fiche existante (même SIRET, ou dernière fiche si SIRET inconnu)
+  var m=ficheModele(f),repris=[];
+  if(m){
+    if(!f.siret&&m.siret){f.siret=m.siret;repris.push('SIRET');}
+    if(m.siret===f.siret){
+      if(m.raisonSociale&&!f.raisonSociale){f.raisonSociale=m.raisonSociale;repris.push('raison sociale');}
+      if(m.numActivite){f.numActivite=m.numActivite;repris.push('NDA');}
+      if(m.codeUAI){f.codeUAI=m.codeUAI;repris.push('UAI');}
+      if(m.adrOrg)f.adrOrg=JSON.parse(JSON.stringify(m.adrOrg));
+    }
+  }
+  // Une fiche exige au moins une action et une session : on les crée d'emblée, pré-remplies
+  var r=newActionFor(f);f.actions.push(r.action);
+  cat.push(f);persist();drawList();openEditor(f.id);
+  if(r.champs.length)repris.push(r.champs.join(', '));
+  if(repris.length)toast('Nouvelle fiche pré-remplie : '+repris.join(', '));
+}
 
 function emptyFiche(){return {
   id:uid(),intitule:'',numIntOf:'',siret:(typeof PDF_THEME!=='undefined'&&PDF_THEME.siret)||'',
@@ -4440,6 +4476,7 @@ function renderEditor(f){
   $('E_valid').addEventListener('click',function(){collect(f.id);var errs=validateFiche(f);showValidation(errs);if(!errs.length)toast('Fiche valide ✓');else if(errs.filter(function(e){return !e.warn;}).length===0)toast(errs.length+' avertissement(s) — export possible');else toast(errs.filter(function(e){return !e.warn;}).length+' erreur(s) bloquante(s)',true);});
   $('E_exp').addEventListener('click',function(){doExport1(f.id);});
   // E_addAct géré par délégation permanente sur J_main
+  bindLieuAutoFill();
   // Binder la zone d'import habilitations
   bindHabZone();
   $('J_main').querySelectorAll('.del-act').forEach(function(b){
@@ -4450,7 +4487,7 @@ function renderEditor(f){
   $('J_main').querySelectorAll('.add-sess').forEach(function(b){
     b.addEventListener('click',function(){
       doSave(f.id,true);var ff=cat.find(function(x){return x.id===f.id;});
-      ff.actions[parseInt(b.dataset.ai)].sessions.push(emptySess());persist();openEditor(f.id);});});
+      var aa=ff.actions[parseInt(b.dataset.ai)];aa.sessions.push(newSessFor(ff,aa));persist();openEditor(f.id);});});
   $('J_main').querySelectorAll('.del-sess').forEach(function(b){
     b.addEventListener('click',function(){
       doSave(f.id,true);var ff=cat.find(function(x){return x.id===f.id;});
@@ -5167,6 +5204,194 @@ function buildSess(s,ai,si,isPerm){
 }
 
 
+/* ==============================================================
+   AUTO-REMPLISSAGE (v2.8.0)
+   - Numérotation automatique fiche / action / session
+   - Nouvelle fiche : reprise des infos organisme d'une autre fiche du même SIRET
+   - Nouvelle action : reprise du contact, du lieu et des modalités (action précédente
+     ou, à défaut, autre fiche du même SIRET / adresse issue du SIRET)
+   - Nouvelle session : reprise du contact d'inscription et de la capacité
+   - Code postal -> ville, département, région ; adresse -> géolocalisation auto
+   ============================================================== */
+var REG_BY_DEP=(function(){
+  var t={'84':'01 03 07 15 26 38 42 43 63 69 73 74','27':'21 25 39 58 70 71 89 90','53':'22 29 35 56',
+    '24':'18 28 36 37 41 45','94':'2A 2B','44':'08 10 51 52 54 55 57 67 68 88','32':'02 59 60 62 80',
+    '11':'75 77 78 91 92 93 94 95','28':'14 27 50 61 76','75':'16 17 19 23 24 33 40 47 64 79 86 87',
+    '76':'09 11 12 30 31 32 34 46 48 65 66 81 82','52':'44 49 53 72 85','93':'04 05 06 13 83 84',
+    '01':'971','02':'972','03':'973','04':'974','06':'976'};
+  var m={};Object.keys(t).forEach(function(r){t[r].split(' ').forEach(function(d){m[d]=r;});});return m;})();
+// Département déduit du code postal (Corse et DOM gérés) — repli hors ligne si l'API Géo ne répond pas
+function depFromCp(cp){
+  if(!/^\d{5}$/.test(cp||''))return '';
+  if(/^97/.test(cp)||/^98/.test(cp))return cp.substring(0,3);
+  if(/^20/.test(cp))return (parseInt(cp.substring(0,3),10)<202)?'2A':'2B';
+  return cp.substring(0,2);}
+function regFromDep(dep){return REG_BY_DEP[dep]||'';}
+
+// Incrémente une référence en conservant préfixe et nombre de chiffres (FORM-009 -> FORM-010)
+function incrementRef(ref){
+  var m=/^(.*?)(\d+)(\D*)$/.exec(ref||'');
+  if(!m)return (ref||'')+'-2';
+  var n=String(parseInt(m[2],10)+1);while(n.length<m[2].length)n='0'+n;
+  return m[1]+n+m[3];}
+function usedNums(){
+  var u={};cat.forEach(function(f){if(f.numIntOf)u['F:'+f.numIntOf]=1;
+    (f.actions||[]).forEach(function(a){if(a.num)u['A:'+a.num]=1;
+      (a.sessions||[]).forEach(function(s){if(s.num)u['S:'+s.num]=1;});});});
+  return u;}
+function nextFicheNum(){
+  var u=usedNums(),last=null;
+  for(var i=cat.length-1;i>=0;i--){if(cat[i].numIntOf&&/\d/.test(cat[i].numIntOf)){last=cat[i].numIntOf;break;}}
+  var ref=last?incrementRef(last):'FORM-001',guard=0;
+  while(u['F:'+ref]&&guard++<9999)ref=incrementRef(ref);
+  return ref;}
+function nextChildNum(kind,base){
+  var u=usedNums(),n=1,ref;
+  do{ref=base+n;n++;}while(u[kind+':'+ref]&&n<10000);
+  return ref;}
+
+// Fiche "modèle" : la plus récente fiche du catalogue ayant le même SIRET (hors fiche courante)
+function ficheModele(f){
+  var siret=(f&&f.siret)||'';
+  for(var i=cat.length-1;i>=0;i--){
+    var x=cat[i];if(x===f||(f&&x.id===f.id))continue;
+    if(!siret||x.siret===siret)return x;}
+  return null;}
+function actionModele(f){
+  var m=ficheModele(f);if(!m)return null;
+  var acts=(m.actions||[]).filter(function(a){return a.adr||a.tel||a.email;});
+  return acts.length?acts[acts.length-1]:null;}
+
+function copyFields(src,dst,keys){
+  var done=[];
+  keys.forEach(function(k){
+    var v=src[k];
+    if(v===undefined||v===null||v===''||(Array.isArray(v)&&!v.length))return;
+    dst[k]=Array.isArray(v)?v.slice():v;done.push(k);});
+  return done;}
+
+var ACTION_HERITE_FICHE=['tel','email','adr','cp','ville','dep','reg','pays','lat','lon','lang','tva',
+  'certifInclus','fraisJury','fraisAnpec','detailFraisAnpec','codesAdm','codesRythme','niveauEntreeObl',
+  'aPrereq','prereq','infoAdmission','entSor','gfe','modPed','handicap','modHandicap','infoRecrutement',
+  'perim','infoPerim','urlAct','restauration','hebergement','transport','autresServices',
+  'vaeRecevab','vaePostJury','vaeFormOb'];
+var ACTION_HERITE_ORG=['tel','email','adr','cp','ville','dep','reg','pays','lat','lon','handicap',
+  'modHandicap','restauration','hebergement','transport','autresServices'];
+var SESS_HERITE=['etatRecrutement','garantie','indColl','placesTotal','placesFinancees',
+  'contactNom','contactPrenom','email','tel','urlSess','modParticulieres'];
+
+function libellesChamps(keys){
+  var lib={tel:'contact',email:'contact',adr:'lieu',cp:'lieu',ville:'lieu',lat:'géolocalisation',
+    tva:'tarifs',certifInclus:'tarifs',codesAdm:'admission',infoAdmission:'admission',codesRythme:'rythme',
+    prereq:'prérequis',handicap:'accessibilité',modHandicap:'accessibilité',restauration:'services',
+    hebergement:'services',transport:'services',autresServices:'services',contactNom:'contact',
+    email_s:'contact',placesTotal:'capacité',indColl:'type de session'};
+  var out=[];keys.forEach(function(k){var l=lib[k];if(l&&out.indexOf(l)<0)out.push(l);});
+  return out;}
+
+// Construit une nouvelle action pré-remplie pour la fiche f
+function newActionFor(f){
+  var a=emptyAction(),src=null,done=[],origine='';
+  if(f.actions&&f.actions.length){
+    src=f.actions[f.actions.length-1];
+    done=copyFields(src,a,ACTION_HERITE_FICHE);origine='action '+f.actions.length;
+  } else {
+    var m=actionModele(f);
+    if(m){done=copyFields(m,a,ACTION_HERITE_ORG);origine='une autre fiche de l\'organisme';}
+    else if(f.adrOrg){
+      done=copyFields(f.adrOrg,a,['adr','cp','ville','dep','reg']);origine='l\'adresse du SIRET';}
+    if(f.typeOffre==='vae'){a.codesAdm=['92005'];a.codesRythme=['1','3','6'];a.entSor='1';}
+  }
+  if(a.cp&&!a.dep){a.dep=depFromCp(a.cp);a.reg=regFromDep(a.dep)||a.reg;}
+  var baseA=(f.numIntOf&&f.numIntOf.length<=20)?f.numIntOf:'ACT';
+  a.num=nextChildNum('A',baseA+'-A');
+  a.sessions=[newSessFor(f,a)];
+  return {action:a,champs:libellesChamps(done),origine:origine};}
+
+// Construit une nouvelle session pré-remplie pour l'action a de la fiche f
+function newSessFor(f,a){
+  var s=emptySess(),sessions=a.sessions||[];
+  if(sessions.length){
+    copyFields(sessions[sessions.length-1],s,SESS_HERITE);
+  } else {
+    if(a.email)s.email=a.email;
+    if(a.tel)s.tel=a.tel;
+    // Contact d'inscription déjà utilisé dans cette fiche, sinon ailleurs pour cet organisme
+    [f,ficheModele(f)].some(function(src){
+      return src&&(src.actions||[]).some(function(x){return (x.sessions||[]).some(function(y){
+        if(y.contactNom){s.contactNom=y.contactNom;s.contactPrenom=y.contactPrenom||'';return true;}});});});
+    s.indColl=(f.parcours==='1')?'1':'0';
+  }
+  s.num=nextChildNum('S',((a.num&&a.num.length<=24)?a.num:'S')+'-S');
+  return s;}
+
+// Met à jour un champ d'action dans le modèle et dans le formulaire affiché
+function setActField(ai,field,val){
+  var ff=cat.find(function(x){return x.id===curId;});
+  if(ff&&ff.actions&&ff.actions[ai])ff.actions[ai][field]=val;
+  var el=document.querySelector('[data-ai="'+ai+'"][data-f="'+field+'"]');
+  if(el)el.value=val;}
+function getActField(ai,field){
+  var el=document.querySelector('[data-ai="'+ai+'"][data-f="'+field+'"]');
+  return el?el.value.trim():'';}
+
+var _geoTimers={};
+function scheduleAutoGeoloc(ai){
+  clearTimeout(_geoTimers[ai]);
+  _geoTimers[ai]=setTimeout(function(){
+    if(getActField(ai,'adr')&&/^\d{5}$/.test(getActField(ai,'cp'))&&getActField(ai,'ville'))
+      window.geolocAction(ai,true);
+  },700);}
+
+// Code postal saisi -> département, région, ville (API Géo, repli hors ligne)
+function onCpChange(ai){
+  var cp=getActField(ai,'cp');
+  if(!/^\d{5}$/.test(cp))return;
+  var dep=depFromCp(cp);
+  if(dep){setActField(ai,'dep',dep);var r=regFromDep(dep);if(r)setActField(ai,'reg',r);}
+  var villeEl=document.querySelector('[data-ai="'+ai+'"][data-f="ville"]');
+  fetch('https://geo.api.gouv.fr/communes?codePostal='+cp+'&fields=nom,codeDepartement,codeRegion&format=json')
+    .then(function(r){return r.json();})
+    .then(function(list){
+      if(!Array.isArray(list)||!list.length||getActField(ai,'cp')!==cp)return;
+      if(list[0].codeDepartement)setActField(ai,'dep',list[0].codeDepartement);
+      if(list[0].codeRegion)setActField(ai,'reg',list[0].codeRegion);
+      if(villeEl){
+        var dlId='dl_ville_'+ai,dl=document.getElementById(dlId);
+        if(!dl){dl=document.createElement('datalist');dl.id=dlId;villeEl.parentNode.appendChild(dl);villeEl.setAttribute('list',dlId);}
+        dl.innerHTML=list.map(function(c){return '<option value="'+esc(String(c.nom).toUpperCase())+'">';}).join('');
+        var cur=villeEl.value.trim().toUpperCase();
+        var connue=list.some(function(c){return String(c.nom).toUpperCase()===cur;});
+        if(list.length===1&&!connue){
+          setActField(ai,'ville',String(list[0].nom).toUpperCase());
+          toast('Ville renseignée depuis le code postal : '+list[0].nom);
+        } else if(list.length>1&&!connue){
+          villeEl.placeholder=list.length+' communes — choisissez dans la liste';
+          if(!cur)villeEl.focus();
+        }
+      }
+      scheduleAutoGeoloc(ai);
+    })
+    .catch(function(){scheduleAutoGeoloc(ai);});}
+
+// Branche les écouteurs d'auto-remplissage sur le lieu de formation de chaque action
+function bindLieuAutoFill(){
+  $('J_main').querySelectorAll('input[data-ai][data-f="cp"]').forEach(function(el){
+    var ai=parseInt(el.dataset.ai,10),last=el.value;
+    el.addEventListener('input',function(){
+      var fr=!getActField(ai,'pays')||getActField(ai,'pays').toUpperCase()==='FR';
+      var v=fr?el.value.replace(/\D/g,'').substring(0,5):el.value;if(v!==el.value)el.value=v;
+      if(v.length===5&&v!==last){last=v;onCpChange(ai);}});});
+  $('J_main').querySelectorAll('input[data-ai][data-f="adr"],input[data-ai][data-f="ville"]').forEach(function(el){
+    el.addEventListener('change',function(){scheduleAutoGeoloc(parseInt(el.dataset.ai,10));});});
+  // Le contact de l'action complète les sessions dont le contact d'inscription est vide
+  $('J_main').querySelectorAll('input[data-ai][data-f="tel"],input[data-ai][data-f="email"]').forEach(function(el){
+    el.addEventListener('change',function(){
+      var ai=el.dataset.ai,f=el.dataset.f;
+      document.querySelectorAll('[data-ai="'+ai+'"][data-si][data-fs="'+f+'"]').forEach(function(s){
+        if(!s.value.trim())s.value=el.value.trim();});});});
+}
+
 function aif(ai,f,type,val,lbl,max,ph){
   return '<div class="fitem"><label>'+lbl+'</label>'+
     '<input type="'+type+'" data-ai="'+ai+'" data-f="'+f+'"'+(max?' maxlength="'+max+'"':'')+
@@ -5641,7 +5866,8 @@ function doSave(fid,silent){
 }
 function doAddAction(fid){
   doSave(fid,true);var ff=cat.find(function(x){return x.id===fid;});
-  ff.actions.push(emptyAction());persist();openEditor(fid);}
+  var r=newActionFor(ff);ff.actions.push(r.action);persist();openEditor(fid);
+  if(r.champs.length)toast('Action pré-remplie depuis '+r.origine+' : '+r.champs.join(', '));}
 function emptyAction(){return {
   num:'',modEns:'0',niveauEntreeObl:'0',aPrereq:'0',
   dureeTotal:'',duree:'',dureeEntreprise:'',
