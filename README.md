@@ -45,7 +45,7 @@
 - **Code postal → ville, département, région** et géolocalisation GPS automatique du lieu de formation
 - **Durée totale calculée automatiquement** (centre + entreprise)
 - Import/export des habilitations EDOF (CSV)
-- Import RNCP/RS via API France Compétences
+- Import RNCP/RS via API France Compétences — codes, niveau, blocs **et textes** (objectif, contenu, résultats attendus, points forts, prérequis) rédigés depuis la fiche officielle, sans écraser les textes déjà saisis
 - Vérification SIRET / NDA via API DGEFP
 - Sauvegarde locale (localStorage) + export/import JSON
 - Favicon SVG intégrée · Suivi Matomo

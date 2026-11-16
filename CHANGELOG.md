@@ -6,6 +6,15 @@ Format : `[version] — date — description`
 ---
 
 ## [2.8.0] — 2026-11-16
+- ✨ **Import RNCP / RS : textes remplis depuis la fiche France Compétences** — lecture de la fiche descriptive complète (jeu France Compétences sur Koumoul, via le relais existant) en parallèle de l'API principale :
+  - Objectif pédagogique ← *Capacités attestées* (à défaut *Objectifs et contexte* / *Activités visées*)
+  - Contenu ← liste des blocs de compétences (ou *Activités visées*) + *Modalités d'évaluation*
+  - Résultats attendus ← obtention de la certification (code, niveau, certificateur), validation partielle par blocs, *Types d'emplois accessibles*
+  - Points forts ← code, niveau, certificateur (255 car.)
+  - Prérequis de chaque action ← *Prérequis à l'entrée en formation*
+  - Seuls les champs vides sont remplis ; le récapitulatif liste les champs conservés. HTML de la fiche converti en texte (listes à tirets), troncature propre aux longueurs EDOF
+- ✨ Import RS plus robuste : intitulé, niveau, NSF, FORMACODE, ROME repris de la fiche France Compétences quand l'API principale ne répond pas (auparavant l'import affichait « OK » sans rien importer)
+- 🐛 Saisie dans le champ Code RS : erreur JavaScript `checkHabInput is not defined` (fonction inexistante) — remplacée par la vérification d'habilitation utilisée pour le RNCP
 - ✨ **Numérotation automatique** — N° interne OF proposé à la création d'une fiche (incrément de la dernière référence, ex. `FORM-007` → `FORM-008`, en évitant les doublons) ; numéros d'action (`FORM-008-A1`) et de session (`FORM-008-A1-S1`) générés à l'ajout
 - ✨ **Nouvelle fiche pré-remplie** — SIRET, raison sociale, NDA et UAI repris de la fiche la plus récente du même organisme ; une première action et une première session sont créées d'emblée
 - ✨ **Nouvelle action pré-remplie** — contact, lieu de formation, géolocalisation, langue, TVA, frais d'examen, modalités d'admission/rythme, prérequis, accessibilité handicap, services et périmètre repris de l'action précédente (jamais la durée, le prix ni la modalité d'enseignement). Première action d'une fiche : contact/lieu/accessibilité repris d'une autre fiche du même SIRET, sinon adresse de l'établissement issue du SIRET

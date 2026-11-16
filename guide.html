@@ -119,13 +119,25 @@ footer{text-align:center;color:var(--g5);font-size:12px;padding:24px;border-top:
         <tr><th>Bouton</th><th>Ce qu'il importe</th></tr>
         <tr>
           <td>⬇ <b>Import RNCP</b></td>
-          <td>Intitulé (si le champ est encore vide), niveau de sortie, jusqu'à 5 codes FORMACODE, jusqu'à 3 codes NSF, jusqu'à 5 codes ROME, <b>et la liste complète des blocs de compétences</b> de la certification</td>
+          <td>Intitulé (si le champ est encore vide), niveau de sortie, jusqu'à 5 codes FORMACODE, jusqu'à 3 codes NSF, jusqu'à 5 codes ROME, <b>et la liste complète des blocs de compétences</b> de la certification — plus les textes descriptifs (voir ci-dessous)</td>
         </tr>
         <tr>
           <td>⬇ <b>Import RS</b></td>
-          <td>Mêmes champs qu'Import RNCP (intitulé, niveau, FORMACODE, NSF, ROME), à l'exception des blocs de compétences — non applicables aux certifications du Répertoire Spécifique</td>
+          <td>Mêmes champs qu'Import RNCP (intitulé, niveau, FORMACODE, NSF, ROME), à l'exception des blocs de compétences — non applicables aux certifications du Répertoire Spécifique — plus les textes descriptifs</td>
         </tr>
       </table>
+      <h3>Textes remplis depuis la fiche France Compétences</h3>
+      <p>L'import lit aussi la fiche descriptive complète de la certification et rédige un premier jet des textes de votre fiche :</p>
+      <table>
+        <tr><th>Champ de l'éditeur</th><th>Construit à partir de</th></tr>
+        <tr><td><b>Objectif pédagogique</b></td><td>« À l'issue de la formation, le stagiaire sera capable de : » + <i>Capacités attestées</i> (à défaut : <i>Objectifs et contexte</i>, ou <i>Activités visées</i>)</td></tr>
+        <tr><td><b>Contenu</b></td><td>Liste des blocs de compétences (RNCP) ou <i>Activités visées</i>, suivie des <i>Modalités d'évaluation</i></td></tr>
+        <tr><td><b>Résultats attendus</b></td><td>« Obtention de la certification … (code), de niveau N, délivrée par <i>certificateur</i> », validation partielle par blocs, <i>Types d'emplois accessibles</i> (sauf VAE, dont les résultats sont générés à part)</td></tr>
+        <tr><td><b>Points forts</b></td><td>Code, niveau, certificateur et accès par blocs (255 caractères max)</td></tr>
+        <tr><td><b>Prérequis</b> (chaque action)</td><td><i>Prérequis à l'entrée en formation</i> — la case « Conditions spécifiques et prérequis » passe sur Oui</td></tr>
+      </table>
+      <div class="warn"><b>Vos textes ne sont jamais écrasés</b> — seuls les champs <b>vides</b> sont remplis ; le récapitulatif indique ceux qui ont été conservés. Pour remplacer un texte par celui de la fiche officielle, videz le champ puis relancez l'import. Les textes repris sont ceux du certificateur : relisez-les et adaptez-les à votre propre formation (durée, organisation, méthodes) avant export.</div>
+      <p>L'import RS s'appuie désormais aussi sur cette fiche descriptive : il récupère l'intitulé, le niveau et les codes même lorsque l'API principale ne répond pas.</p>
       <div class="tip"><b>À savoir</b> — un message récapitule les champs effectivement mis à jour après chaque import. Les champs FORMACODE, NSF, ROME et blocs de compétences sont <b>toujours écrasés</b> par l'import (pour rester synchronisés avec le référentiel officiel) ; seul l'intitulé est laissé intact s'il contient déjà du texte.</div>
       <p>Ces deux boutons interrogent France Compétences en direct (voir <a href="#apis">Services en ligne utilisés</a>) — une connexion internet est nécessaire.</p>
       <div class="tip"><b>Vérification d'habilitation en temps réel</b> — si vous avez importé votre CSV d'habilitations (voir <a href="#importer">Importer un XML</a>), tapez un code RNCP ou RS dans le champ correspondant : un message apparaît instantanément sous le champ — <span style="color:var(--ok)">✓ Habilité</span>, <span style="color:var(--warn)">⚠ habilitation expirée</span> (avec la date), ou <span style="color:var(--err)">⚠ non trouvé dans vos habilitations EDOF</span>. Sans CSV importé, aucun message ne s'affiche — ce n'est pas bloquant pour la saisie.</div>
@@ -245,7 +257,7 @@ footer{text-align:center;color:var(--g5);font-size:12px;padding:24px;border-top:
         </tr>
         <tr>
           <td><b>France Compétences (via un relais Cloudflare)</b><br><span style="color:var(--g5);font-size:12px">proxy vers l'API Koumoul</span></td>
-          <td>Rechercher les certifications RNCP/RS par mot-clé ou par code, filtrées par domaine NSF</td>
+          <td>Rechercher les certifications RNCP/RS par mot-clé ou par code, filtrées par domaine NSF ; lire la fiche descriptive complète (objectifs, capacités, prérequis, certificateur) lors des imports RNCP/RS</td>
           <td>Bouton <b>Rechercher certifications</b> (VAE) et champs <b>Code RNCP/RS</b></td>
         </tr>
       </table>
