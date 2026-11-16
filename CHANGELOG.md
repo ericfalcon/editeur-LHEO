@@ -5,6 +5,9 @@ Format : `[version] — date — description`
 
 ---
 
+## [Non publié]
+- 🐛 **Contrôle d'habilitation du champ « Code RS »** — saisir uniquement les chiffres (ex. `5267`) est désormais vérifié comme `RS5267` et non plus `RNCP5267` (`checkHabilitation` accepte un préfixe optionnel, `RNCP` par défaut). Le champ appelait auparavant une fonction inexistante (`checkHabInput`), donc aucun contrôle ne s'affichait. Le message « ✓ Habilité » affiche aussi correctement l'intitulé des habilitations importées par CSV (il affichait « undefined »).
+
 ## [2.7.3] — 2026-08-13
 - 🐛 **Correctif confirmé par import réel sur EDOF (erreur 30013)** — `code-nature-voie` était figé sur "RUE" et `libelle-voie` recopiait l'adresse complète, sans jamais renseigner `numero-voie` : la "ligne 4" reconstituée par EDOF était donc toujours incomplète. Ajout d'un analyseur d'adresse (numéro + type de voie + libellé), avec repli automatique sur `ligne5-adresse` quand l'adresse ne peut pas être décomposée avec confiance. Appliqué au lieu de formation et à l'adresse d'inscription.
 - ✅ **Conformité CDC EDOF v15 (09/07/2026), validée avec le XSD officiel** :
