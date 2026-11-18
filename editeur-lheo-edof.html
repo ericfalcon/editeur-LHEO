@@ -3578,8 +3578,6 @@ var PERIM = [
 var DB='lheo_v7';
 var cat=[];var curId=null;var xmlBuf='';var xmlName='export.xml';
 try{cat=JSON.parse(localStorage.getItem(DB)||'[]');}catch(e){cat=[];}
-// Charger les habilitations sauvegardées
-try{var _hab=localStorage.getItem('lheo_hab');if(_hab)habList=JSON.parse(_hab);}catch(e){}
 if(!Array.isArray(cat))cat=[];
 // Exposer sur window pour fetchBlocs et autres fonctions globales
 window._lheo={get cat(){return cat;},set cat(v){cat=v;},
@@ -4844,7 +4842,11 @@ function buildVaeRncpRow(code,titre,idx){
    ============================================================== */
 
 // Stockage des habilitations : tableau d'objets {type,code,intitule,etat,dateDebut,dateFin}
+// Chargement depuis localStorage ICI (et non plus en tete de script) : un chargement anterieur
+// etait ecrase par cet initialiseur (hoisting de var), la liste etait donc perdue au rechargement.
+// Cle litterale : HAB_KEY n'est declaree que plus bas.
 var habList=[];
+try{var _hab=JSON.parse(localStorage.getItem('lheo_hab')||'[]');if(Array.isArray(_hab))habList=_hab;}catch(e){}
 
 function buildHabZone(f){
   var count=habList.length;

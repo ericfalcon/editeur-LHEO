@@ -6,6 +6,7 @@ Format : `[version] — date — description`
 ---
 
 ## [Non publié]
+- 🐛 **Habilitations perdues au rechargement de la page** — la liste importée par CSV (`localStorage` clé `lheo_hab`) était bien enregistrée, mais son chargement en début de script était aussitôt écrasé par la déclaration `var habList=[];` placée plus loin (hoisting de `var`). Après rechargement, le contrôle d'habilitation et les badges de la section certification ne trouvaient donc plus rien tant que le CSV n'était pas réimporté. Le chargement se fait désormais juste après la déclaration.
 - 🐛 **Contrôle d'habilitation du champ « Code RS »** — saisir uniquement les chiffres (ex. `5267`) est désormais vérifié comme `RS5267` et non plus `RNCP5267` (`checkHabilitation` accepte un préfixe optionnel, `RNCP` par défaut). Le champ appelait auparavant une fonction inexistante (`checkHabInput`), donc aucun contrôle ne s'affichait. Le message « ✓ Habilité » affiche aussi correctement l'intitulé des habilitations importées par CSV (il affichait « undefined »).
 
 ## [2.7.3] — 2026-08-13
