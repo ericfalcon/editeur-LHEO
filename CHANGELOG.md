@@ -5,11 +5,32 @@ Format : `[version] — date — description`
 
 ---
 
-## [Non publié]
-- ✨ **Import RNCP : pré-remplissage d'« Objectif pédagogique », « Contenu » et « Résultats attendus »** — l'import ne remplissait jamais ces champs. Ils sont désormais pré-remplis **uniquement s'ils sont vides**, et signalés « à compléter / à relire » dans le message d'import. « Contenu » liste les **compétences de chaque bloc**, extraites du texte « Capacités attestées » de la fiche France Compétences (jeu Koumoul `competences-rncp`, via le Worker). Si ce texte ne permet pas de les isoler (ex. RNCP36004) ou si Koumoul ne répond pas, on se replie sur la liste des blocs.
-- 🐛 Import RNCP : code NSF en double (`333` et `333t` donnaient « 333, 333 ») — les codes sont maintenant dédoublonnés.
-- 🐛 **Habilitations perdues au rechargement de la page** — la liste importée par CSV (`localStorage` clé `lheo_hab`) était bien enregistrée, mais son chargement en début de script était aussitôt écrasé par la déclaration `var habList=[];` placée plus loin (hoisting de `var`). Après rechargement, le contrôle d'habilitation et les badges de la section certification ne trouvaient donc plus rien tant que le CSV n'était pas réimporté. Le chargement se fait désormais juste après la déclaration.
-- 🐛 **Contrôle d'habilitation du champ « Code RS »** — saisir uniquement les chiffres (ex. `5267`) est désormais vérifié comme `RS5267` et non plus `RNCP5267` (`checkHabilitation` accepte un préfixe optionnel, `RNCP` par défaut). Le champ appelait auparavant une fonction inexistante (`checkHabInput`), donc aucun contrôle ne s'affichait. Le message « ✓ Habilité » affiche aussi correctement l'intitulé des habilitations importées par CSV (il affichait « undefined »).
+## [2.8.0] — 2026-11-16
+- ✨ **Import RNCP / RS : textes remplis depuis la fiche France Compétences** — lecture de la fiche descriptive complète (jeu France Compétences sur Koumoul, via le relais existant) en parallèle de l'API principale :
+  - Objectif pédagogique ← « À l'issue de la formation, le stagiaire sera capable de : » + intitulés des blocs de compétences, le détail des compétences allant dans Contenu (sans blocs : *Capacités attestées* en liste, sinon *Objectifs et contexte* / *Activités visées*, sinon une phrase type)
+  - Contenu ← **compétences de chaque bloc**, extraites des *Capacités attestées* et classées sous le bloc correspondant (à défaut : liste des blocs, ou *Activités visées*) + *Modalités d'évaluation*
+  - Résultats attendus ← obtention de la certification (code, niveau, certificateur), validation partielle par blocs, *Types d'emplois accessibles* (mis en liste à tirets)
+  - Points forts ← code, niveau, certificateur (255 car.)
+  - Prérequis de chaque action ← *Prérequis à l'entrée en formation*
+  - Seuls les champs vides sont remplis ; le récapitulatif liste les champs conservés. HTML de la fiche converti en texte (listes à tirets), troncature propre aux longueurs EDOF
+- 🐛 Import RNCP : code NSF en double (`333` et `333t` donnaient « 333, 333 ») — les codes sont dédoublonnés
+- ✨ Import RS plus robuste : intitulé, niveau, NSF, FORMACODE, ROME repris de la fiche France Compétences quand l'API principale ne répond pas (auparavant l'import affichait « OK » sans rien importer)
+- 🐛 Saisie dans le champ Code RS : erreur JavaScript `checkHabInput is not defined` (fonction inexistante) — remplacée par la vérification d'habilitation utilisée pour le RNCP
+- 🐛 **Vérification d'habilitation en temps réel réparée** :
+  - la liste d'habilitations importée était effacée à chaque rechargement de la page (réinitialisation de la variable après sa lecture dans le localStorage) — la vérification et les avertissements de validation ne fonctionnaient donc qu'avant le premier rechargement
+  - champ Code RS : un code saisi sans préfixe (ex. `5267`) était recherché comme `RNCP5267` au lieu de `RS5267`
+  - champ Code RNCP : aucun message ne s'affichait si la fiche avait été ouverte sans code RNCP (zone de message absente)
+  - « Habilité — undefined » : l'intitulé est lu dans le bon champ du CSV importé
+  - comparaison des codes insensible à la casse et aux espaces ; message effacé quand le champ est vidé
+- ✨ **Numérotation automatique** — N° interne OF proposé à la création d'une fiche (incrément de la dernière référence, ex. `FORM-007` → `FORM-008`, en évitant les doublons) ; numéros d'action (`FORM-008-A1`) et de session (`FORM-008-A1-S1`) générés à l'ajout
+- ✨ **Nouvelle fiche pré-remplie** — SIRET, raison sociale, NDA et UAI repris de la fiche la plus récente du même organisme ; une première action et une première session sont créées d'emblée
+- ✨ **Nouvelle action pré-remplie** — contact, lieu de formation, géolocalisation, langue, TVA, frais d'examen, modalités d'admission/rythme, prérequis, accessibilité handicap, services et périmètre repris de l'action précédente (jamais la durée, le prix ni la modalité d'enseignement). Première action d'une fiche : contact/lieu/accessibilité repris d'une autre fiche du même SIRET, sinon adresse de l'établissement issue du SIRET
+- ✨ **Nouvelle session pré-remplie** — contact d'inscription, capacité, garantie et état de recrutement repris de la session précédente ; à défaut, contact de l'action et type de session déduit du type de parcours
+- ✨ **Code postal → ville, département, région** (API Découpage administratif geo.api.gouv.fr, repli hors ligne pour le département et la région, Corse et DROM compris) ; liste de choix quand plusieurs communes partagent le code postal
+- ✨ **Géolocalisation automatique** du lieu de formation dès que adresse + code postal + ville sont renseignés (plus besoin de cliquer sur 📍)
+- ✨ Le téléphone / courriel saisi sur une action complète les contacts d'inscription vides de ses sessions
+- ✨ SIRET : l'adresse de l'établissement est mémorisée pour les actions créées ensuite ; département, région et coordonnées GPS sont aussi complétés
+- 🐛 Géolocalisation : le département n'était jamais renseigné (la propriété lue n'existe pas dans la réponse de la Base Adresse Nationale) — désormais lu depuis `context`, avec la région correspondante
 
 ## [2.7.3] — 2026-08-13
 - 🐛 **Correctif confirmé par import réel sur EDOF (erreur 30013)** — `code-nature-voie` était figé sur "RUE" et `libelle-voie` recopiait l'adresse complète, sans jamais renseigner `numero-voie` : la "ligne 4" reconstituée par EDOF était donc toujours incomplète. Ajout d'un analyseur d'adresse (numéro + type de voie + libellé), avec repli automatique sur `ligne5-adresse` quand l'adresse ne peut pas être décomposée avec confiance. Appliqué au lieu de formation et à l'adresse d'inscription.

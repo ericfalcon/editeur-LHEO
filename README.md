@@ -1,6 +1,6 @@
 # 📋 Éditeur LHEO / EDOF — Format XML Mon Compte Formation
 
-**Version 2.7.3** · Compatible EDOF 2026 · Format LHEO 2.4
+**Version 2.8.0** · Compatible EDOF 2026 · Format LHEO 2.4
 
 > Outil standalone HTML pour créer et gérer des fiches de formation au format XML LHEO 2.4 compatibles avec la plateforme **Mon Compte Formation (EDOF V14)**.
 
@@ -41,9 +41,11 @@
 
 ### Organisation
 - Auto-remplissage adresse depuis **SIRET** (API Recherche Entreprises)
+- **Pré-remplissage intelligent** : nouvelle fiche / action / session reprennent organisme, contact, lieu et modalités déjà saisis, avec numérotation automatique (`FORM-008`, `FORM-008-A1`, `FORM-008-A1-S1`)
+- **Code postal → ville, département, région** et géolocalisation GPS automatique du lieu de formation
 - **Durée totale calculée automatiquement** (centre + entreprise)
 - Import/export des habilitations EDOF (CSV)
-- Import RNCP/RS via API France Compétences
+- Import RNCP/RS via API France Compétences — codes, niveau, blocs **et textes** (objectif, contenu, résultats attendus, points forts, prérequis) rédigés depuis la fiche officielle, sans écraser les textes déjà saisis
 - Vérification SIRET / NDA via API DGEFP
 - Sauvegarde locale (localStorage) + export/import JSON
 - Favicon SVG intégrée · Suivi Matomo
