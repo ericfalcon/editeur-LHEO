@@ -6868,7 +6868,7 @@ function applyRncpData(ff,rncp,data,st){
   // NSF : nettoyer la lettre suffixe (ex: "312m" -> "312")
   var nsf=((d.domaines&&d.domaines.nsf&&d.domaines.nsf.rncp)||[]).map(function(x){
     return x.code.replace(/[^0-9]/g,'');
-  }).filter(Boolean);
+  }).filter(function(c,i,arr){return c&&arr.indexOf(c)===i;}); // dedoublonner ("333" et "333t" -> "333")
   if(nsf.length){ff.nsf=nsf.slice(0,3);maj.push('NSF ('+nsf.slice(0,3).join(', ')+')');}
 
   // ROME (toujours importer)
@@ -6881,6 +6881,23 @@ function applyRncpData(ff,rncp,data,st){
     blocs.sort(function(a,b){return a.code.localeCompare(b.code);});
     ff.blocsCompetences=blocs.map(function(b){return b.code+'||'+b.intitule;});
     maj.push(blocs.length+' blocs de competences');
+  }
+
+  // Objectif / Contenu / Resultats attendus : France Competences ne fournit pas de texte,
+  // on pre-remplit a partir de l'intitule et des blocs, uniquement si le champ est vide.
+  var titre=ff.intitule||intitule||rncp;
+  var certifTxt='« '+titre+' » ('+rncp+')';
+  if(!(ff.objectif||'').trim()){
+    ff.objectif='Acquérir les compétences nécessaires à l\'obtention de la certification '+certifTxt+'.';
+    maj.push('objectif (a completer)');
+  }
+  if(blocs.length&&!(ff.contenu||'').trim()){
+    ff.contenu=blocs.map(function(b){return '- '+b.intitule+' ('+b.code+')';}).join('\n').slice(0,3000);
+    maj.push('contenu (a completer)');
+  }
+  if(!(ff.resultats||'').trim()){
+    ff.resultats='Obtention de la certification '+certifTxt+(blocs.length?', ou validation d\'un ou plusieurs de ses '+blocs.length+' blocs de compétences.':'.');
+    maj.push('resultats attendus (a completer)');
   }
 
   ff.certif='O'; if(ff.objGen==='7') ff.objGen='6';
