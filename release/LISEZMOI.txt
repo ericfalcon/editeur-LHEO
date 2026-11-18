@@ -1,0 +1,34 @@
+ÉDITEUR LHEO / EDOF — VERSION À UTILISER SUR VOTRE ORDINATEUR
+==============================================================
+
+Installation
+------------
+1. Dézippez ce dossier où vous voulez (par exemple dans Documents).
+2. Double-cliquez sur « editeur-lheo-edof.html » : l'éditeur s'ouvre dans
+   votre navigateur (Chrome, Edge ou Firefox). Aucun logiciel à installer.
+3. Le bouton « Mode d'emploi » ouvre « guide.html », placé dans le même dossier.
+   Gardez les deux fichiers ensemble.
+
+Sous Windows, si le navigateur refuse d'ouvrir le fichier : clic droit sur
+le fichier > Propriétés > cochez « Débloquer » en bas de l'onglet Général > OK.
+
+Ce qu'il faut savoir
+--------------------
+- Connexion Internet : nécessaire pour la vérification SIRET, les imports
+  RNCP / RS, la recherche VAE et le code postal. La saisie des fiches et
+  l'export XML fonctionnent sans connexion.
+
+- Vos fiches sont enregistrées dans le navigateur, séparément pour chaque
+  version : les fiches de la version en ligne
+  (https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html)
+  n'apparaissent pas dans cette version locale, et inversement.
+  Pour les transférer : « Sauvegarder fiches » dans l'une, puis
+  « Restaurer fiches » dans l'autre.
+  Pensez aussi à sauvegarder régulièrement : vider les données du navigateur
+  efface les fiches.
+
+- Mises à jour : cette version ne se met pas à jour toute seule.
+  Les nouvelles versions sont publiées sur
+  https://github.com/ericfalcon/editeur-LHEO/releases
+  Pour mettre à jour : remplacez les deux fichiers .html par les nouveaux,
+  dans le même dossier, et vos fiches sont conservées.

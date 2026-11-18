@@ -1,6 +1,6 @@
 # 📋 Éditeur LHEO / EDOF — Format XML Mon Compte Formation
 
-**Version 2.8.0** · Compatible EDOF 2026 · Format LHEO 2.4
+**Version 2.9.0** · Compatible EDOF 2026 · Format LHEO 2.4
 
 > Outil standalone HTML pour créer et gérer des fiches de formation au format XML LHEO 2.4 compatibles avec la plateforme **Mon Compte Formation (EDOF V14)**.
 
@@ -8,7 +8,7 @@
 
 📖 **Mode d'emploi** : [guide.html](https://ericfalcon.github.io/editeur-LHEO/guide.html) (utilisateur, accessible aussi depuis l'éditeur) · [Wiki technique](https://github.com/ericfalcon/editeur-LHEO/wiki) (référentiels, format XML, FAQ)
 
-📥 **Téléchargement** : [dernière version (v2.7.3)](https://github.com/ericfalcon/editeur-LHEO/releases/latest) · [toutes les versions](https://github.com/ericfalcon/editeur-LHEO/releases)
+📥 **Téléchargement** : [dernière version (v2.9.0)](https://github.com/ericfalcon/editeur-LHEO/releases/latest) · [toutes les versions](https://github.com/ericfalcon/editeur-LHEO/releases)
 
 ---
 
@@ -60,7 +60,13 @@ Aucune installation requise. Ouvrir directement :
 
 Toutes les fonctionnalités (vérification SIRET, import RNCP/RS, recherche de certifications VAE) fonctionnent directement dans le navigateur, sans serveur local — l'outil s'appuie sur un relais [Cloudflare Worker](https://workers.cloudflare.com/) permanent pour contourner les restrictions CORS des API publiques (France Compétences, Koumoul).
 
-Vous pouvez aussi télécharger `editeur-lheo-edof.html` et l'ouvrir en local (double-clic) : toutes les fonctionnalités restent disponibles tant que vous avez une connexion Internet.
+### Utilisation sur votre ordinateur
+
+Chaque [release](https://github.com/ericfalcon/editeur-LHEO/releases/latest) propose un fichier `editeur-lheo-vX.Y.Z.zip` : dézippez-le, puis double-cliquez sur `editeur-lheo-edof.html`. Aucun logiciel à installer.
+
+- Une connexion Internet reste nécessaire pour la vérification SIRET, les imports RNCP / RS et la recherche VAE. La saisie et l'export XML fonctionnent hors ligne.
+- Les fiches sont enregistrées dans le navigateur, séparément pour la version en ligne et la version locale : utilisez « Sauvegarder fiches » / « Restaurer fiches » pour passer de l'une à l'autre.
+- La version locale ne se met pas à jour seule : téléchargez les nouvelles releases.
 
 > ℹ️ Avant la version 2.5 (juillet 2026), l'outil nécessitait un serveur Python local (`lancer-editeur.py`). Ce n'est plus le cas.
 
@@ -73,6 +79,8 @@ editeur-lheo-edof.html    # Fichier principal (standalone HTML/CSS/JS)
 guide.html                 # Mode d'emploi utilisateur, accessible depuis l'éditeur
 README.md                 # Ce fichier
 CHANGELOG.md              # Historique des versions
+release/LISEZMOI.txt      # Notice incluse dans le zip des releases
+.github/workflows/        # Création automatique des releases (tag vX.Y.Z)
 ```
 
 Documentation technique complémentaire (référentiels, structure XML détaillée, FAQ) : [Wiki du projet](https://github.com/ericfalcon/editeur-LHEO/wiki).

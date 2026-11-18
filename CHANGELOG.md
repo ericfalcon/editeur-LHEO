@@ -5,7 +5,8 @@ Format : `[version] — date — description`
 
 ---
 
-## [Non publié]
+## [2.9.0] — 2026-11-18
+- 📦 **Version à installer sur son ordinateur** — chaque release contient désormais un zip (`editeur-lheo-vX.Y.Z.zip`) avec l'éditeur, le mode d'emploi et un `LISEZMOI.txt` : dézipper puis double-cliquer sur `editeur-lheo-edof.html`. Releases créées automatiquement à chaque tag de version (GitHub Actions).
 - 🔒 **Jeton de l'API apprentissage retiré de la page** — il était lisible par tous dans la page publiée. Il ne servait qu'au repli vers l'ancien serveur local `localhost:8765`, supprimé depuis la version 2.5 : ce repli est retiré aussi. Le jeton est désormais conservé uniquement dans le Worker Cloudflare, comme secret ; l'ancien jeton a été révoqué.
 - 📝 FAQ et guide de démarrage : suppression des instructions sur le serveur local `lancer-editeur.py`, qui n'existe plus.
 - 🐛 **Import RS réparé** — il affichait toujours « impossible de récupérer les données » : aucune de ses sources ne fonctionnait (`api.francecompetences.fr` inaccessible depuis le navigateur ; l'API apprentissage ne connaît pas les codes RS et renvoyait une autre certification ; le jeu Koumoul interrogé ne contenait que les fiches RNCP). L'import lit désormais le jeu France Compétences **`competences-rs`** sur Koumoul : d'abord via le Worker (route `/proxy/koumoul-rs/`, à déployer), sinon par appel direct à Koumoul, qui l'autorise. Intitulé, FORMACODE, NSF, certificateur, prérequis et textes sont repris de la fiche.
