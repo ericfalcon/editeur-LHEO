@@ -8,11 +8,12 @@ Format : `[version] — date — description`
 ## [2.8.0] — 2026-11-16
 - ✨ **Import RNCP / RS : textes remplis depuis la fiche France Compétences** — lecture de la fiche descriptive complète (jeu France Compétences sur Koumoul, via le relais existant) en parallèle de l'API principale :
   - Objectif pédagogique ← *Capacités attestées* (à défaut *Objectifs et contexte* / *Activités visées*)
-  - Contenu ← liste des blocs de compétences (ou *Activités visées*) + *Modalités d'évaluation*
+  - Contenu ← **compétences de chaque bloc**, extraites des *Capacités attestées* et classées sous le bloc correspondant (à défaut : liste des blocs, ou *Activités visées*) + *Modalités d'évaluation*
   - Résultats attendus ← obtention de la certification (code, niveau, certificateur), validation partielle par blocs, *Types d'emplois accessibles*
   - Points forts ← code, niveau, certificateur (255 car.)
   - Prérequis de chaque action ← *Prérequis à l'entrée en formation*
   - Seuls les champs vides sont remplis ; le récapitulatif liste les champs conservés. HTML de la fiche converti en texte (listes à tirets), troncature propre aux longueurs EDOF
+- 🐛 Import RNCP : code NSF en double (`333` et `333t` donnaient « 333, 333 ») — les codes sont dédoublonnés
 - ✨ Import RS plus robuste : intitulé, niveau, NSF, FORMACODE, ROME repris de la fiche France Compétences quand l'API principale ne répond pas (auparavant l'import affichait « OK » sans rien importer)
 - 🐛 Saisie dans le champ Code RS : erreur JavaScript `checkHabInput is not defined` (fonction inexistante) — remplacée par la vérification d'habilitation utilisée pour le RNCP
 - 🐛 **Vérification d'habilitation en temps réel réparée** :
