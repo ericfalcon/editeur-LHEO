@@ -1,4 +1,8 @@
-# Publie une release GitHub à chaque tag de version (ex. v2.9.0) :
+# Publie une release GitHub :
+# - automatiquement à chaque tag de version poussé (ex. v2.9.0),
+# - ou à la main depuis l'onglet Actions > Release > Run workflow, en indiquant la version :
+#   le tag est alors créé sur la branche choisie (main par défaut).
+# Contenu :
 # - notes de version tirées du CHANGELOG (toutes les sections depuis la release précédente)
 # - pièces jointes : editeur-lheo-edof.html seul, et un zip pour une utilisation en local
 #   (éditeur + mode d'emploi + LISEZMOI.txt)
@@ -7,6 +11,11 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version à publier, ex. v2.9.0 (doit avoir sa section dans CHANGELOG.md)'
+        required: true
 
 permissions:
   contents: write
@@ -21,14 +30,15 @@ jobs:
 
       - name: Préparer le zip et les notes de version
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.version || github.ref_name }}
         run: |
           set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Version invalide : $TAG (attendu : vX.Y.Z)"; exit 1; }
           VERSION="${TAG#v}"
           grep -q "^## \[${VERSION}\]" CHANGELOG.md || { echo "::error::Section ## [${VERSION}] absente du CHANGELOG"; exit 1; }
 
           # Release précédente (tag v* antérieur), pour reprendre toutes les versions intermédiaires du CHANGELOG
-          PREV_TAG=$(git describe --tags --abbrev=0 --match 'v*' "${TAG}^" 2>/dev/null || true)
+          PREV_TAG=$(git describe --tags --abbrev=0 --match 'v*' --exclude "$TAG" HEAD 2>/dev/null || true)
           PREV="${PREV_TAG#v}"
           awk -v v="$VERSION" -v p="$PREV" '
             index($0, "## [" v "]") == 1 { on = 1 }
@@ -52,11 +62,12 @@ jobs:
       - name: Créer la release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.version || github.ref_name }}
         run: |
+          # Lancement manuel : le tag n'existe pas encore, il est créé sur le commit testé
           gh release create "$TAG" \
             --title "$TAG" \
             --notes-file notes.md \
-            --verify-tag \
+            --target "$GITHUB_SHA" \
             "editeur-lheo-${TAG}.zip" \
             editeur-lheo-edof.html
