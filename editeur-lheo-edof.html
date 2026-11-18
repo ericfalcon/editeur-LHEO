@@ -6836,18 +6836,103 @@ function fetchBlocs(){
       }catch(e){reject(e);}
     });
   }
+  // Competences detaillees par bloc : texte CAPACITES_ATTESTEES du jeu Koumoul "competences-rncp".
+  // Facultatif : en cas d'echec, l'import continue avec la simple liste des blocs.
+  function withCapacites(data){
+    if(st)st.textContent='';
+    callApi(CF_WORKER_PROXY+'/proxy/koumoul/?qs='+encodeURIComponent('NUMERO_FICHE:'+rncp)+'&size=1&select=NUMERO_FICHE,CAPACITES_ATTESTEES',{})
+    .then(function(k){
+      var r=k&&k.results&&k.results[0];
+      applyRncpData(ff,rncp,data,st,(r&&r.NUMERO_FICHE===rncp)?r.CAPACITES_ATTESTEES:'');
+    })
+    .catch(function(){applyRncpData(ff,rncp,data,st,'');});
+  }
   callApi(CF_WORKER_PROXY+'/proxy/apprentissage/?identifiant.rncp='+rncp, {})
-  .then(function(data){if(st)st.textContent='';applyRncpData(ff,rncp,data,st);})
+  .then(function(data){withCapacites(data);})
   .catch(function(e1){
     callApi('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,
       {'X-App-Token':API_APPRENTISSAGE_TOKEN})
-    .then(function(data){if(st)st.textContent='';applyRncpData(ff,rncp,data,st);})
+    .then(function(data){withCapacites(data);})
     .catch(function(e2){
       if(st)st.textContent='Echec';
       alert('Import impossible.\n\nErreur Worker : '+e1.message+'\nErreur proxy local : '+e2.message+'\n\nVerifiez que le Worker Cloudflare est bien deploye et actif.');
     });});}
 
-function applyRncpData(ff,rncp,data,st){
+// Decoupe le texte libre CAPACITES_ATTESTEES (France Competences / Koumoul) en competences,
+// regroupees par bloc quand les intitules des blocs y figurent.
+// blocs : [{code,intitule}] tries par code. Retourne le texte du champ Contenu, ou '' si rien d'exploitable.
+function rncpContenuDepuisCapacites(text,blocs,max){
+  max=max||3000;
+  text=String(text||'').replace(/\s+/g,' ').trim();
+  if(!text) return '';
+  // Version "normalisee" de meme longueur : minuscules, sans accents, apostrophes droites
+  function norm(s){
+    var o='';
+    for(var i=0;i<s.length;i++){
+      var c=s.charAt(i);
+      if(c==='’'||c==='‘') c="'";
+      o+=(c.normalize?c.normalize('NFD').charAt(0):c).toLowerCase();
+    }
+    return o;
+  }
+  var nt=norm(text);
+  // 1. Reperer chaque intitule de bloc dans le texte, dans l'ordre
+  var pos=[],from=0;
+  (blocs||[]).forEach(function(b){
+    var t=norm(String(b.intitule||'').replace(/\s+/g,' ').trim().replace(/[.\s]+$/,''));
+    if(t.length<8) return;
+    var i=nt.indexOf(t,from);
+    if(i<0) return;
+    pos.push({b:b,start:i,end:i+t.length});
+    from=i+t.length;
+  });
+  function clean(s){
+    return s.replace(/^[\s:;,.\-–•*\)]+/,'')        // separateurs en tete
+            .replace(/\s*(?:bloc\s*)?\d+\s*[.)\-–:]?\s*$/i,'') // numero du bloc suivant ("2." "3)")
+            .replace(/[\s;,]+$/,'').trim();
+  }
+  function items(seg){
+    seg=clean(seg);
+    if(!seg) return [];
+    var parts;
+    if(/\s[*•]\s|^[*•]\s/.test(' '+seg)) parts=seg.split(/\s*[*•]\s+/);
+    else if(/\s[-–]\s/.test(seg)) parts=seg.split(/\s+[-–]\s+/);
+    else {
+      // Pas de puces : couper avant un verbe a l'infinitif en majuscule ("... handicap Reperer ...")
+      parts=seg.replace(/([a-zà-ÿ0-9)\].;])\s+(?=[A-ZÀ-Ý][a-zà-ÿ]+(?:er|ir|re)\b)/g,'$1\n').split('\n');
+    }
+    return parts.map(function(p){return p.replace(/^[\s:;,\-–*•]+/,'').replace(/[\s;,.]+$/,'').trim();})
+                .filter(function(p){return p.length>=3;});
+  }
+  var lines=[];
+  if(pos.length){
+    var any=false;
+    pos.forEach(function(p,k){
+      var seg=text.slice(p.end,k+1<pos.length?pos[k+1].start:text.length);
+      var it=items(seg);
+      if(it.length) any=true;
+      lines.push({head:true,txt:p.b.intitule.replace(/[.\s]+$/,'')+' ('+p.b.code+')'+(it.length?' :':'')});
+      it.forEach(function(x){lines.push({txt:'- '+x});});
+    });
+    if(!any) lines=[]; // le texte ne fait que repeter les intitules des blocs
+  }
+  if(!lines.length){
+    // 2. Intitules introuvables : liste des competences sans regroupement
+    var it2=items(text);
+    if(it2.length<2) return '';
+    it2.forEach(function(x){lines.push({txt:'- '+x});});
+  }
+  // Assemblage, sans depasser max (on coupe a la derniere ligne complete)
+  var out='';
+  for(var j=0;j<lines.length;j++){
+    var add=(out?(lines[j].head?'\n\n':'\n'):'')+lines[j].txt;
+    if((out+add).length>max) break;
+    out+=add;
+  }
+  return out;
+}
+
+function applyRncpData(ff,rncp,data,st,capacites){
   var L=window._lheo;
   if(!data||!data[0]){alert(rncp+' introuvable dans France Competences');if(st)st.textContent='';return;}
   var d=data[0]; var maj=[];
@@ -6868,7 +6953,7 @@ function applyRncpData(ff,rncp,data,st){
   // NSF : nettoyer la lettre suffixe (ex: "312m" -> "312")
   var nsf=((d.domaines&&d.domaines.nsf&&d.domaines.nsf.rncp)||[]).map(function(x){
     return x.code.replace(/[^0-9]/g,'');
-  }).filter(Boolean);
+  }).filter(function(c,i,arr){return c&&arr.indexOf(c)===i;}); // dedoublonner ("333" et "333t" -> "333")
   if(nsf.length){ff.nsf=nsf.slice(0,3);maj.push('NSF ('+nsf.slice(0,3).join(', ')+')');}
 
   // ROME (toujours importer)
@@ -6881,6 +6966,28 @@ function applyRncpData(ff,rncp,data,st){
     blocs.sort(function(a,b){return a.code.localeCompare(b.code);});
     ff.blocsCompetences=blocs.map(function(b){return b.code+'||'+b.intitule;});
     maj.push(blocs.length+' blocs de competences');
+  }
+
+  // Objectif / Contenu / Resultats attendus : France Competences ne fournit pas de texte,
+  // on pre-remplit a partir de l'intitule et des blocs, uniquement si le champ est vide.
+  var titre=ff.intitule||intitule||rncp;
+  var certifTxt='« '+titre+' » ('+rncp+')';
+  if(!(ff.objectif||'').trim()){
+    ff.objectif='Acquérir les compétences nécessaires à l\'obtention de la certification '+certifTxt+'.';
+    maj.push('objectif (a completer)');
+  }
+  if(!(ff.contenu||'').trim()){
+    // De preference les competences de chaque bloc ; sinon la liste des blocs
+    var cont=rncpContenuDepuisCapacites(capacites,blocs,3000);
+    if(cont){ff.contenu=cont;maj.push('contenu : competences par bloc (a relire)');}
+    else if(blocs.length){
+      ff.contenu=blocs.map(function(b){return '- '+b.intitule+' ('+b.code+')';}).join('\n').slice(0,3000);
+      maj.push('contenu : liste des blocs (a completer)');
+    }
+  }
+  if(!(ff.resultats||'').trim()){
+    ff.resultats='Obtention de la certification '+certifTxt+(blocs.length?', ou validation d\'un ou plusieurs de ses '+blocs.length+' blocs de compétences.':'.');
+    maj.push('resultats attendus (a completer)');
   }
 
   ff.certif='O'; if(ff.objGen==='7') ff.objGen='6';
