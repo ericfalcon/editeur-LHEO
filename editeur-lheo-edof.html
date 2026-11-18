@@ -5782,21 +5782,15 @@ function fetchRS(){
   if(!/^RS\d+$/.test(rs)){alert('Format invalide. Exemples: RS5267 ou 5267');return;}
   var st=$('E_rs_status');
   if(st) st.textContent='Chargement '+rs+'...';
-  var num=rs.replace('RS','');
-  var pApi=fetch('https://api.francecompetences.fr/api/rs/'+num)
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-    .catch(function(){
-      return fetch('https://api.apprentissage.beta.gouv.fr/api/certification/v1?code_certif='+rs)
-        .then(function(r){return r.ok?r.json():null;})
-        .then(function(data){return data&&data[0]?data:null;})
-        .catch(function(){return null;});});
-  Promise.all([pApi,fetchFicheFC(rs)]).then(function(r){
-    var d=Array.isArray(r[0])?r[0][0]:r[0];
-    if(!d&&!r[1]){
+  // Fiche RS : jeu France Compétences "competences-rs" (Koumoul). Les autres sources essayées
+  // auparavant ne fonctionnaient pas : api.francecompetences.fr (inaccessible depuis le navigateur)
+  // et l'API apprentissage, qui ne connaît pas les codes RS et renvoie une autre certification.
+  fetchFicheFC(rs).then(function(row){
+    if(!row){
       if(st) st.textContent='';
-      alert(rs+' : impossible de récupérer les données (fiche introuvable ou connexion indisponible)');
+      alert(rs+' : fiche introuvable dans le Répertoire spécifique (ou connexion indisponible)');
       return;}
-    applyRSData(ff,rs,r[0],st,r[1]);
+    applyRSData(ff,rs,null,st,row);
   });
 }
 
@@ -7081,16 +7075,28 @@ function tronquer(t,max){
 function fcCodes(str,re){var out=[],m;re.lastIndex=0;
   while((m=re.exec(str||''))){if(out.indexOf(m[1])<0)out.push(m[1]);}return out;}
 
-// Récupère la ligne de la fiche (null si introuvable ou service indisponible)
+// Récupère la ligne de la fiche (null si introuvable ou service indisponible).
+// RNCP : jeu Koumoul "competences-rncp" via le Worker (/proxy/koumoul/).
+// RS   : jeu Koumoul "competences-rs" via le Worker (/proxy/koumoul-rs/) ; tant que cette route
+//        n'est pas déployée, appel direct à Koumoul (l'API autorise les appels depuis le navigateur).
+var KOUMOUL_RS_LINES='https://opendata.koumoul.com/data-fair/api/v1/datasets/competences-rs/lines';
 function fetchFicheFC(code){
-  var url=CF_WORKER_PROXY+'/proxy/koumoul/?qs='+encodeURIComponent('NUMERO_FICHE:"'+code+'"')+'&size=1';
-  return fetch(url).then(function(r){return r.ok?r.json():null;})
-    .then(function(d){
-      var row=d&&d.results&&d.results[0];
-      if(!row)return null;
-      var num=fcField(row,['NUMERO_FICHE','NUMERO','CODE']);
-      return (!num||num.toUpperCase()===code.toUpperCase())?row:null;})
-    .catch(function(){return null;});}
+  code=String(code||'').toUpperCase();
+  var q='qs='+encodeURIComponent('NUMERO_FICHE:"'+code+'"')+'&size=1';
+  var urls=/^RS/.test(code)
+    ?[CF_WORKER_PROXY+'/proxy/koumoul-rs/?'+q, KOUMOUL_RS_LINES+'?'+q]
+    :[CF_WORKER_PROXY+'/proxy/koumoul/?'+q];
+  function essai(i){
+    if(i>=urls.length)return Promise.resolve(null);
+    return fetch(urls[i]).then(function(r){return r.ok?r.json():null;})
+      .catch(function(){return null;})
+      .then(function(d){
+        var row=d&&d.results&&d.results[0];
+        if(!row)return essai(i+1);
+        var num=fcField(row,['NUMERO_FICHE','NUMERO','CODE']);
+        return (!num||num.toUpperCase()===code)?row:essai(i+1);});
+  }
+  return essai(0);}
 
 // Lit les informations utiles d'une ligne France Compétences
 function lireFicheFC(row){
@@ -7145,18 +7151,16 @@ function completerDepuisFC(ff,code,info,opts){
   var capable='À l\'issue de la formation, le stagiaire sera capable de :\n';
   var obj='';
   if(blocs.length)obj=capable+blocs.map(function(b){return '- '+(b.intitule||b.code).replace(/[.\s]+$/,'');}).join('\n');
-  else{
-    var capList=rncpContenuDepuisCapacites(info.capacites,[],3000); // capacités en liste à tirets
-    if(capList)obj=capable+capList;
-    else if(info.objectifs)obj=info.objectifs;
-    else if(info.activites)obj='Préparer la certification « '+titre+' » ('+code+') et être capable d\'exercer les activités suivantes :\n'+info.activites;
-  }
+  else if(info.capacites)
+    obj='À l\'issue de la formation, le stagiaire sera capable de mettre en œuvre les compétences évaluées par la certification « '+titre+' » ('+code+'), détaillées dans le contenu.';
+  else if(info.activites)obj='Préparer la certification « '+titre+' » ('+code+') et être capable d\'exercer les activités suivantes :\n'+info.activites;
   if(!obj)obj='Acquérir les compétences nécessaires à l\'obtention de la certification « '+titre+' » ('+code+').';
   remplir('objectif','objectif pédagogique',obj,3000);
 
   // Contenu : compétences par bloc, sinon liste des blocs, sinon activités visées ; + modalités d'évaluation si la place le permet
   // De préférence : les compétences de chaque bloc, extraites des capacités attestées
   var cont=rncpContenuDepuisCapacites(info.capacites,blocs,3000);
+  if(!cont&&!blocs.length&&info.capacites)cont='Compétences évaluées par la certification :\n'+info.capacites; // texte non découpable
   if(!cont&&blocs.length)cont='La formation est organisée selon les blocs de compétences de la certification :\n'+
     blocs.map(function(b){return '- '+b.code+(b.intitule?' : '+b.intitule:'');}).join('\n');
   else if(!cont&&info.activites)cont='Activités visées par la certification :\n'+info.activites;
@@ -7278,15 +7282,24 @@ function rncpContenuDepuisCapacites(text,blocs,max){
             .replace(/\s*(?:bloc\s*)?\d+\s*[.)\-–:]?\s*$/i,'') // numero du bloc suivant ("2." "3)")
             .replace(/[\s;,]+$/,'').trim();
   }
+  var NUMEROS=/(?:^|\s+)((?:Domaine\s+\d+\s*:|\d+\s*°|\d+\.\d+\.?|\d+\))\s)/g;
   function items(seg){
     seg=clean(seg);
     if(!seg) return [];
     var parts;
     if(/\s[*•]\s|^[*•]\s/.test(' '+seg)) parts=seg.split(/\s*[*•]\s+/);
     else if(/\s[-–]\s/.test(seg)) parts=seg.split(/\s+[-–]\s+/);
+    else if((seg.match(NUMEROS)||[]).length>=2){
+      // Liste numerotee : "1° ... ; 2° ...", "1.1 ... 1.2 ...", "1) ...", "Domaine 1 : ..."
+      parts=seg.replace(NUMEROS,'\n$1').split('\n').map(function(x){
+        return x.replace(/^(?:\d+\s*°|\d+\.\d+\.?|\d+\))\s*/,'');});
+    }
     else {
       // Pas de puces : couper avant un verbe a l'infinitif en majuscule ("... handicap Reperer ...")
-      parts=seg.replace(/([a-zà-ÿ0-9)\].;])\s+(?=[A-ZÀ-Ý][a-zà-ÿ]+(?:er|ir|re)\b)/g,'$1\n').split('\n');
+      // (jamais apres un article ou une preposition : "du Cadre europeen" n'est pas un verbe)
+      parts=seg.replace(/(\S*[a-zà-ÿ0-9)\].;])\s+(?=[A-ZÀ-Ý][a-zà-ÿ]+(?:er|ir|re)\b)/g,function(m0,prev){
+        return /^(?:du|de|des|le|la|les|au|aux|en|et|ou|un|une|par|pour|sur|avec|dans)$/i.test(prev)?m0:prev+'\n';
+      }).split('\n');
     }
     return parts.map(function(p){return p.replace(/^[\s:;,\-–*•]+/,'').replace(/[\s;,.]+$/,'').trim();})
                 .filter(function(p){return p.length>=3;});
@@ -7301,12 +7314,15 @@ function rncpContenuDepuisCapacites(text,blocs,max){
       lines.push({head:true,txt:p.b.intitule.replace(/[.\s]+$/,'')+' ('+p.b.code+')'+(it.length?' :':'')});
       it.forEach(function(x){lines.push({txt:'- '+x});});
     });
-    if(!any) lines=[]; // le texte ne fait que repeter les intitules des blocs
+    if(!any) return ''; // le texte ne fait que repeter les intitules des blocs
   }
   if(!lines.length){
     // 2. Intitules introuvables : liste des competences sans regroupement
+    var intro='',m=text.match(/^(.{20,250}?(?:comprend|comprennent|sont|suivantes?|suivants?)\s*:)\s*/i);
+    if(m){intro=m[1];text=text.slice(m[0].length);}
     var it2=items(text);
     if(it2.length<2) return '';
+    if(intro) lines.push({head:true,txt:intro});
     it2.forEach(function(x){lines.push({txt:'- '+x});});
   }
   // Assemblage, sans depasser max (on coupe a la derniere ligne complete)

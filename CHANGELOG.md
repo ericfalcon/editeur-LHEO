@@ -5,6 +5,10 @@ Format : `[version] — date — description`
 
 ---
 
+## [Non publié]
+- 🐛 **Import RS réparé** — il affichait toujours « impossible de récupérer les données » : aucune de ses sources ne fonctionnait (`api.francecompetences.fr` inaccessible depuis le navigateur ; l'API apprentissage ne connaît pas les codes RS et renvoyait une autre certification ; le jeu Koumoul interrogé ne contenait que les fiches RNCP). L'import lit désormais le jeu France Compétences **`competences-rs`** sur Koumoul : d'abord via le Worker (route `/proxy/koumoul-rs/`, à déployer), sinon par appel direct à Koumoul, qui l'autorise. Intitulé, FORMACODE, NSF, certificateur, prérequis et textes sont repris de la fiche.
+- ✨ Fiches sans blocs de compétences (RS) : l'objectif est une phrase courte et « Contenu » détaille les compétences évaluées (listes numérotées `1°`, `1.1`, « Domaine 1 : » et phrase d'introduction reconnues) ; à défaut, le texte de la fiche tel quel.
+
 ## [2.8.0] — 2026-11-16
 - ✨ **Import RNCP / RS : textes remplis depuis la fiche France Compétences** — lecture de la fiche descriptive complète (jeu France Compétences sur Koumoul, via le relais existant) en parallèle de l'API principale :
   - Objectif pédagogique ← « À l'issue de la formation, le stagiaire sera capable de : » + intitulés des blocs de compétences, le détail des compétences allant dans Contenu (sans blocs : *Capacités attestées* en liste, sinon *Objectifs et contexte* / *Activités visées*, sinon une phrase type)
