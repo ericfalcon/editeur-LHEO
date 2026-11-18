@@ -1,0 +1,62 @@
+# Publie une release GitHub à chaque tag de version (ex. v2.9.0) :
+# - notes de version tirées du CHANGELOG (toutes les sections depuis la release précédente)
+# - pièces jointes : editeur-lheo-edof.html seul, et un zip pour une utilisation en local
+#   (éditeur + mode d'emploi + LISEZMOI.txt)
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Préparer le zip et les notes de version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          grep -q "^## \[${VERSION}\]" CHANGELOG.md || { echo "::error::Section ## [${VERSION}] absente du CHANGELOG"; exit 1; }
+
+          # Release précédente (tag v* antérieur), pour reprendre toutes les versions intermédiaires du CHANGELOG
+          PREV_TAG=$(git describe --tags --abbrev=0 --match 'v*' "${TAG}^" 2>/dev/null || true)
+          PREV="${PREV_TAG#v}"
+          awk -v v="$VERSION" -v p="$PREV" '
+            index($0, "## [" v "]") == 1 { on = 1 }
+            p != "" && index($0, "## [" p "]") == 1 { on = 0 }
+            on' CHANGELOG.md > notes.md
+          {
+            echo
+            echo '---'
+            echo '### 📥 Installation'
+            echo "- **En ligne**, sans rien installer : https://ericfalcon.github.io/editeur-LHEO/editeur-lheo-edof.html"
+            echo "- **Sur votre ordinateur** : téléchargez \`editeur-lheo-${TAG}.zip\` ci-dessous, dézippez-le et double-cliquez sur \`editeur-lheo-edof.html\` (voir \`LISEZMOI.txt\`)."
+            echo
+            echo "Détail complet : [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/CHANGELOG.md)"
+          } >> notes.md
+
+          DIR="editeur-lheo-${TAG}"
+          mkdir "$DIR"
+          cp editeur-lheo-edof.html guide.html release/LISEZMOI.txt "$DIR/"
+          zip -r "${DIR}.zip" "$DIR"
+
+      - name: Créer la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file notes.md \
+            --verify-tag \
+            "editeur-lheo-${TAG}.zip" \
+            editeur-lheo-edof.html
