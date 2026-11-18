@@ -289,7 +289,7 @@ window.addEventListener('load', function() {
 // Initialisation globale des variables d'environnement (avant tout)
 window.isLocalProxy = (location.protocol==='http:' && (location.hostname==='localhost'||location.hostname==='127.0.0.1'));
 // Proxy CORS permanent (Cloudflare Worker) - remplace le besoin d'installer Python pour la plupart des usages.
-// Utilise en priorite ; le proxy local (localhost:8765) et l'appel direct restent des solutions de secours.
+// Le jeton de l'API apprentissage est conserve dans le Worker (secret Cloudflare), jamais dans cette page.
 var CF_WORKER_PROXY = 'https://editeur-lheo-proxy.eric-51c.workers.dev';
 window.isGitHubPages = (location.protocol==='https:' && location.hostname.indexOf('github.io')>=0);
 window.isFileLocal = (location.protocol==='file:');
@@ -3908,15 +3908,7 @@ window._fetchRncpTitre=function(rncp,titreEl,callback){
   xhrGet(CF_WORKER_PROXY+'/proxy/apprentissage/?identifiant.rncp='+rncp, {},
     function(err,data){
       if(!err&&data){applyTitre(data);}
-      else {
-        // Repli 1 : proxy local (si lancer-editeur.py encore utilise)
-        xhrGet('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,
-          {'X-App-Token':API_APPRENTISSAGE_TOKEN},
-          function(err2,data2){
-            if(!err2&&data2){applyTitre(data2);}
-            else if(callback)callback(false,'');
-          });
-      }
+      else if(callback)callback(false,'');
     });
 };
 
@@ -7024,8 +7016,6 @@ function onTypeOffreChange(val){
 }
 
 // Fonctions globales (hors listener pour portee globale)
-var API_APPRENTISSAGE_TOKEN='eyJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI2YTI2YTRjYzFhY2JkMTE1ODkwMTNjOTkiLCJhcGlfa2V5IjoidmVRU2c0YkhZajZMQ2x5T0lMdmlIbHhWYXpSbjBLUWZkSkFjZnAwMTQ2Yz0iLCJvcmdhbmlzYXRpb24iOm51bGwsImVtYWlsIjoiZXJpY0BlcmljZmFsY29uLmZyIiwiaXNzIjoiYXBpIiwiaWF0IjoxNzgwOTE3NDY4LCJleHAiOjE4MTI0NTM0Njh9.1Budg3pGoDG6GOrnjecfWG_9EibGbXnJHSJJ7hf6fGY';
-
 /* ==============================================================
    FICHE FRANCE COMPÉTENCES COMPLÈTE (RNCP / RS)
    Jeu de données France Compétences publié sur Koumoul (via le relais Cloudflare) :
@@ -7235,10 +7225,7 @@ function fetchBlocs(){
   }
   var errApp='';
   var pApp=callApi(CF_WORKER_PROXY+'/proxy/apprentissage/?identifiant.rncp='+rncp, {})
-    .catch(function(e1){
-      return callApi('http://localhost:8765/proxy/apprentissage/?identifiant.rncp='+rncp,
-        {'X-App-Token':API_APPRENTISSAGE_TOKEN})
-      .catch(function(e2){errApp='Erreur Worker : '+e1.message+'\nErreur proxy local : '+e2.message;return null;});});
+    .catch(function(e1){errApp='Erreur Worker : '+e1.message;return null;});
   Promise.all([pApp,fetchFicheFC(rncp)]).then(function(r){
     if(st)st.textContent='';
     if(!(r[0]&&r[0][0])&&!r[1]){

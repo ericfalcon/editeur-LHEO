@@ -7,8 +7,8 @@
 
 ## La recherche RNCP ne fonctionne pas
 
-**Cause** : Le serveur proxy local n'est pas démarré.  
-**Solution** : Lancer `lancer-editeur.py` et utiliser `http://localhost:8765`.
+**Cause** : Le relais Cloudflare (Worker `editeur-lheo-proxy`) ne répond pas, ou la connexion Internet est coupée.  
+**Solution** : Réessayer quelques instants plus tard. Si le problème persiste, vérifier dans le tableau de bord Cloudflare que le Worker est actif et que son secret `API_APPRENTISSAGE_TOKEN` est valide. Le serveur local `lancer-editeur.py` n'existe plus depuis la version 2.5.
 
 ## L'import XML échoue
 
