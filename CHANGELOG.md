@@ -7,9 +7,9 @@ Format : `[version] — date — description`
 
 ## [2.8.0] — 2026-11-16
 - ✨ **Import RNCP / RS : textes remplis depuis la fiche France Compétences** — lecture de la fiche descriptive complète (jeu France Compétences sur Koumoul, via le relais existant) en parallèle de l'API principale :
-  - Objectif pédagogique ← *Capacités attestées* (à défaut *Objectifs et contexte* / *Activités visées*)
+  - Objectif pédagogique ← « À l'issue de la formation, le stagiaire sera capable de : » + intitulés des blocs de compétences, le détail des compétences allant dans Contenu (sans blocs : *Capacités attestées* en liste, sinon *Objectifs et contexte* / *Activités visées*, sinon une phrase type)
   - Contenu ← **compétences de chaque bloc**, extraites des *Capacités attestées* et classées sous le bloc correspondant (à défaut : liste des blocs, ou *Activités visées*) + *Modalités d'évaluation*
-  - Résultats attendus ← obtention de la certification (code, niveau, certificateur), validation partielle par blocs, *Types d'emplois accessibles*
+  - Résultats attendus ← obtention de la certification (code, niveau, certificateur), validation partielle par blocs, *Types d'emplois accessibles* (mis en liste à tirets)
   - Points forts ← code, niveau, certificateur (255 car.)
   - Prérequis de chaque action ← *Prérequis à l'entrée en formation*
   - Seuls les champs vides sont remplis ; le récapitulatif liste les champs conservés. HTML de la fiche converti en texte (listes à tirets), troncature propre aux longueurs EDOF

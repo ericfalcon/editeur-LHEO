@@ -7060,6 +7060,19 @@ function fcTexte(html){
   var d=document.createElement('textarea');d.innerHTML=t;t=d.value;
   return t.replace(/\r/g,'').replace(/[ \t ]+/g,' ').replace(/ *\n */g,'\n')
     .replace(/\n{2,}- /g,'\n- ').replace(/\n{3,}/g,'\n\n').trim();}
+// Liste libre de la fiche ("* a * b", "a, b, c") -> une ligne "- " par élément
+function fcListeTirets(t){
+  t=String(t||'').trim();
+  if(!t)return '';
+  if(/(^|\s)[*\u2022]\s/.test(t)){
+    t=t.replace(/\s*(Possibilit\u00e9s d['\u2019]\u00e9volution\s*:?)\s*/gi,'\n\n$1\n')
+       .replace(/(^|\s+)[*\u2022]\s+/g,'\n- ')
+       .replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').replace(/^\n+/,'');
+    return t.replace(/\n\n- /g,'\n- ').trim();
+  }
+  if(t.indexOf('\n')<0&&/,\s/.test(t)&&!/\.\s/.test(t))
+    return t.split(/\s*,\s*/).filter(Boolean).map(function(x){return '- '+x;}).join('\n');
+  return t;}
 function tronquer(t,max){
   if(!t||t.length<=max)return t||'';
   var c=t.substring(0,max-1),cut=Math.max(c.lastIndexOf('\n'),c.lastIndexOf('. '));
@@ -7127,11 +7140,18 @@ function completerDepuisFC(ff,code,info,opts){
     if(ff[champ]&&String(ff[champ]).trim()){gardes.push(libelle);return;}
     ff[champ]=texte;maj.push(libelle);}
 
-  // Objectif pédagogique : capacités attestées, sinon objectifs et contexte / activités visées
+  // Objectif pédagogique : les grandes capacités (intitulés des blocs) ; le détail des
+  // compétences va dans Contenu, pour ne pas répéter le même texte dans les deux champs.
+  var capable='À l\'issue de la formation, le stagiaire sera capable de :\n';
   var obj='';
-  if(info.capacites)obj='À l\'issue de la formation, le stagiaire sera capable de :\n'+info.capacites;
-  else if(info.objectifs)obj=info.objectifs;
-  else if(info.activites)obj='Préparer la certification « '+titre+' » ('+code+') et être capable d\'exercer les activités suivantes :\n'+info.activites;
+  if(blocs.length)obj=capable+blocs.map(function(b){return '- '+(b.intitule||b.code).replace(/[.\s]+$/,'');}).join('\n');
+  else{
+    var capList=rncpContenuDepuisCapacites(info.capacites,[],3000); // capacités en liste à tirets
+    if(capList)obj=capable+capList;
+    else if(info.objectifs)obj=info.objectifs;
+    else if(info.activites)obj='Préparer la certification « '+titre+' » ('+code+') et être capable d\'exercer les activités suivantes :\n'+info.activites;
+  }
+  if(!obj)obj='Acquérir les compétences nécessaires à l\'obtention de la certification « '+titre+' » ('+code+').';
   remplir('objectif','objectif pédagogique',obj,3000);
 
   // Contenu : compétences par bloc, sinon liste des blocs, sinon activités visées ; + modalités d'évaluation si la place le permet
@@ -7148,7 +7168,8 @@ function completerDepuisFC(ff,code,info,opts){
     (niveau?', de niveau '+niveau+' du cadre national des certifications professionnelles':'')+
     (certif?', délivrée par '+certif:'')+'.';
   if(blocs.length||info.validationPartielle)res+='\nValidation partielle possible par blocs de compétences.';
-  if(info.emplois&&res.length+info.emplois.length<2900)res+='\n\nMétiers visés :\n'+info.emplois;
+  var emplois=fcListeTirets(info.emplois);
+  if(emplois&&res.length+emplois.length<2900)res+='\n\nMétiers visés :\n'+emplois;
   if(ff.typeOffre!=='vae')remplir('resultats','résultats attendus',res,3000);
 
   // Points forts (255 car.) : accroche factuelle
