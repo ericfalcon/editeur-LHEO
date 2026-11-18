@@ -6,6 +6,8 @@ Format : `[version] — date — description`
 ---
 
 ## [Non publié]
+- 🔒 **Jeton de l'API apprentissage retiré de la page** — il était lisible par tous dans la page publiée. Il ne servait qu'au repli vers l'ancien serveur local `localhost:8765`, supprimé depuis la version 2.5 : ce repli est retiré aussi. Le jeton est désormais conservé uniquement dans le Worker Cloudflare, comme secret ; l'ancien jeton a été révoqué.
+- 📝 FAQ et guide de démarrage : suppression des instructions sur le serveur local `lancer-editeur.py`, qui n'existe plus.
 - 🐛 **Import RS réparé** — il affichait toujours « impossible de récupérer les données » : aucune de ses sources ne fonctionnait (`api.francecompetences.fr` inaccessible depuis le navigateur ; l'API apprentissage ne connaît pas les codes RS et renvoyait une autre certification ; le jeu Koumoul interrogé ne contenait que les fiches RNCP). L'import lit désormais le jeu France Compétences **`competences-rs`** sur Koumoul : d'abord via le Worker (route `/proxy/koumoul-rs/`, à déployer), sinon par appel direct à Koumoul, qui l'autorise. Intitulé, FORMACODE, NSF, certificateur, prérequis et textes sont repris de la fiche.
 - ✨ Fiches sans blocs de compétences (RS) : l'objectif est une phrase courte et « Contenu » détaille les compétences évaluées (listes numérotées `1°`, `1.1`, « Domaine 1 : » et phrase d'introduction reconnues) ; à défaut, le texte de la fiche tel quel.
 
